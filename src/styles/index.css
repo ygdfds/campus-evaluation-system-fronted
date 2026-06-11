@@ -1,0 +1,19 @@
+/**
+ * 样式总入口
+ * 按顺序引入：Token → 主题 → 基础样式
+ */
+
+/* 1. 设计 Token（变量定义） */
+@import './tokens/color.css';
+@import './tokens/typography.css';
+@import './tokens/spacing.css';
+@import './tokens/radius.css';
+@import './tokens/shadow.css';
+@import './tokens/border.css';
+@import './tokens/component.css';
+
+/* 2. 主题（覆盖/扩展变量） */
+@import './theme/default.css';
+
+/* 3. 全局基础样式 */
+@import './base.css';

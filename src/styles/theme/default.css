@@ -1,0 +1,26 @@
+/**
+ * 默认主题（绿色系）
+ * 当前为 :root 默认值，无需额外覆盖
+ * 后续添加新主题时，通过 [data-theme="xxx"] 选择器覆盖变量
+ */
+
+/* 
+ * 示例：暗色主题（后续实现）
+ * [data-theme="dark"] {
+ *   --color-primary-500: #4caf50;
+ *   --color-bg-page: #1a1a2e;
+ *   --color-bg-card: #16213e;
+ *   --color-text-primary: #e0e0e0;
+ *   --color-text-regular: #cccccc;
+ *   --color-sidebar-bg: #0f3460;
+ *   ...
+ * }
+ *
+ * 示例：蓝色主题（后续实现）
+ * [data-theme="blue"] {
+ *   --color-primary-500: #1976d2;
+ *   --color-primary-600: #1565c0;
+ *   --color-primary-700: #0d47a1;
+ *   ...
+ * }
+ */

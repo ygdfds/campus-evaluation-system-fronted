@@ -1,0 +1,109 @@
+/**
+ * 组件 Token
+ * 按钮、弹窗、卡片等组件的样式变量
+ */
+:root {
+  /* ========== 按钮 Token ========== */
+  --btn-height-sm: 24px;
+  --btn-height-default: 32px;
+  --btn-height-lg: 40px;
+  --btn-padding-x-sm: var(--space-3);
+  --btn-padding-x-default: var(--space-4);
+  --btn-padding-x-lg: var(--space-5);
+  --btn-font-size-sm: var(--font-xs);
+  --btn-font-size-default: var(--font-base);
+  --btn-font-size-lg: var(--font-md);
+  --btn-border-radius: var(--radius-md);
+  --btn-font-weight: var(--font-weight-medium);
+
+  /* 主色按钮 */
+  --btn-primary-bg: var(--color-primary-500);
+  --btn-primary-hover-bg: var(--color-primary-600);
+  --btn-primary-active-bg: var(--color-primary-700);
+  --btn-primary-text: var(--color-text-white);
+  --btn-primary-shadow: var(--shadow-button);
+
+  /* 默认按钮 */
+  --btn-default-bg: var(--color-bg-card);
+  --btn-default-hover-bg: var(--color-bg-hover);
+  --btn-default-border: var(--color-border);
+  --btn-default-text: var(--color-text-regular);
+
+  /* 文字按钮 */
+  --btn-text-color: var(--color-text-secondary);
+  --btn-text-hover-color: var(--color-primary-500);
+
+  /* ========== 卡片 Token ========== */
+  --card-bg: var(--color-bg-card);
+  --card-border-radius: var(--radius-lg);
+  --card-padding: var(--space-5) var(--spacing-lg);
+  --card-shadow: var(--shadow-card);
+  --card-shadow-hover: var(--shadow-card-hover);
+  --card-border: var(--border-light);
+
+  /* 内容卡片 */
+  --card-section-bg: var(--color-bg-card);
+  --card-section-border-radius: var(--radius-lg);
+  --card-section-shadow: var(--shadow-sm);
+  --card-section-padding: var(--space-5) var(--spacing-lg);
+
+  /* ========== 弹窗/对话框 Token ========== */
+  --dialog-bg: var(--color-bg-card);
+  --dialog-border-radius: var(--radius-xl);
+  --dialog-shadow: var(--shadow-modal);
+  --dialog-padding: var(--space-6);
+  --dialog-header-font-size: var(--font-xl);
+  --dialog-header-font-weight: var(--font-weight-semibold);
+  --dialog-header-color: var(--color-text-primary);
+  --dialog-body-color: var(--color-text-regular);
+  --dialog-footer-border: var(--border-light);
+
+  /* ========== 输入框 Token ========== */
+  --input-height-sm: 24px;
+  --input-height-default: 32px;
+  --input-height-lg: 40px;
+  --input-padding-x: var(--space-3);
+  --input-font-size: var(--font-base);
+  --input-border-radius: var(--radius-md);
+  --input-border-color: var(--color-border);
+  --input-focus-border-color: var(--color-primary-500);
+  --input-bg: var(--color-bg-card);
+  --input-placeholder-color: var(--color-text-placeholder);
+
+  /* ========== 标签/徽章 Token ========== */
+  --tag-font-size: var(--font-xs);
+  --tag-padding: 2px var(--space-2);
+  --tag-border-radius: var(--radius-sm);
+  --tag-font-weight: var(--font-weight-semibold);
+
+  /* ========== 导航栏 Token ========== */
+  --nav-height: 64px;
+  --nav-bg: var(--color-bg-card);
+  --nav-shadow: var(--shadow-nav);
+  --nav-padding-x: var(--space-10);
+  --nav-item-padding: var(--space-2) var(--space-5);
+  --nav-item-font-size: var(--font-base);
+  --nav-item-color: var(--color-text-body);
+  --nav-item-active-color: var(--color-accent-user-700);
+  --nav-item-active-bg: var(--color-primary-50);
+  --nav-item-hover-color: var(--color-accent-user-700);
+  --nav-item-hover-bg: var(--color-bg-primary-hover);
+  --nav-item-border-radius: var(--radius-2xl);
+
+  /* ========== 侧边栏 Token ========== */
+  --sidebar-width: 220px;
+  --sidebar-width-collapsed: 64px;
+  --sidebar-bg: var(--color-sidebar-bg);
+  --sidebar-logo-height: var(--space-14);
+  --sidebar-logo-border: rgba(255, 255, 255, 0.1);
+
+  /* ========== 页面容器 Token ========== */
+  --page-max-width: 1200px;
+  --page-padding-x: var(--space-10);
+  --page-padding-y: var(--space-8);
+  --page-bg: var(--color-bg-page-alt);
+
+  /* ========== 布局栅格 Token ========== */
+  --grid-main-col: 760px;
+  --grid-gap: var(--spacing-lg);
+}

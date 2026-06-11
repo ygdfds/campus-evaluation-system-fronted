@@ -16,6 +16,14 @@ service.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
     }
+    // 打印请求信息
+    console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`)
+    if (config.params) {
+      console.log(`  Params:`, config.params)
+    }
+    if (config.data) {
+      console.log(`  Data:`, config.data)
+    }
     return config
   },
   (error) => {
@@ -27,6 +35,9 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   (response) => {
     const res = response.data
+    // 打印响应信息
+    console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`)
+    console.log(`  Status: ${response.status}`)
     if (res.code && res.code !== 200) {
       ElMessage.error(res.message || '请求失败')
       // token 过期或无效

@@ -1,0 +1,20 @@
+/**
+ * 边框 Token
+ */
+:root {
+  --border-width: 1px;
+  --border-width-2: 2px;
+  --border-style: solid;
+  --border-color: var(--color-border);
+  --border-color-light: var(--color-border-light);
+  --border-color-lighter: var(--color-border-lighter);
+  --border-color-dark: var(--color-border-dark);
+
+  /* 语义化边框 */
+  --border-base: var(--border-width) var(--border-style) var(--color-border);
+  --border-light: var(--border-width) var(--border-style) var(--color-border-light);
+  --border-lighter: var(--border-width) var(--border-style) var(--color-border-lighter);
+
+  /* 分割线 */
+  --divider-color: var(--color-border-light);
+}

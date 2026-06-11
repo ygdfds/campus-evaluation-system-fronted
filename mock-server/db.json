@@ -1,0 +1,369 @@
+{
+  "schools": [
+    {
+      "id": 1,
+      "tenantId": "T001",
+      "schoolName": "清华大学",
+      "status": "active"
+    },
+    {
+      "id": 2,
+      "tenantId": "T002",
+      "schoolName": "北京大学",
+      "status": "active"
+    },
+    {
+      "id": 3,
+      "tenantId": "T003",
+      "schoolName": "中国人民大学",
+      "status": "pending"
+    }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "tenantId": null,
+      "schoolId": null,
+      "username": "admin",
+      "password": "admin123",
+      "realName": "系统管理员",
+      "role": "system_admin",
+      "roleName": "系统管理员",
+      "email": "admin@platform.cn",
+      "phone": "13800000000",
+      "department": "信息中心",
+      "status": 1
+    },
+    {
+      "id": 2,
+      "tenantId": "T001",
+      "schoolId": 1,
+      "username": "school_admin",
+      "password": "123456",
+      "realName": "赵主任",
+      "role": "school_admin",
+      "roleName": "学校管理员",
+      "email": "admin@tsinghua.edu.cn",
+      "phone": "13800000001",
+      "department": "校办公室",
+      "status": 1
+    },
+    {
+      "id": 3,
+      "tenantId": "T001",
+      "schoolId": 1,
+      "username": "teacher",
+      "password": "123456",
+      "realName": "李老师",
+      "role": "staff",
+      "roleName": "教职工",
+      "email": "teacher@tsinghua.edu.cn",
+      "phone": "13800000002",
+      "workNo": "T2020001",
+      "department": "计算机科学与技术系",
+      "title": "副教授",
+      "status": 1
+    },
+    {
+      "id": 4,
+      "tenantId": "T001",
+      "schoolId": 1,
+      "username": "student",
+      "password": "123456",
+      "realName": "张同学",
+      "role": "student",
+      "roleName": "学生",
+      "email": "student@tsinghua.edu.cn",
+      "phone": "13800000003",
+      "studentNo": "2024001",
+      "department": "计算机科学与技术系",
+      "grade": "2024级",
+      "class": "1班",
+      "status": 1
+    },
+    {
+      "id": 5,
+      "tenantId": "T002",
+      "schoolId": 2,
+      "username": "pku_admin",
+      "password": "123456",
+      "realName": "钱主任",
+      "role": "school_admin",
+      "roleName": "学校管理员",
+      "email": "admin@pku.edu.cn",
+      "phone": "13800000004",
+      "department": "校办公室",
+      "status": 1
+    },
+    {
+      "id": 6,
+      "tenantId": "T002",
+      "schoolId": 2,
+      "username": "pku_teacher",
+      "password": "123456",
+      "realName": "孙老师",
+      "role": "staff",
+      "roleName": "教职工",
+      "email": "teacher@pku.edu.cn",
+      "phone": "13800000005",
+      "workNo": "T2020002",
+      "department": "信息科学技术学院",
+      "title": "教授",
+      "status": 1
+    },
+    {
+      "id": 7,
+      "tenantId": "T002",
+      "schoolId": 2,
+      "username": "pku_student",
+      "password": "123456",
+      "realName": "周同学",
+      "role": "student",
+      "roleName": "学生",
+      "email": "student@pku.edu.cn",
+      "phone": "13800000006",
+      "studentNo": "2024002",
+      "department": "信息科学技术学院",
+      "grade": "2024级",
+      "class": "2班",
+      "status": 1
+    }
+  ],
+  "tokens": [
+    {
+      "id": 1,
+      "token": "mock_token_1_1780987750054",
+      "userId": 1,
+      "createdAt": "2026-06-09T06:49:10.054Z",
+      "expiresAt": "2026-06-10T06:49:10.054Z"
+    },
+    {
+      "id": 2,
+      "token": "mock_token_7_1780987923257",
+      "userId": 7,
+      "createdAt": "2026-06-09T06:52:03.257Z",
+      "expiresAt": "2026-06-10T06:52:03.258Z"
+    },
+    {
+      "id": 3,
+      "token": "mock_token_4_1780991154944",
+      "userId": 4,
+      "createdAt": "2026-06-09T07:45:54.944Z",
+      "expiresAt": "2026-06-10T07:45:54.944Z"
+    },
+    {
+      "id": 4,
+      "token": "mock_token_3_1780991247570",
+      "userId": 3,
+      "createdAt": "2026-06-09T07:47:27.570Z",
+      "expiresAt": "2026-06-10T07:47:27.570Z"
+    },
+    {
+      "id": 5,
+      "token": "mock_token_1_1780991273923",
+      "userId": 1,
+      "createdAt": "2026-06-09T07:47:53.923Z",
+      "expiresAt": "2026-06-10T07:47:53.923Z"
+    },
+    {
+      "id": 6,
+      "token": "mock_token_4_1780994973899",
+      "userId": 4,
+      "createdAt": "2026-06-09T08:49:33.899Z",
+      "expiresAt": "2026-06-10T08:49:33.899Z"
+    },
+    {
+      "id": 7,
+      "token": "mock_token_3_1780995003310",
+      "userId": 3,
+      "createdAt": "2026-06-09T08:50:03.310Z",
+      "expiresAt": "2026-06-10T08:50:03.310Z"
+    },
+    {
+      "id": 8,
+      "token": "mock_token_4_1781053350203",
+      "userId": 4,
+      "createdAt": "2026-06-10T01:02:30.203Z",
+      "expiresAt": "2026-06-11T01:02:30.204Z"
+    },
+    {
+      "id": 9,
+      "token": "mock_token_4_1781142655332",
+      "userId": 4,
+      "createdAt": "2026-06-11T01:50:55.332Z",
+      "expiresAt": "2026-06-12T01:50:55.332Z"
+    }
+  ],
+  "tenantPlans": [
+    {
+      "id": 1,
+      "planName": "基础版",
+      "features": "支持500人以下评价，基础统计报表，标准表单模板",
+      "status": "active",
+      "maxUsers": 500,
+      "price": 0
+    },
+    {
+      "id": 2,
+      "planName": "专业版",
+      "features": "支持5000人评价，高级统计分析，自定义表单，数据导出",
+      "status": "active",
+      "maxUsers": 5000,
+      "price": 9800
+    },
+    {
+      "id": 3,
+      "planName": "旗舰版",
+      "features": "不限人数，全功能开放，专属定制，API对接，优先技术支持",
+      "status": "active",
+      "maxUsers": -1,
+      "price": 29800
+    }
+  ],
+  "onboardingApplications": [
+    {
+      "id": 1,
+      "schoolName": "复旦大学",
+      "creditCode": "12310000500000004A",
+      "contactName": "李处长",
+      "contactPhone": "13900000001",
+      "contactEmail": "lic@fudan.edu.cn",
+      "address": "上海市杨浦区邯郸路220号",
+      "planId": 2,
+      "planName": "专业版",
+      "status": "pending",
+      "rejectReason": null,
+      "createdAt": "2026-05-20T08:00:00.000Z",
+      "updatedAt": "2026-05-20T08:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "schoolName": "浙江大学",
+      "creditCode": "12330000500000005B",
+      "contactName": "王主任",
+      "contactPhone": "13900000002",
+      "contactEmail": "wang@zju.edu.cn",
+      "address": "杭州市西湖区余杭塘路866号",
+      "planId": 3,
+      "planName": "旗舰版",
+      "status": "approved",
+      "rejectReason": null,
+      "createdAt": "2026-05-15T10:00:00.000Z",
+      "updatedAt": "2026-05-18T14:00:00.000Z"
+    }
+  ],
+  "departments": [
+    {
+      "id": 1,
+      "schoolId": 1,
+      "deptName": "计算机科学与技术系",
+      "parentId": null
+    },
+    {
+      "id": 2,
+      "schoolId": 1,
+      "deptName": "电子工程系",
+      "parentId": null
+    },
+    {
+      "id": 3,
+      "schoolId": 1,
+      "deptName": "建筑学院",
+      "parentId": null
+    },
+    {
+      "id": 4,
+      "schoolId": 2,
+      "deptName": "信息科学技术学院",
+      "parentId": null
+    },
+    {
+      "id": 5,
+      "schoolId": 2,
+      "deptName": "光华管理学院",
+      "parentId": null
+    },
+    {
+      "id": 6,
+      "schoolId": 1,
+      "deptName": "软件工程方向",
+      "parentId": 1
+    },
+    {
+      "id": 7,
+      "schoolId": 1,
+      "deptName": "人工智能方向",
+      "parentId": 1
+    }
+  ],
+  "evaluationForms": [
+    {
+      "id": 1,
+      "schoolId": 1,
+      "formName": "食堂服务满意度调查",
+      "description": "对食堂菜品质量、服务态度、环境卫生等方面进行评价",
+      "status": "active",
+      "createdAt": "2026-03-01T00:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "schoolId": 1,
+      "formName": "宿舍管理服务质量评价",
+      "description": "对宿舍管理员服务、设施维护、安全管理等方面进行评价",
+      "status": "active",
+      "createdAt": "2026-03-15T00:00:00.000Z"
+    }
+  ],
+  "evaluations": [
+    {
+      "id": 1,
+      "formId": 1,
+      "userId": 4,
+      "schoolId": 1,
+      "score": 4,
+      "content": "菜品丰富，但排队时间较长",
+      "status": "submitted",
+      "createdAt": "2026-04-01T10:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "formId": 1,
+      "userId": 7,
+      "schoolId": 2,
+      "score": 5,
+      "content": "食堂环境很好，菜品口味不错",
+      "status": "submitted",
+      "createdAt": "2026-04-02T11:30:00.000Z"
+    },
+    {
+      "id": 3,
+      "formId": 2,
+      "userId": 4,
+      "schoolId": 1,
+      "score": 3,
+      "content": "热水器经常坏，希望及时维修",
+      "status": "submitted",
+      "createdAt": "2026-04-05T09:00:00.000Z"
+    },
+    {
+      "id": 4,
+      "formId": 1,
+      "userId": 3,
+      "schoolId": 1,
+      "score": 4,
+      "content": "教职工窗口价格实惠，推荐",
+      "status": "submitted",
+      "createdAt": "2026-04-10T12:00:00.000Z"
+    },
+    {
+      "id": 5,
+      "formId": 2,
+      "userId": 7,
+      "schoolId": 2,
+      "score": 5,
+      "content": "宿舍管理员非常负责，很热心",
+      "status": "submitted",
+      "createdAt": "2026-04-12T15:00:00.000Z"
+    }
+  ]
+}

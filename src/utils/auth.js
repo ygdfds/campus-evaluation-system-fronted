@@ -1,10 +1,11 @@
 /**
- * Token 工具类
+ * Token 与租户上下文工具类
  * 使用 sessionStorage 存储，关闭浏览器后自动销毁
  */
 
 const TOKEN_KEY = 'campus_token'
 const USER_INFO_KEY = 'campus_user_info'
+const TENANT_KEY = 'campus_tenant'
 
 /**
  * 获取 token
@@ -50,9 +51,33 @@ export function removeUserInfo() {
 }
 
 /**
+ * 获取租户上下文
+ */
+export function getTenant() {
+  const tenant = sessionStorage.getItem(TENANT_KEY)
+  return tenant ? JSON.parse(tenant) : null
+}
+
+/**
+ * 设置租户上下文
+ * @param {object} tenant - { tenantId, schoolId, schoolName }
+ */
+export function setTenant(tenant) {
+  sessionStorage.setItem(TENANT_KEY, JSON.stringify(tenant))
+}
+
+/**
+ * 移除租户上下文
+ */
+export function removeTenant() {
+  sessionStorage.removeItem(TENANT_KEY)
+}
+
+/**
  * 清除所有认证数据
  */
 export function clearAuth() {
   removeToken()
   removeUserInfo()
+  removeTenant()
 }

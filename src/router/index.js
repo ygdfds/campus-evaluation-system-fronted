@@ -1,8 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { getToken } from '@/utils/auth'
 import AuthLayoutView from '@/views/auth/AuthLayoutView.vue'
-import LoginForm from '@/components/LoginForm.vue'
+import SystemAdminLoginForm from '@/components/SystemAdminLoginForm.vue'
+import SchoolAdminLoginForm from '@/components/SchoolAdminLoginForm.vue'
+import UserLoginForm from '@/components/UserLoginForm.vue'
 import RegisterForm from '@/components/RegisterForm.vue'
+import ForgotPasswordForm from '@/components/ForgotPasswordForm.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -11,6 +14,7 @@ const router = createRouter({
       path: '/',
       redirect: '/login',
     },
+    // ==================== 认证模块 ====================
     {
       path: '/',
       component: AuthLayoutView,
@@ -18,8 +22,20 @@ const router = createRouter({
         {
           path: 'login',
           name: 'Login',
-          component: LoginForm,
-          meta: { title: '登录', guest: true },
+          component: UserLoginForm,
+          meta: { title: '用户登录', guest: true },
+        },
+        {
+          path: 'login/school',
+          name: 'SchoolLogin',
+          component: SchoolAdminLoginForm,
+          meta: { title: '学校管理端登录', guest: true },
+        },
+        {
+          path: 'login/sys',
+          name: 'SysAdminLogin',
+          component: SystemAdminLoginForm,
+          meta: { title: '系统维护', guest: true },
         },
         {
           path: 'register',
@@ -27,54 +43,82 @@ const router = createRouter({
           component: RegisterForm,
           meta: { title: '注册', guest: true },
         },
-      ],
-    },
-    // 用户端路由
-    {
-      path: '/user',
-      name: 'UserLayout',
-      component: () => import('@/views/user/UserLayoutView.vue'),
-      meta: { title: '用户中心', requiresAuth: true },
-      children: [
         {
-          path: 'dashboard',
-          name: 'UserDashboard',
-          component: () => import('@/views/user/DashboardView.vue'),
-          meta: { title: '首页' },
+          path: 'forgot-password',
+          name: 'ForgotPassword',
+          component: ForgotPasswordForm,
+          meta: { title: '忘记密码', guest: true },
         },
       ],
     },
-    // 部门管理端路由
+    // 学校入驻申请（独立页面）
     {
-      path: '/dept',
-      name: 'DeptLayout',
-      component: () => import('@/views/dept/DeptLayoutView.vue'),
-      meta: { title: '部门管理', requiresAuth: true, roles: ['dept_admin'] },
-      children: [
-        {
-          path: 'dashboard',
-          name: 'DeptDashboard',
-          component: () => import('@/views/dept/DashboardView.vue'),
-          meta: { title: '部门概览' },
-        },
-      ],
+      path: '/onboarding',
+      name: 'Onboarding',
+      component: () => import('@/views/auth/OnboardingView.vue'),
+      meta: { title: '学校入驻申请', guest: true },
     },
-    // 系统管理端路由
+    // ==================== 系统管理端 ====================
     {
       path: '/admin',
-      name: 'AdminLayout',
-      component: () => import('@/views/admin/AdminLayoutView.vue'),
-      meta: { title: '系统管理', requiresAuth: true, roles: ['system_admin', 'school_admin'] },
+      name: 'PlatformLayout',
+      component: () => import('@/views/admin/PlatformLayoutView.vue'),
+      meta: { title: '系统管理', requiresAuth: true, roles: ['system_admin'] },
       children: [
-        {
-          path: 'dashboard',
-          name: 'AdminDashboard',
-          component: () => import('@/views/admin/DashboardView.vue'),
-          meta: { title: '管理概览' },
-        },
+        { path: 'dashboard', name: 'AdminDashboard', component: () => import('@/views/admin/dashboard/DashboardView.vue'), meta: { title: '平台概览' } },
+        { path: 'tenants/list', name: 'AdminTenantList', component: () => import('@/views/admin/tenants/TenantListView.vue'), meta: { title: '租户列表' } },
+        { path: 'tenants/plans', name: 'AdminPlanList', component: () => import('@/views/admin/tenants/PlanListView.vue'), meta: { title: '套餐管理' } },
+        { path: 'onboarding/audit', name: 'AdminOnboardingAudit', component: () => import('@/views/admin/onboarding/AuditListView.vue'), meta: { title: '入驻审核' } },
       ],
     },
-    // 404
+    // ==================== 学校管理端 ====================
+    {
+      path: '/school',
+      name: 'SchoolLayout',
+      component: () => import('@/views/school/SchoolLayoutView.vue'),
+      meta: { title: '学校管理', requiresAuth: true, roles: ['school_admin'] },
+      children: [
+        { path: 'dashboard', name: 'SchoolDashboard', component: () => import('@/views/school/dashboard/DashboardView.vue'), meta: { title: '学校概览' } },
+        { path: 'org/departments', name: 'SchoolDeptList', component: () => import('@/views/school/org/DepartmentListView.vue'), meta: { title: '院系管理' } },
+        { path: 'users/staff', name: 'SchoolStaffList', component: () => import('@/views/school/users/StaffListView.vue'), meta: { title: '教职工管理' } },
+        { path: 'users/student', name: 'SchoolStudentList', component: () => import('@/views/school/users/StudentListView.vue'), meta: { title: '学生管理' } },
+        { path: 'form/list', name: 'SchoolFormList', component: () => import('@/views/school/form/FormListView.vue'), meta: { title: '表单列表' } },
+        { path: 'audit/list', name: 'SchoolAuditList', component: () => import('@/views/school/audit/AuditListView.vue'), meta: { title: '审核列表' } },
+      ],
+    },
+    // ==================== 教职工端 ====================
+    {
+      path: '/staff',
+      name: 'StaffLayout',
+      component: () => import('@/views/TopNavLayoutView.vue'),
+      meta: { title: '教职工端', requiresAuth: true, roles: ['staff'] },
+      children: [
+        { path: 'dashboard', name: 'StaffDashboard', component: () => import('@/views/staff/dashboard/DashboardView.vue'), meta: { title: '我的概览' } },
+        { path: 'evaluation/results', name: 'StaffEvalResults', component: () => import('@/views/staff/evaluation/ResultsView.vue'), meta: { title: '评价结果' } },
+        { path: 'department', name: 'StaffDepartment', component: () => import('@/views/staff/department/DepartmentView.vue'), meta: { title: '部门管理' } },
+      ],
+    },
+    // ==================== 学生端 ====================
+    {
+      path: '/student',
+      name: 'StudentLayout',
+      component: () => import('@/views/TopNavLayoutView.vue'),
+      meta: { title: '学生端', requiresAuth: true, roles: ['student'] },
+      children: [
+        { path: 'dashboard', name: 'StudentDashboard', component: () => import('@/views/student/dashboard/DashboardView.vue'), meta: { title: '我的概览' } },
+        { path: 'evaluation/submit', name: 'StudentEvalSubmit', component: () => import('@/views/student/evaluation/SubmitView.vue'), meta: { title: '提交评价' } },
+        { path: 'evaluation/history', name: 'StudentEvalHistory', component: () => import('@/views/student/evaluation/HistoryView.vue'), meta: { title: '评价历史' } },
+        { path: 'complaint', name: 'StudentComplaint', component: () => import('@/views/student/complaint/ComplaintView.vue'), meta: { title: '投诉建议' } },
+      ],
+    },
+    // ==================== 个人信息（所有角色） ====================
+    {
+      path: '/profile',
+      name: 'Profile',
+      component: () => import('@/views/profile/ProfileView.vue'),
+      meta: { title: '个人信息', requiresAuth: true },
+    },
+    // ==================== 404 ====================
     {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
@@ -83,6 +127,14 @@ const router = createRouter({
     },
   ],
 })
+
+// 角色对应的默认首页
+const roleDashboardMap = {
+  system_admin: 'AdminDashboard',
+  school_admin: 'SchoolDashboard',
+  staff: 'StaffDashboard',
+  student: 'StudentDashboard',
+}
 
 // 路由守卫
 router.beforeEach((to, from, next) => {
@@ -98,18 +150,22 @@ router.beforeEach((to, from, next) => {
       return
     }
     // 角色权限校验
+    const userInfo = JSON.parse(sessionStorage.getItem('campus_user_info') || '{}')
     if (to.meta.roles && to.meta.roles.length > 0) {
-      const userInfo = JSON.parse(sessionStorage.getItem('campus_user_info') || '{}')
       if (!to.meta.roles.includes(userInfo.role)) {
-        next({ name: 'UserDashboard' })
+        // 无权访问，跳转到角色对应的首页
+        const defaultRoute = roleDashboardMap[userInfo.role]
+        next({ name: defaultRoute || 'StudentDashboard' })
         return
       }
     }
   }
 
-  // 已登录用户访问登录/注册页，重定向到首页
+  // 已登录用户访问 guest 页面（登录/注册/入驻等），根据角色跳转到对应首页
   if (to.meta.guest && token) {
-    next({ name: 'UserDashboard' })
+    const userInfo = JSON.parse(sessionStorage.getItem('campus_user_info') || '{}')
+    const defaultRoute = roleDashboardMap[userInfo.role]
+    next({ name: defaultRoute || 'StudentDashboard' })
     return
   }
 

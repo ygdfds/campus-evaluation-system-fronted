@@ -22,7 +22,7 @@ const router = useRouter()
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f7fa;
+  background: var(--color-bg-page);
 }
 
 .content {
@@ -30,16 +30,16 @@ const router = useRouter()
 }
 
 .error-code {
-  font-size: 120px;
-  font-weight: 700;
-  color: #409eff;
+  font-size: var(--font-display);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary-500);
   margin: 0;
-  line-height: 1;
+  line-height: var(--line-height-tight);
 }
 
 .error-msg {
-  font-size: 18px;
-  color: #666;
-  margin: 16px 0 32px;
+  font-size: var(--font-xl);
+  color: var(--color-text-secondary);
+  margin: var(--space-4) 0 var(--space-8);
 }
 </style>

@@ -2,9 +2,11 @@
 import { ref, reactive, provide } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, Lock, ArrowRight, View, Hide } from '@element-plus/icons-vue'
+import { User, Lock, ArrowRight, View, Hide, School } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { loginApi } from '@/api/auth'
+
+defineOptions({ name: 'SchoolAdminLoginForm' })
 
 const router = useRouter()
 const route = useRoute()
@@ -45,7 +47,6 @@ function generateCaptcha() {
 
 generateCaptcha()
 
-// 提供给父布局的测试账号填充方法
 provide('fillTestAccount', (username, password) => {
   loginForm.username = username
   loginForm.password = password
@@ -71,14 +72,7 @@ async function handleLogin() {
     if (redirect) {
       router.push(redirect)
     } else {
-      const role = res.data.userInfo.role
-      if (role === 'dept_admin') {
-        router.push('/dept/dashboard')
-      } else if (role === 'system_admin' || role === 'school_admin') {
-        router.push('/admin/dashboard')
-      } else {
-        router.push('/user/dashboard')
-      }
+      router.push('/school/dashboard')
     }
   } catch (err) {
     ElMessage.error(err.message || '登录失败，请检查账号和密码')
@@ -88,14 +82,20 @@ async function handleLogin() {
   }
 }
 
-function goToRegister() {
-  router.push('/register')
+function goToForgotPassword() {
+  router.push('/forgot-password')
 }
 </script>
 
 <template>
   <div class="form-card">
-    <h2 class="form-title">登录</h2>
+    <div class="form-header">
+      <div class="header-icon">
+        <el-icon :size="28"><School /></el-icon>
+      </div>
+      <h2 class="form-title">学校管理端登录</h2>
+      <p class="form-subtitle">学校管理员专属入口</p>
+    </div>
 
     <el-form
       ref="formRef"
@@ -108,9 +108,9 @@ function goToRegister() {
         <label class="form-label">账号</label>
         <el-input
           v-model="loginForm.username"
-          placeholder="请输入学号/工号/账号"
+          placeholder="请输入学校管理员账号"
           :prefix-icon="User"
-          clearable
+          
         />
       </div>
 
@@ -121,7 +121,7 @@ function goToRegister() {
           :type="showPassword ? 'text' : 'password'"
           placeholder="请输入登录密码"
           :prefix-icon="Lock"
-          clearable
+          
         >
           <template #suffix>
             <el-icon
@@ -142,7 +142,7 @@ function goToRegister() {
             v-model="captchaText"
             placeholder="请输入验证码"
             class="captcha-input"
-            clearable
+            
             @keyup.enter="handleLogin"
           />
           <div class="captcha-image" @click="generateCaptcha" title="点击刷新验证码">
@@ -153,11 +153,11 @@ function goToRegister() {
 
       <div class="form-options">
         <el-checkbox v-model="loginForm.remember">记住身份</el-checkbox>
-        <el-link type="success" :underline="false">忘记密码？</el-link>
+        <el-link type="primary" underline="never" @click="goToForgotPassword">忘记密码？</el-link>
       </div>
 
       <el-button
-        type="success"
+        type="primary"
         class="login-btn"
         :loading="loading"
         @click="handleLogin"
@@ -167,10 +167,10 @@ function goToRegister() {
       </el-button>
     </el-form>
 
-    <div class="register-link">
+    <div class="footer-links">
       <span>还没有账号？</span>
-      <el-link type="success" :underline="false" @click="goToRegister">
-        立即注册
+      <el-link type="primary" underline="never" @click="$router.push('/onboarding')">
+        学校入驻申请
       </el-link>
     </div>
   </div>
@@ -180,57 +180,69 @@ function goToRegister() {
 .form-card {
   width: 100%;
   max-width: 460px;
-  background: #fff;
-  border-radius: 16px;
-  padding: 36px 32px 28px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  padding: var(--space-10) var(--space-8) var(--space-8);
+  box-shadow: var(--shadow-xl);
   animation: fadeInRight 0.4s ease;
 }
 
-@keyframes fadeInRight {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.form-header {
+  text-align: center;
+  margin-bottom: var(--space-6);
+}
+
+.header-icon {
+  width: 56px;
+  height: 56px;
+  background: var(--color-primary-50);
+  border-radius: var(--radius-xl);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary-500);
+  margin-bottom: var(--space-3);
 }
 
 .form-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 24px;
+  font-size: var(--font-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-1);
+}
+
+.form-subtitle {
+  font-size: var(--font-sm);
+  color: var(--color-text-placeholder);
+  margin: 0;
 }
 
 .form-group {
-  margin-bottom: 18px;
+  margin-bottom: var(--space-5);
 }
 
 .form-label {
   display: block;
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 8px;
+  font-size: var(--font-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-regular);
+  margin-bottom: var(--space-2);
 }
 
 .password-toggle {
   cursor: pointer;
-  color: #999;
-  font-size: 18px;
+  color: var(--color-text-placeholder);
+  font-size: var(--font-xl);
   transition: color 0.2s;
 }
 
 .password-toggle:hover {
-  color: #2d6a2e;
+  color: var(--color-accent-500);
 }
 
 .captcha-row {
   display: flex;
-  gap: 10px;
+  gap: var(--space-3);
   align-items: center;
 }
 
@@ -241,16 +253,17 @@ function goToRegister() {
 .captcha-image {
   width: 96px;
   height: 40px;
-  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-  border: 1px solid #a5d6a7;
-  border-radius: 6px;
+  background: linear-gradient(135deg, var(--color-accent-50), var(--color-accent-100));
+  border: var(--border-base);
+  border-color: var(--color-accent-200);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  font-weight: 700;
-  color: #2d6a2e;
-  letter-spacing: 4px;
+  font-size: var(--font-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent-500);
+  letter-spacing: var(--letter-spacing-wider);
   cursor: pointer;
   user-select: none;
   flex-shrink: 0;
@@ -265,45 +278,45 @@ function goToRegister() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .login-btn {
   width: 100%;
   height: 46px;
-  font-size: 16px;
-  font-weight: 600;
-  border-radius: 10px;
-  background: #2d6a2e;
-  border-color: #2d6a2e;
-  letter-spacing: 4px;
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-lg);
+  background: var(--color-primary-500);
+  border-color: var(--color-primary-500);
+  letter-spacing: var(--letter-spacing-wider);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .login-btn:hover {
-  background: #245a25;
-  border-color: #245a25;
+  background: var(--color-primary-600);
+  border-color: var(--color-primary-600);
 }
 
 .btn-arrow {
-  font-size: 18px;
+  font-size: var(--font-xl);
 }
 
-.register-link {
+.footer-links {
   text-align: center;
-  margin-top: 20px;
-  font-size: 14px;
-  color: #666;
+  margin-top: var(--space-5);
+  font-size: var(--font-base);
+  color: var(--color-text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
-.register-link .el-link {
-  font-weight: 600;
+.footer-links .el-link {
+  font-weight: var(--font-weight-semibold);
 }
 </style>

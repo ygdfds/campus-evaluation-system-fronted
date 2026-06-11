@@ -1,0 +1,112 @@
+/**
+ * 颜色 Token
+ * 所有颜色值统一在此管理，禁止在 .vue 文件中硬编码颜色
+ */
+:root {
+  /* ========== 主色（绿色系） ========== */
+  --color-primary-50: #e8f5e9;
+  --color-primary-100: #c8e6c9;
+  --color-primary-200: #a5d6a7;
+  --color-primary-300: #81c784;
+  --color-primary-400: #66bb6a;
+  --color-primary-500: #2d6a2e;
+  --color-primary-600: #245a25;
+  --color-primary-700: #1b4a1c;
+
+  /* 主色语义别名 */
+  --color-primary: var(--color-primary-500);
+  --color-primary-hover: var(--color-primary-600);
+  --color-primary-active: var(--color-primary-700);
+  --color-primary-light: var(--color-primary-50);
+
+  /* ========== 辅色 - 系统管理端（蓝灰） ========== */
+  --color-accent-sys-50: #eceff1;
+  --color-accent-sys-100: #cfd8dc;
+  --color-accent-sys-200: #b0bec5;
+  --color-accent-sys-300: #90a4ae;
+  --color-accent-sys-400: #78909c;
+  --color-accent-sys-500: #546e7a;
+  --color-accent-sys-600: #455a64;
+  --color-accent-sys-700: #37474f;
+
+  /* ========== 辅色 - 学校管理端（青绿） ========== */
+  --color-accent-school-50: #e0f2f1;
+  --color-accent-school-100: #b2dfdb;
+  --color-accent-school-200: #80cbc4;
+  --color-accent-school-300: #4db6ac;
+  --color-accent-school-400: #26a69a;
+  --color-accent-school-500: #00897b;
+  --color-accent-school-600: #00796b;
+  --color-accent-school-700: #00695c;
+
+  /* ========== 辅色 - 用户端（浅绿） ========== */
+  --color-accent-user-50: #e8f5e9;
+  --color-accent-user-100: #c8e6c9;
+  --color-accent-user-200: #a5d6a7;
+  --color-accent-user-300: #81c784;
+  --color-accent-user-400: #66bb6a;
+  --color-accent-user-500: #43a047;
+  --color-accent-user-600: #388e3c;
+  --color-accent-user-700: #2e7d32;
+
+  /* ========== 功能色 ========== */
+  --color-success: #67c23a;
+  --color-success-light: #f0f9eb;
+  --color-warning: #e6a23c;
+  --color-warning-light: #fdf6ec;
+  --color-danger: #f56c6c;
+  --color-danger-light: #fef0f0;
+  --color-info: #909399;
+  --color-info-light: #f4f4f5;
+
+  /* ========== 中性色 - 文字 ========== */
+  --color-text-primary: #1a1a1a;
+  --color-text-heading: #1a202c;
+  --color-text-regular: #333333;
+  --color-text-secondary: #666666;
+  --color-text-muted: #718096;
+  --color-text-placeholder: #999999;
+  --color-text-disabled: #c0c4cc;
+  --color-text-muted-light: #a0aec0;
+  --color-text-body: #4a5568;
+  --color-text-white: #ffffff;
+
+  /* ========== 中性色 - 背景 ========== */
+  --color-bg-page: #f5f7fa;
+  --color-bg-page-alt: #f7fbf8;
+  --color-bg-card: #ffffff;
+  --color-bg-light: #fafafa;
+  --color-bg-hover: #f5f5f5;
+  --color-bg-subtle: #f8f9fa;
+  --color-bg-primary-hover: #f0f7f0;
+
+  /* ========== 中性色 - 边框 ========== */
+  --color-border: #e4e7ed;
+  --color-border-light: #ebeef5;
+  --color-border-lighter: #edf2f7;
+  --color-border-dark: #dcdfe6;
+
+  /* ========== 侧边栏 ========== */
+  --color-sidebar-bg: #304156;
+  --color-sidebar-text: #bfcbd9;
+  --color-sidebar-active: var(--color-primary-500);
+  --color-sidebar-hover-bg: rgba(255, 255, 255, 0.05);
+
+  /* ========== 遮罩/装饰 ========== */
+  --color-overlay: rgba(0, 0, 0, 0.5);
+  --color-decoration: rgba(45, 106, 46, 0.035);
+
+  /* ========== 轮播图渐变遮罩 ========== */
+  --color-carousel-gradient-dark-1: rgba(26, 32, 44, 0.58);
+  --color-carousel-gradient-dark-2: rgba(26, 32, 44, 0.18);
+  --color-carousel-gradient-dark-3: rgba(26, 32, 44, 0);
+  --color-carousel-tag-bg: rgba(232, 245, 233, 0.9);
+  --color-carousel-time-text: rgba(255, 255, 255, 0.8);
+
+  /* ========== 组件叠加色 ========== */
+  --color-overlay-white-20: rgba(255, 255, 255, 0.2);
+  --color-overlay-white-60: rgba(255, 255, 255, 0.6);
+  --color-overlay-white-70: rgba(255, 255, 255, 0.7);
+  --color-overlay-white-80: rgba(255, 255, 255, 0.8);
+  --color-overlay-white-90: rgba(255, 255, 255, 0.9);
+}

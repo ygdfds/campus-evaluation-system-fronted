@@ -1,0 +1,19 @@
+/**
+ * 阴影 Token
+ */
+:root {
+  --shadow-none: none;
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10);
+  --shadow-xl: 0 12px 40px rgba(0, 0, 0, 0.12);
+
+  /* 语义化阴影 */
+  --shadow-card: var(--shadow-md);
+  --shadow-card-hover: var(--shadow-lg);
+  --shadow-dropdown: var(--shadow-lg);
+  --shadow-modal: var(--shadow-xl);
+  --shadow-button: 0 4px 16px rgba(45, 106, 46, 0.3);
+  --shadow-nav: 0 1px 4px rgba(0, 0, 0, 0.06);
+}

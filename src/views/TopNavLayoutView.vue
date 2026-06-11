@@ -1,0 +1,280 @@
+<script setup>
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { SwitchButton, ArrowDown, Bell } from '@element-plus/icons-vue'
+
+defineOptions({ name: 'TopNavLayoutView' })
+
+const route = useRoute()
+const router = useRouter()
+const userStore = useUserStore()
+
+const navMenus = computed(() => {
+  const role = userStore.role
+  if (role === 'student') {
+    return [
+      { title: '首页', path: '/student/dashboard' },
+      { title: '服务评价', path: '/student/evaluation/submit' },
+      { title: '我的评价', path: '/student/evaluation/history' },
+      { title: '投诉建议', path: '/student/complaint' },
+      { title: '帮助中心', path: '/student/help' },
+    ]
+  }
+  if (role === 'staff') {
+    return [
+      { title: '首页', path: '/staff/dashboard' },
+      { title: '评价结果', path: '/staff/evaluation/results' },
+      { title: '部门管理', path: '/staff/department' },
+      { title: '帮助中心', path: '/staff/help' },
+    ]
+  }
+  return []
+})
+
+function handleNavClick(path) {
+  router.push(path)
+}
+
+function handleLogout() {
+  userStore.logout()
+  router.push('/login')
+}
+</script>
+
+<template>
+  <div class="topnav-layout">
+    <!-- 背景氛围圆 -->
+    <div class="bg-ambiance">
+      <div class="ambiance-circle circle-tr" />
+      <div class="ambiance-circle circle-bl" />
+    </div>
+
+    <!-- 顶部导航栏 64px -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="nav-brand" @click="router.push('/')">
+          <div class="brand-icon">评</div>
+          <span class="brand-text">校园服务质量在线评测系统</span>
+        </div>
+        <nav class="nav-menu">
+          <span
+            v-for="menu in navMenus"
+            :key="menu.path"
+            class="nav-item"
+            :class="{ active: route.path === menu.path }"
+            @click="handleNavClick(menu.path)"
+          >
+            {{ menu.title }}
+          </span>
+        </nav>
+      </div>
+      <div class="nav-right">
+        <el-button text class="nav-icon-btn">
+          <el-icon :size="20"><Bell /></el-icon>
+        </el-button>
+        <el-dropdown trigger="click">
+          <span class="user-trigger">
+            <span class="user-name">{{ userStore.realName }}</span>
+            <el-tag size="small" effect="plain" class="role-tag">{{ userStore.roleName }}</el-tag>
+            <el-icon :size="14"><ArrowDown /></el-icon>
+          </span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="router.push('/profile')">个人信息</el-dropdown-item>
+              <el-dropdown-item divided @click="handleLogout">
+                <el-icon><SwitchButton /></el-icon>退出登录
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="nav-main">
+      <router-view />
+    </main>
+  </div>
+</template>
+
+<style scoped>
+.topnav-layout {
+  min-height: 100vh;
+  background: var(--page-bg);
+  position: relative;
+}
+
+/* 背景氛围圆 */
+.bg-ambiance {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.ambiance-circle {
+  position: absolute;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-user-700);
+}
+
+.circle-tr {
+  width: 500px;
+  height: 500px;
+  top: -200px;
+  right: -100px;
+  opacity: 0.06;
+}
+
+.circle-bl {
+  width: 400px;
+  height: 400px;
+  bottom: -150px;
+  left: -100px;
+  opacity: 0.05;
+}
+
+/* 顶部导航栏 */
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--nav-padding-x);
+  background: var(--nav-bg);
+  box-shadow: var(--nav-shadow);
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.brand-icon {
+  width: var(--space-9);
+  height: var(--space-9);
+  background: var(--color-accent-user-700);
+  color: var(--color-text-white);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.brand-text {
+  font-size: var(--font-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-heading);
+  white-space: nowrap;
+}
+
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.nav-item {
+  padding: var(--nav-item-padding);
+  font-size: var(--nav-item-font-size);
+  color: var(--nav-item-color);
+  border-radius: var(--nav-item-border-radius);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-weight: var(--font-weight-normal);
+}
+
+.nav-item:hover {
+  color: var(--nav-item-hover-color);
+  background: var(--nav-item-hover-bg);
+}
+
+.nav-item.active {
+  color: var(--nav-item-active-color);
+  background: var(--nav-item-active-bg);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* 右侧 */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.nav-icon-btn {
+  color: var(--color-text-muted);
+}
+
+.nav-icon-btn:hover {
+  color: var(--color-accent-user-700);
+}
+
+.user-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  transition: background 0.2s;
+}
+
+.user-trigger:hover {
+  background: var(--color-bg-hover);
+}
+
+.user-name {
+  font-size: var(--font-base);
+  color: var(--color-text-heading);
+  font-weight: var(--font-weight-medium);
+}
+
+.role-tag {
+  font-size: var(--font-xs);
+}
+
+/* 主内容区 */
+.nav-main {
+  position: relative;
+  z-index: 1;
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  padding: var(--page-padding-y) var(--page-padding-x) var(--space-12);
+}
+
+@media (max-width: 768px) {
+  .top-nav {
+    padding: 0 var(--spacing-base);
+  }
+  .nav-left {
+    gap: var(--spacing-base);
+  }
+  .brand-text {
+    display: none;
+  }
+  .nav-main {
+    padding: var(--spacing-base);
+  }
+}
+</style>
