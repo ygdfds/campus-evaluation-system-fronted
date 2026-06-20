@@ -106,9 +106,16 @@ const router = createRouter({
       meta: { title: '学生端', requiresAuth: true, roles: ['student'] },
       children: [
         { path: 'dashboard', name: 'StudentDashboard', component: () => import('@/views/student/dashboard/DashboardView.vue'), meta: { title: '我的概览' } },
-        { path: 'evaluation/submit', name: 'StudentEvalSubmit', component: () => import('@/views/student/evaluation/SubmitView.vue'), meta: { title: '提交评价' } },
-        { path: 'evaluation/history', name: 'StudentEvalHistory', component: () => import('@/views/student/evaluation/HistoryView.vue'), meta: { title: '评价历史' } },
+        { path: 'announcements', name: 'StudentAnnouncementList', component: () => import('@/views/student/announcement/AnnouncementListView.vue'), meta: { title: '校园公告' } },
+        { path: 'announcements/:id', name: 'StudentAnnouncementDetail', component: () => import('@/views/student/announcement/AnnouncementDetailView.vue'), meta: { title: '公告详情' } },
+        { path: 'evaluations', name: 'StudentEvaluationTasks', component: () => import('@/views/student/evaluation/TasksView.vue'), meta: { title: '评价中心', showGlobalSearch: false } },
+        { path: 'evaluations/:taskId/submit', name: 'StudentEvalSubmit', component: () => import('@/views/student/evaluation/SubmitView.vue'), meta: { title: '提交评价' } },
+        { path: 'my-evaluations', name: 'StudentEvalHistory', component: () => import('@/views/student/evaluation/HistoryView.vue'), meta: { title: '我的评价' } },
+        { path: 'evaluation/history', redirect: { name: 'StudentEvalHistory' } },
         { path: 'complaint', name: 'StudentComplaint', component: () => import('@/views/student/complaint/ComplaintView.vue'), meta: { title: '投诉建议' } },
+        { path: 'profile', name: 'StudentProfile', component: () => import('@/views/student/profile/StudentProfileView.vue'), meta: { title: '个人信息' } },
+        { path: 'help', name: 'StudentHelp', component: () => import('@/views/student/help/HelpView.vue'), meta: { title: '帮助中心' } },
+        { path: 'notifications', name: 'StudentNotifications', component: () => import('@/views/student/notification/NotificationCenterView.vue'), meta: { title: '消息通知' } },
       ],
     },
     // ==================== 个人信息（所有角色） ====================
@@ -151,10 +158,11 @@ router.beforeEach((to, from, next) => {
     }
     // 角色权限校验
     const userInfo = JSON.parse(sessionStorage.getItem('campus_user_info') || '{}')
+    const userRole = userInfo.role_type || userInfo.role
     if (to.meta.roles && to.meta.roles.length > 0) {
-      if (!to.meta.roles.includes(userInfo.role)) {
+      if (!to.meta.roles.includes(userRole)) {
         // 无权访问，跳转到角色对应的首页
-        const defaultRoute = roleDashboardMap[userInfo.role]
+        const defaultRoute = roleDashboardMap[userRole]
         next({ name: defaultRoute || 'StudentDashboard' })
         return
       }
@@ -164,7 +172,8 @@ router.beforeEach((to, from, next) => {
   // 已登录用户访问 guest 页面（登录/注册/入驻等），根据角色跳转到对应首页
   if (to.meta.guest && token) {
     const userInfo = JSON.parse(sessionStorage.getItem('campus_user_info') || '{}')
-    const defaultRoute = roleDashboardMap[userInfo.role]
+    const userRole = userInfo.role_type || userInfo.role
+    const defaultRoute = roleDashboardMap[userRole]
     next({ name: defaultRoute || 'StudentDashboard' })
     return
   }
