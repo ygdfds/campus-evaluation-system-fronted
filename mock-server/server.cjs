@@ -94,6 +94,7 @@ server.post('/api/auth/login', (req, res) => {
         role_type: profile ? profile.role_type : 'student',
         no_student: profile ? profile.no_student : null,
         no_work: profile ? profile.no_work : null,
+        org_unit_id: profile ? profile.org_unit_id || null : null,
         roles: userRoleList
       },
       tenant_id: account.tenant_id,

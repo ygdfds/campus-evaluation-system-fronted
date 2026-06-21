@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { SwitchButton, ArrowDown, User } from '@element-plus/icons-vue'
 import NotificationDropdown from '@/components/NotificationDropdown.vue'
+import { getStaffRoleCodes, isStaffPortalUser, canViewStaffMenu, getStaffRoleNames } from '@/utils/staffPermission'
 
 defineOptions({ name: 'TopNavLayoutView' })
 
@@ -23,14 +24,36 @@ const navMenus = computed(() => {
     ]
   }
   if (role === 'staff') {
+    const roleCodes = getStaffRoleCodes(userStore.userInfo)
+    // 普通 staff 无管理权限，不显示业务菜单
+    if (!isStaffPortalUser(roleCodes)) {
+      return [
+        { title: '首页', path: '/staff/dashboard' },
+        { title: '帮助中心', path: '/staff/help' },
+      ]
+    }
     return [
       { title: '首页', path: '/staff/dashboard' },
-      { title: '评价结果', path: '/staff/evaluation/results' },
-      { title: '部门管理', path: '/staff/department' },
+      canViewStaffMenu('evaluation', roleCodes) && { title: '评价管理', path: '/staff/evaluation/forms' },
+      canViewStaffMenu('feedback', roleCodes) && { title: '反馈处理', path: '/staff/feedback' },
+      canViewStaffMenu('reports', roleCodes) && { title: '数据看板', path: '/staff/reports' },
+      canViewStaffMenu('appeals', roleCodes) && { title: '申诉处理', path: '/staff/appeals' },
       { title: '帮助中心', path: '/staff/help' },
-    ]
+    ].filter(Boolean)
   }
   return []
+})
+
+// 职工端角色标签：显示具体管理角色而非“教职工”
+const staffRoleLabel = computed(() => {
+  if (userStore.userRole !== 'staff') return ''
+  const roleCodes = getStaffRoleCodes(userStore.userInfo)
+  if (roleCodes.length === 0) return userStore.roleName
+  return getStaffRoleNames(roleCodes)
+})
+
+const displayRoleTag = computed(() => {
+  return staffRoleLabel.value || userStore.roleName
 })
 
 function handleNavClick(path) {
@@ -63,7 +86,7 @@ function handleLogout() {
           v-for="menu in navMenus"
           :key="menu.path"
           class="nav-item"
-          :class="{ active: route.path === menu.path }"
+          :class="{ active: route.path === menu.path || route.path.startsWith(menu.path + '/') }"
           @click="handleNavClick(menu.path)"
         >
           {{ menu.title }}
@@ -76,12 +99,12 @@ function handleLogout() {
           <span class="user-trigger">
             <span class="user-avatar">{{ userStore.realName?.charAt(0) || 'U' }}</span>
             <span class="user-name">{{ userStore.realName }}</span>
-            <el-tag size="small" effect="plain" class="role-tag">{{ userStore.roleName }}</el-tag>
+            <el-tag size="small" effect="plain" class="role-tag">{{ displayRoleTag }}</el-tag>
             <el-icon :size="14"><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="router.push(userStore.userRole === 'student' ? '/student/profile' : '/profile')">
+              <el-dropdown-item @click="router.push(userStore.userRole === 'student' ? '/student/profile' : userStore.userRole === 'staff' ? '/staff/profile' : '/profile')">
                 <el-icon><User /></el-icon>个人信息
               </el-dropdown-item>
               <el-dropdown-item divided @click="handleLogout">

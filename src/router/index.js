@@ -91,11 +91,15 @@ const router = createRouter({
       path: '/staff',
       name: 'StaffLayout',
       component: () => import('@/views/TopNavLayoutView.vue'),
-      meta: { title: '教职工端', requiresAuth: true, roles: ['staff'] },
+      meta: { title: '职工端', requiresAuth: true, roles: ['staff'] },
       children: [
-        { path: 'dashboard', name: 'StaffDashboard', component: () => import('@/views/staff/dashboard/DashboardView.vue'), meta: { title: '我的概览' } },
-        { path: 'evaluation/results', name: 'StaffEvalResults', component: () => import('@/views/staff/evaluation/ResultsView.vue'), meta: { title: '评价结果' } },
-        { path: 'department', name: 'StaffDepartment', component: () => import('@/views/staff/department/DepartmentView.vue'), meta: { title: '部门管理' } },
+        { path: 'dashboard', name: 'StaffDashboard', component: () => import('@/views/staff/dashboard/DashboardView.vue'), meta: { title: '职工工作台' } },
+        { path: 'evaluation/forms', name: 'StaffEvalForms', component: () => import('@/views/staff/evaluation/FormsPlaceholderView.vue'), meta: { title: '评价管理' } },
+        { path: 'feedback', name: 'StaffFeedback', component: () => import('@/views/staff/feedback/FeedbackView.vue'), meta: { title: '反馈处理' } },
+        { path: 'reports', name: 'StaffReports', component: () => import('@/views/staff/reports/ReportsPlaceholderView.vue'), meta: { title: '数据看板' } },
+        { path: 'appeals', name: 'StaffAppeals', component: () => import('@/views/staff/appeals/AppealsPlaceholderView.vue'), meta: { title: '申诉处理' } },
+        { path: 'help', name: 'StaffHelp', component: () => import('@/views/staff/help/StaffHelpView.vue'), meta: { title: '帮助中心' } },
+        { path: 'profile', name: 'StaffProfile', component: () => import('@/views/staff/profile/StaffProfilePlaceholderView.vue'), meta: { title: '个人信息' } },
       ],
     },
     // ==================== 学生端 ====================
@@ -159,8 +163,17 @@ router.beforeEach((to, from, next) => {
     // 角色权限校验
     const userInfo = JSON.parse(sessionStorage.getItem('campus_user_info') || '{}')
     const userRole = userInfo.role_type || userInfo.role
+    // 职工子角色：从 roles 数组中提取 role_code
+    const userRoleCodes = Array.isArray(userInfo.roles)
+      ? userInfo.roles.map(r => r.role_code).filter(Boolean)
+      : []
     if (to.meta.roles && to.meta.roles.length > 0) {
-      if (!to.meta.roles.includes(userRole)) {
+      // 检查主角色是否匹配
+      const roleMatch = to.meta.roles.includes(userRole)
+      // 职工端：允许拥有管理子角色的用户访问
+      const staffPortalRoles = ['teaching_admin', 'service_admin', 'feedback_handler', 'form_publisher', 'course_owner', 'service_window_manager']
+      const staffSubRoleMatch = to.meta.roles.includes('staff') && userRoleCodes.some(c => staffPortalRoles.includes(c))
+      if (!roleMatch && !staffSubRoleMatch) {
         // 无权访问，跳转到角色对应的首页
         const defaultRoute = roleDashboardMap[userRole]
         next({ name: defaultRoute || 'StudentDashboard' })
