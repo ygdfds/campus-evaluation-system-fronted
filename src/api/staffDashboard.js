@@ -215,11 +215,41 @@ export async function getStaffEvalSummaryApi(tenantId) {
  * 获取最近处理记录
  */
 export async function getStaffRecentActivitiesApi(tenantId, userId) {
-  const [recordsRes, formAuditsRes, notificationsRes] = await Promise.all([
+  const [recordsRes, complaintsRes, formAuditsRes, notificationsRes] = await Promise.all([
     request.get('/complaintProcessRecords', { params: { tenant_id: tenantId } }),
+    request.get('/complaints', { params: { tenant_id: tenantId } }),
     request.get('/formPublishAudits', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/notifications', { params: { tenant_id: tenantId } }),
   ])
+
+  // 构建投诉标题映射
+  const complaintsMap = {}
+  const complaints = complaintsRes.data || []
+  complaints.forEach(c => {
+    if (!c.deleted) {
+      complaintsMap[c.id] = c.title || '反馈记录'
+    }
+  })
+
+  // 根据 from_status 和 to_status 生成动作名称和颜色
+  function getActionInfo(fromStatus, toStatus) {
+    if (fromStatus === 'pending' && toStatus === 'processing') {
+      return { action: '已受理', color: 'success' }
+    }
+    if (fromStatus === 'processing' && toStatus === 'processing') {
+      return { action: '更新进度', color: 'success' }
+    }
+    if (toStatus === 'resolved') {
+      return { action: '已办结', color: 'success' }
+    }
+    if (toStatus === 'rejected') {
+      return { action: '已驳回', color: 'danger' }
+    }
+    if (toStatus === 'cancelled') {
+      return { action: '已撤销', color: 'muted' }
+    }
+    return { action: '处理', color: 'muted' }
+  }
 
   const records = (recordsRes.data || [])
     .filter(r => !r.deleted && r.handler_id === userId)
@@ -238,19 +268,25 @@ export async function getStaffRecentActivitiesApi(tenantId, userId) {
 
   // 合并为统一时间线
   const activities = [
-    ...records.map(r => ({
-      id: `record-${r.id}`,
-      type: 'process',
-      action: '处理',
-      title: `投诉 #${r.complaint_id}：${r.from_status} → ${r.to_status}`,
-      content: r.content,
-      time: r.created_at,
-    })),
+    ...records.map(r => {
+      const actionInfo = getActionInfo(r.from_status, r.to_status)
+      const complaintTitle = complaintsMap[r.complaint_id] || '反馈记录'
+      return {
+        id: `record-${r.id}`,
+        type: 'process',
+        action: actionInfo.action,
+        actionColor: actionInfo.color,
+        title: complaintTitle,
+        content: r.content || '',
+        time: r.created_at,
+      }
+    }),
     ...audits.map(a => ({
       id: `audit-${a.id}`,
       type: 'audit',
       action: '审核',
-      title: `表单审核 #${a.form_id}：${a.status === 'pending' ? '待审核' : a.status === 'approved' ? '已通过' : '已驳回'}`,
+      actionColor: 'warning',
+      title: `表单审核 #${a.form_id}`,
       content: a.review_comment || '',
       time: a.updated_at,
     })),
@@ -258,6 +294,7 @@ export async function getStaffRecentActivitiesApi(tenantId, userId) {
       id: `notification-${n.id}`,
       type: 'notification',
       action: '通知',
+      actionColor: 'info',
       title: n.title || n.content?.slice(0, 30) || '新通知',
       content: n.content || '',
       time: n.created_at || n.publish_time,

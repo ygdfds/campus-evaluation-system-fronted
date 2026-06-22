@@ -94,7 +94,7 @@ const router = createRouter({
       meta: { title: '职工端', requiresAuth: true, roles: ['staff'] },
       children: [
         { path: 'dashboard', name: 'StaffDashboard', component: () => import('@/views/staff/dashboard/DashboardView.vue'), meta: { title: '职工工作台' } },
-        { path: 'evaluation/forms', name: 'StaffEvalForms', component: () => import('@/views/staff/evaluation/FormsPlaceholderView.vue'), meta: { title: '评价管理' } },
+        { path: 'evaluation/forms', name: 'StaffEvalForms', component: () => import('@/views/staff/evaluation/FormsView.vue'), meta: { title: '评价管理' } },
         { path: 'feedback', name: 'StaffFeedback', component: () => import('@/views/staff/feedback/FeedbackView.vue'), meta: { title: '反馈处理' } },
         { path: 'reports', name: 'StaffReports', component: () => import('@/views/staff/reports/ReportsPlaceholderView.vue'), meta: { title: '数据看板' } },
         { path: 'appeals', name: 'StaffAppeals', component: () => import('@/views/staff/appeals/AppealsPlaceholderView.vue'), meta: { title: '申诉处理' } },

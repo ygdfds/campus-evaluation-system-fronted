@@ -6,11 +6,11 @@ import { Refresh } from '@element-plus/icons-vue'
 import { getStaffRoleCodes, getStaffRoleNames } from '@/utils/staffPermission'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyPlaceholder from '@/components/common/EmptyPlaceholder.vue'
-import StaffFeedbackStatusCards from './components/StaffFeedbackStatusCards.vue'
-import StaffFeedbackFilterBar from './components/StaffFeedbackFilterBar.vue'
-import StaffFeedbackCard from './components/StaffFeedbackCard.vue'
-import StaffFeedbackDetailDrawer from './components/StaffFeedbackDetailDrawer.vue'
-import FeedbackActionDialog from './components/FeedbackActionDialog.vue'
+import StaffFeedbackStatusCards from '@/components/staff/feedback/StaffFeedbackStatusCards.vue'
+import StaffFeedbackFilterBar from '@/components/staff/feedback/StaffFeedbackFilterBar.vue'
+import StaffFeedbackCard from '@/components/staff/feedback/StaffFeedbackCard.vue'
+import StaffFeedbackDetailDrawer from '@/components/staff/feedback/StaffFeedbackDetailDrawer.vue'
+import FeedbackActionDialog from '@/components/staff/feedback/FeedbackActionDialog.vue'
 import {
   getStaffFeedbackListApi,
   getStaffFeedbackStatsApi,

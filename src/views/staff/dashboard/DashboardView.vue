@@ -288,12 +288,13 @@ function formatTime(dateStr) {
       <div v-if="recentActivities.length === 0" class="empty-tip compact">暂无处理记录</div>
       <div v-else class="timeline">
         <div v-for="item in recentActivities" :key="item.id" class="timeline-item">
-          <div class="timeline-dot" :class="`dot-${item.type}`" />
+          <div class="timeline-dot" :class="[`dot-${item.type}`, item.actionColor && `dot-${item.actionColor}`]" />
           <div class="timeline-content">
             <div class="timeline-main">
-              <span class="timeline-action">{{ item.action }}</span>
+              <span class="timeline-action" :class="item.actionColor && `action-${item.actionColor}`">{{ item.action }}</span>
               <span class="timeline-title">{{ item.title }}</span>
             </div>
+            <div v-if="item.content" class="timeline-desc">{{ item.content }}</div>
             <span class="timeline-time">{{ formatTime(item.time) }}</span>
           </div>
         </div>
@@ -656,9 +657,9 @@ function formatTime(dateStr) {
 
 .timeline-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-3);
-  height: 48px;
+  padding: var(--space-3) 0;
   border-bottom: var(--border-lighter);
 }
 
@@ -670,16 +671,22 @@ function formatTime(dateStr) {
   border-radius: var(--radius-full);
   background: var(--color-accent-user-700);
   flex-shrink: 0;
+  margin-top: var(--space-1);
 }
 
 .timeline-dot.dot-notification { background: var(--color-info); }
 .timeline-dot.dot-audit { background: var(--color-warning); }
+.timeline-dot.dot-success { background: var(--color-primary); }
+.timeline-dot.dot-danger { background: var(--color-danger); }
+.timeline-dot.dot-muted { background: var(--color-text-muted); }
+.timeline-dot.dot-info { background: var(--color-info); }
+.timeline-dot.dot-warning { background: var(--color-warning); }
 
 .timeline-content {
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -697,9 +704,23 @@ function formatTime(dateStr) {
   flex-shrink: 0;
 }
 
+.timeline-action.action-success { color: var(--color-primary); }
+.timeline-action.action-danger { color: var(--color-danger); }
+.timeline-action.action-muted { color: var(--color-text-muted); }
+.timeline-action.action-info { color: var(--color-info); }
+.timeline-action.action-warning { color: var(--color-warning); }
+
 .timeline-title {
   font-size: var(--font-base);
   color: var(--color-text-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-desc {
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -709,6 +730,7 @@ function formatTime(dateStr) {
   font-size: var(--font-sm);
   color: var(--color-text-muted-light);
   flex-shrink: 0;
+  align-self: flex-start;
 }
 
 /* ==================== 响应式 ==================== */
