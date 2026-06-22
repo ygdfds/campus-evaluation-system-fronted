@@ -239,7 +239,8 @@ const restResources = [
   'fileResources', 'courses', 'serviceItems', 'courseEnrollments',
   'courseTeachers', 'teachingOrgUnits', 'serviceOrgUnits',
   'personProfiles', 'userAccounts', 'roles', 'userRoles',
-  'tenantStatSnapshots', 'serviceStatSnapshots', 'tenants', 'schoolProfiles'
+  'tenantStatSnapshots', 'serviceStatSnapshots', 'tenants', 'schoolProfiles',
+  'appealRequests', 'appealProcessRecords', 'traceAuthorizations', 'operationLogs',
 ]
 
 restResources.forEach(resource => {

@@ -20,7 +20,7 @@ const MENU_ROLE_MAP = {
   evaluation: ['teaching_admin', 'service_admin', 'form_publisher'],
   feedback: ['feedback_handler', 'service_admin', 'teaching_admin', 'form_publisher'],
   reports: ['teaching_admin', 'service_admin', 'course_owner', 'school_admin', 'feedback_handler'],
-  appeals: ['teaching_admin', 'course_owner', 'service_admin'],
+  appeals: ['school_admin', 'teaching_admin', 'course_owner', 'service_admin'],
 }
 
 /**
