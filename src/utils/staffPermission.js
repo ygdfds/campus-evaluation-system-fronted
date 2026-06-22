@@ -19,7 +19,7 @@ const STAFF_PORTAL_ROLES = [
 const MENU_ROLE_MAP = {
   evaluation: ['teaching_admin', 'service_admin', 'form_publisher'],
   feedback: ['feedback_handler', 'service_admin', 'teaching_admin', 'form_publisher'],
-  reports: ['teaching_admin', 'service_admin', 'course_owner'],
+  reports: ['teaching_admin', 'service_admin', 'course_owner', 'school_admin', 'feedback_handler'],
   appeals: ['teaching_admin', 'course_owner', 'service_admin'],
 }
 
@@ -88,9 +88,10 @@ export function getStaffRoleScope(userStore, teachingOrgs = [], serviceOrgs = []
     ? teachingOrgs.filter(o => o.id === orgUnitId || o.parent_id === orgUnitId).map(o => o.id)
     : []
 
-  // 服务组织 ID 列表（暂不限制，后续可基于 userRoles 关联）
-   
-  const serviceOrgIds = serviceOrgs.length ? [] : []
+  // 服务组织 ID 列表（基于 org_unit_id 过滤，与教学组织逻辑一致）
+  const serviceOrgIds = orgUnitId
+    ? serviceOrgs.filter(o => o.id === orgUnitId || o.parent_id === orgUnitId).map(o => o.id)
+    : []
 
   return {
     tenantId,
@@ -115,6 +116,7 @@ export function getStaffRoleNames(roleCodes) {
     form_publisher: '评价表单发布员',
     course_owner: '课程负责人',
     service_window_manager: '服务窗口负责人',
+    school_admin: '校级管理员',
     staff: '教职工',
   }
   if (!Array.isArray(roleCodes) || roleCodes.length === 0) return '教职工'
@@ -128,6 +130,9 @@ export function getStaffRoleNames(roleCodes) {
  */
 export function getStaffScopeDescription(roleCodes) {
   if (!Array.isArray(roleCodes) || roleCodes.length === 0) return ''
+  if (roleCodes.includes('school_admin')) {
+    return '全校评价数据与反馈'
+  }
   if (roleCodes.includes('teaching_admin')) {
     return '本学院课程、教师评价与教学反馈'
   }
