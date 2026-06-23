@@ -1,3 +1,4 @@
+/* eslint-env node */
 /**
  * Mock Server - 基于 json-server 的接口模拟服务器
  * 
