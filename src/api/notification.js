@@ -17,9 +17,9 @@ export function getNotificationsApi(context, params = {}) {
     }
   }).then(res => {
     const list = res.data || []
-    // 客户端过滤：receiver_user_id = userId 或 target_roles 包含当前角色
+    // 客户端过滤：receiver_user_id = userId 或 target_roles 包含当前角色（做类型兼容）
     return list.filter(n => {
-      if (n.receiver_user_id && n.receiver_user_id !== userId) return false
+      if (n.receiver_user_id && String(n.receiver_user_id) !== String(userId)) return false
       if (!n.receiver_user_id && n.target_roles) {
         const roles = typeof n.target_roles === 'string'
           ? n.target_roles.split(',').map(r => r.trim())

@@ -12,6 +12,9 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
+// 当前子路由是否要求隐藏主导航（如消息通知页）
+const hideStaffNav = computed(() => !!route.meta.hideStaffNav)
+
 const navMenus = computed(() => {
   const role = userStore.userRole
   if (role === 'student') {
@@ -81,7 +84,7 @@ function handleLogout() {
           <div class="brand-icon">评</div>
           <span class="brand-text">校园服务质量在线评测系统</span>
         </div>
-        <nav class="nav-menu">
+        <nav v-if="!hideStaffNav" class="nav-menu">
         <span
           v-for="menu in navMenus"
           :key="menu.path"

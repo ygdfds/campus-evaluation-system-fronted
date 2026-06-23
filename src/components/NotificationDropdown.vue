@@ -1,23 +1,39 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Bell, InfoFilled, Star, ChatDotSquare, Lock, Notification as NotificationIcon } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
+import { useNotificationStore } from '@/stores/notification'
 import {
-  getNotificationsApi, getUnreadCountApi,
-  markNotificationReadApi, markAllNotificationsReadApi,
+  getNotificationsApi,
+  markNotificationReadApi as markOrigReadApi,
+  markAllNotificationsReadApi as markAllOrigApi,
 } from '@/api/notification'
 
 defineOptions({ name: 'NotificationDropdown' })
 
 const router = useRouter()
 const userStore = useUserStore()
+const notificationStore = useNotificationStore()
 
 const popoverVisible = ref(false)
-const unreadCount = ref(0)
 const recentList = ref([])
 const loading = ref(false)
+
+// 判断是否为职工端用户
+const isStaffUser = computed(() => {
+  const role = userStore.userRole
+  if (role === 'staff') return true
+  const roles = userStore.userInfo?.roles
+  if (Array.isArray(roles)) {
+    const staffCodes = ['teaching_admin', 'service_admin', 'feedback_handler', 'form_publisher', 'course_owner', 'service_window-manager']
+    return roles.some(r => staffCodes.includes(r.role_code))
+  }
+  return false
+})
+
+const unreadCount = computed(() => notificationStore.unreadCount)
 
 // 通知类型配置
 const typeConfig = {
@@ -56,20 +72,40 @@ async function loadData() {
   if (!ctx.tenantId) return
   loading.value = true
   try {
-    const [count, list] = await Promise.all([
-      getUnreadCountApi(ctx),
-      getNotificationsApi(ctx),
-    ])
-    unreadCount.value = count
-    recentList.value = list.slice(0, 5)
+    // 根据角色获取未读数
+    if (isStaffUser.value) {
+      await notificationStore.fetchUnreadCount({
+        tenantId: ctx.tenantId,
+        userId: ctx.userId,
+      })
+    } else {
+      // 学生端仍用原 API
+      const { getUnreadCountApi } = await import('@/api/notification')
+      const count = await getUnreadCountApi(ctx)
+      notificationStore.setUnreadCount(count)
+    }
+    // 根据角色使用不同 API 获取列表
+    if (isStaffUser.value) {
+      const { getStaffNotificationListApi } = await import('@/api/staffNotifications')
+      const res = await getStaffNotificationListApi({ tenantId: ctx.tenantId, userId: ctx.userId }, { pageSize: 5 })
+      recentList.value = res.list || []
+    } else {
+      const list = await getNotificationsApi(ctx)
+      recentList.value = list.slice(0, 5)
+    }
   } catch (e) { console.error('加载通知失败:', e) }
   finally { loading.value = false }
 }
 
 async function handleMarkAllRead() {
   try {
-    await markAllNotificationsReadApi(getContext())
-    unreadCount.value = 0
+    if (isStaffUser.value) {
+      const { markAllStaffNotificationsReadApi } = await import('@/api/staffNotifications')
+      await markAllStaffNotificationsReadApi(getContext())
+    } else {
+      await markAllOrigApi(getContext())
+    }
+    notificationStore.setUnreadCount(0)
     recentList.value = recentList.value.map(n => ({ ...n, read_status: 'read' }))
     ElMessage.success('已全部标记为已读')
   } catch { ElMessage.error('操作失败') }
@@ -78,9 +114,14 @@ async function handleMarkAllRead() {
 async function handleItemClick(item) {
   if (item.read_status === 'unread') {
     try {
-      await markNotificationReadApi(item.id)
+      if (isStaffUser.value) {
+        const { markStaffNotificationReadApi } = await import('@/api/staffNotifications')
+        await markStaffNotificationReadApi(item.id)
+      } else {
+        await markOrigReadApi(item.id)
+      }
       item.read_status = 'read'
-      unreadCount.value = Math.max(0, unreadCount.value - 1)
+      notificationStore.setUnreadCount(Math.max(0, notificationStore.unreadCount - 1))
     } catch (e) { console.error(e) }
   }
   popoverVisible.value = false
@@ -91,7 +132,11 @@ async function handleItemClick(item) {
 
 function goNotificationCenter() {
   popoverVisible.value = false
-  router.push('/student/notifications')
+  if (isStaffUser.value) {
+    router.push('/staff/notifications')
+  } else {
+    router.push('/student/notifications')
+  }
 }
 
 onMounted(() => { loadData() })

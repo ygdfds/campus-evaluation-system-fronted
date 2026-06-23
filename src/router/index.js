@@ -98,6 +98,7 @@ const router = createRouter({
         { path: 'feedback', name: 'StaffFeedback', component: () => import('@/views/staff/feedback/FeedbackView.vue'), meta: { title: '反馈处理' } },
         { path: 'reports', name: 'StaffReports', component: () => import('@/views/staff/reports/ReportsView.vue'), meta: { title: '数据看板' } },
         { path: 'appeals', name: 'StaffAppeals', component: () => import('@/views/staff/appeals/StaffAppealsView.vue'), meta: { title: '申诉处理' } },
+        { path: 'notifications', name: 'StaffNotifications', component: () => import('@/views/staff/notifications/StaffNotificationsView.vue'), meta: { title: '消息通知', hideStaffNav: true } },
         { path: 'help', name: 'StaffHelp', component: () => import('@/views/staff/help/StaffHelpView.vue'), meta: { title: '帮助中心' } },
         { path: 'profile', name: 'StaffProfile', component: () => import('@/views/staff/profile/StaffProfilePlaceholderView.vue'), meta: { title: '个人信息' } },
       ],
