@@ -127,6 +127,62 @@
       "grade": "2024级",
       "class": "2班",
       "status": 1
+    },
+    {
+      "id": 8,
+      "tenantId": null,
+      "schoolId": null,
+      "username": "wang_admin",
+      "password": "admin123",
+      "realName": "王建国",
+      "role": "system_admin",
+      "roleName": "系统管理员",
+      "email": "wang@platform.cn",
+      "phone": "13800000010",
+      "department": "技术运维部",
+      "status": 1
+    },
+    {
+      "id": 9,
+      "tenantId": null,
+      "schoolId": null,
+      "username": "liu_admin",
+      "password": "admin123",
+      "realName": "刘晓芳",
+      "role": "system_admin",
+      "roleName": "系统管理员",
+      "email": "liu@platform.cn",
+      "phone": "13800000011",
+      "department": "客户服务部",
+      "status": 1
+    },
+    {
+      "id": 10,
+      "tenantId": null,
+      "schoolId": null,
+      "username": "chen_admin",
+      "password": "admin123",
+      "realName": "陈明远",
+      "role": "system_admin",
+      "roleName": "系统管理员",
+      "email": "chen@platform.cn",
+      "phone": "13800000012",
+      "department": "信息安全部",
+      "status": 0
+    },
+    {
+      "id": 11,
+      "tenantId": null,
+      "schoolId": null,
+      "username": "zhao_admin",
+      "password": "admin123",
+      "realName": "赵志强",
+      "role": "system_admin",
+      "roleName": "系统管理员",
+      "email": "zhao@platform.cn",
+      "phone": "13800000013",
+      "department": "数据中心",
+      "status": 1
     }
   ],
   "tokens": [
@@ -192,15 +248,155 @@
       "userId": 4,
       "createdAt": "2026-06-11T01:50:55.332Z",
       "expiresAt": "2026-06-12T01:50:55.332Z"
+    },
+    {
+      "id": 10,
+      "token": "mock_token_4_1782192444224",
+      "userId": 4,
+      "createdAt": "2026-06-23T05:27:24.224Z",
+      "expiresAt": "2026-06-24T05:27:24.224Z"
+    },
+    {
+      "id": 11,
+      "token": "mock_token_1_1782194355949",
+      "userId": 1,
+      "createdAt": "2026-06-23T05:59:15.949Z",
+      "expiresAt": "2026-06-24T05:59:15.950Z"
+    },
+    {
+      "id": 12,
+      "token": "mock_token_1_1782195442105",
+      "userId": 1,
+      "createdAt": "2026-06-23T06:17:22.105Z",
+      "expiresAt": "2026-06-24T06:17:22.105Z"
+    },
+    {
+      "id": 13,
+      "token": "mock_token_1_1782195442115",
+      "userId": 1,
+      "createdAt": "2026-06-23T06:17:22.115Z",
+      "expiresAt": "2026-06-24T06:17:22.115Z"
+    },
+    {
+      "id": 14,
+      "token": "mock_token_4_1782196251902",
+      "userId": 4,
+      "createdAt": "2026-06-23T06:30:51.919Z",
+      "expiresAt": "2026-06-24T06:30:51.919Z"
+    },
+    {
+      "id": 15,
+      "token": "mock_token_7_1782196458519",
+      "userId": 7,
+      "createdAt": "2026-06-23T06:34:18.519Z",
+      "expiresAt": "2026-06-24T06:34:18.519Z"
+    },
+    {
+      "id": 16,
+      "token": "mock_token_1_1782197841841",
+      "userId": 1,
+      "createdAt": "2026-06-23T06:57:21.842Z",
+      "expiresAt": "2026-06-24T06:57:21.842Z"
+    },
+    {
+      "id": 17,
+      "token": "mock_token_1_1782197935953",
+      "userId": 1,
+      "createdAt": "2026-06-23T06:58:55.953Z",
+      "expiresAt": "2026-06-24T06:58:55.953Z"
+    },
+    {
+      "id": 18,
+      "token": "mock_token_1_1782220958730",
+      "userId": 1,
+      "createdAt": "2026-06-23T13:22:38.730Z",
+      "expiresAt": "2026-06-24T13:22:38.730Z"
+    },
+    {
+      "id": 19,
+      "token": "mock_token_4_1782222390168",
+      "userId": 4,
+      "createdAt": "2026-06-23T13:46:30.169Z",
+      "expiresAt": "2026-06-24T13:46:30.170Z"
+    },
+    {
+      "id": 20,
+      "token": "mock_token_4_1782222390191",
+      "userId": 4,
+      "createdAt": "2026-06-23T13:46:30.191Z",
+      "expiresAt": "2026-06-24T13:46:30.191Z"
+    },
+    {
+      "id": 21,
+      "token": "mock_token_1_1782222418190",
+      "userId": 1,
+      "createdAt": "2026-06-23T13:46:58.190Z",
+      "expiresAt": "2026-06-24T13:46:58.191Z"
+    },
+    {
+      "id": 22,
+      "token": "mock_token_1_1782223261448",
+      "userId": 1,
+      "createdAt": "2026-06-23T14:01:01.448Z",
+      "expiresAt": "2026-06-24T14:01:01.448Z"
+    },
+    {
+      "id": 23,
+      "token": "mock_token_1_1782223261472",
+      "userId": 1,
+      "createdAt": "2026-06-23T14:01:01.472Z",
+      "expiresAt": "2026-06-24T14:01:01.472Z"
+    },
+    {
+      "id": 24,
+      "token": "mock_token_1_1782225289172",
+      "userId": 1,
+      "createdAt": "2026-06-23T14:34:49.172Z",
+      "expiresAt": "2026-06-24T14:34:49.173Z"
+    },
+    {
+      "id": 25,
+      "token": "mock_token_1_1782225289204",
+      "userId": 1,
+      "createdAt": "2026-06-23T14:34:49.204Z",
+      "expiresAt": "2026-06-24T14:34:49.204Z"
+    },
+    {
+      "id": 26,
+      "token": "mock_token_1_1782225552618",
+      "userId": 1,
+      "createdAt": "2026-06-23T14:39:12.618Z",
+      "expiresAt": "2026-06-24T14:39:12.618Z"
+    },
+    {
+      "id": 27,
+      "token": "mock_token_1_1782225552624",
+      "userId": 1,
+      "createdAt": "2026-06-23T14:39:12.624Z",
+      "expiresAt": "2026-06-24T14:39:12.624Z"
+    },
+    {
+      "id": 28,
+      "token": "mock_token_1_1782228128728",
+      "userId": 1,
+      "createdAt": "2026-06-23T15:22:08.728Z",
+      "expiresAt": "2026-06-24T15:22:08.728Z"
+    },
+    {
+      "id": 29,
+      "token": "mock_token_1_1782228128734",
+      "userId": 1,
+      "createdAt": "2026-06-23T15:22:08.734Z",
+      "expiresAt": "2026-06-24T15:22:08.734Z"
     }
   ],
   "tenantPlans": [
     {
       "id": 1,
       "planName": "基础版",
-      "features": "支持500人以下评价，基础统计报表，标准表单模板",
+      "features": "支持1000人评价，基础统计分析，标准表单模板",
       "status": "active",
-      "maxUsers": 500,
+      "maxUsers": 1000,
       "price": 0
     },
     {
@@ -218,6 +414,22 @@
       "status": "active",
       "maxUsers": -1,
       "price": 29800
+    },
+    {
+      "id": 4,
+      "planName": "教育版",
+      "features": "专为高校设计，支持学期制管理，师生分组评价，成绩关联分析",
+      "status": "active",
+      "maxUsers": 10000,
+      "price": 5800
+    },
+    {
+      "id": 5,
+      "planName": "定制版",
+      "features": "按需定制功能模块，专属部署方案，一对一技术支持",
+      "status": "inactive",
+      "maxUsers": -1,
+      "price": 0
     }
   ],
   "onboardingApplications": [
@@ -364,6 +576,29 @@
       "content": "宿舍管理员非常负责，很热心",
       "status": "submitted",
       "createdAt": "2026-04-12T15:00:00.000Z"
+    }
+  ],
+  "customRoles": [
+    {
+      "id": 101,
+      "roleName": "审计专员",
+      "description": "负责平台数据审计、操作日志审查、合规检查",
+      "dataScope": "全部数据（只读）",
+      "createdAt": "2026/5/10 09:30:00"
+    },
+    {
+      "id": 102,
+      "roleName": "运维管理员",
+      "description": "负责系统运维、监控告警处理、服务器维护",
+      "dataScope": "运维数据",
+      "createdAt": "2026/5/15 14:20:00"
+    },
+    {
+      "id": 103,
+      "roleName": "客服专员",
+      "description": "处理用户工单、回复反馈、协助租户使用平台",
+      "dataScope": "工单数据",
+      "createdAt": "2026/6/01 10:00:00"
     }
   ]
 }

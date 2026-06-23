@@ -1,20 +1,52 @@
 <script setup>
+import { ref, onMounted } from 'vue'
 import { School, User, DocumentChecked, DataAnalysis } from '@element-plus/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatCard from '@/components/common/StatCard.vue'
+
 defineOptions({ name: 'AdminDashboardView' })
-const stats = [
-  { title: '入驻学校', value: 2, icon: School, color: 'primary' },
-  { title: '待审核申请', value: 1, icon: DocumentChecked, color: 'warning' },
-  { title: '活跃租户', value: 2, icon: User, color: 'success' },
-  { title: '平台用户', value: 7, icon: DataAnalysis, color: 'primary' },
-]
+
+const loading = ref(true)
+const stats = ref([
+  { title: '入驻学校', value: 0, icon: School, color: 'primary' },
+  { title: '待审核申请', value: 0, icon: DocumentChecked, color: 'warning' },
+  { title: '活跃租户', value: 0, icon: User, color: 'success' },
+  { title: '平台用户', value: 0, icon: DataAnalysis, color: 'primary' },
+])
+
+const fetchStats = async () => {
+  loading.value = true
+  try {
+    const { default: axios } = await import('axios')
+    const base = import.meta.env.VITE_API_BASE_URL || '/api'
+
+    const res = await axios.get(`${base}/admin/stats`)
+    const data = res.data?.data || {}
+
+    const tenantsRes = await axios.get(`${base}/tenants`)
+    const activeTenants = (tenantsRes.data?.list || []).length
+
+    stats.value = [
+      { title: '入驻学校', value: data.activeSchools || 0, icon: School, color: 'primary' },
+      { title: '待审核申请', value: data.pendingApps || 0, icon: DocumentChecked, color: 'warning' },
+      { title: '活跃租户', value: activeTenants, icon: User, color: 'success' },
+      { title: '平台用户', value: data.totalUsers || 0, icon: DataAnalysis, color: 'primary' },
+    ]
+  } catch (error) {
+    console.error('获取仪表盘数据失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => { fetchStats() })
 </script>
+
 <template>
   <div class="page-container">
     <PageHeader title="平台概览" subtitle="系统管理端数据总览" />
     <div class="stats-grid">
-      <StatCard v-for="item in stats" :key="item.title" :title="item.title" :value="item.value" :icon="item.icon" :color="item.color" />
+      <StatCard v-for="item in stats" :key="item.title" :title="item.title" :value="loading ? '-' : item.value" :icon="item.icon" :color="item.color" />
     </div>
     <el-row :gutter="20">
       <el-col :span="12">
@@ -32,6 +64,7 @@ const stats = [
     </el-row>
   </div>
 </template>
+
 <style scoped>
 .page-container { display: flex; flex-direction: column; gap: var(--space-5); }
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }

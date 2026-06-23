@@ -67,8 +67,11 @@ const router = createRouter({
       children: [
         { path: 'dashboard', name: 'AdminDashboard', component: () => import('@/views/admin/dashboard/DashboardView.vue'), meta: { title: '平台概览' } },
         { path: 'tenants/list', name: 'AdminTenantList', component: () => import('@/views/admin/tenants/TenantListView.vue'), meta: { title: '租户列表' } },
-        { path: 'tenants/plans', name: 'AdminPlanList', component: () => import('@/views/admin/tenants/PlanListView.vue'), meta: { title: '套餐管理' } },
+        { path: 'plans', name: 'AdminPlanList', component: () => import('@/views/admin/plans/PlanManagementView.vue'), meta: { title: '套餐管理' } },
         { path: 'onboarding/audit', name: 'AdminOnboardingAudit', component: () => import('@/views/admin/onboarding/AuditListView.vue'), meta: { title: '入驻审核' } },
+        { path: 'users/list', name: 'AdminUserList', component: () => import('@/views/admin/accounts/AdminAccountView.vue'), meta: { title: '用户管理' } },
+        { path: 'users/roles', name: 'AdminRoleManagement', component: () => import('@/views/admin/roles/RolePermissionView.vue'), meta: { title: '角色管理' } },
+        { path: 'system', name: 'AdminSystemSettings', component: () => import('@/views/admin/settings/SystemSettingsView.vue'), meta: { title: '系统设置' } },
       ],
     },
     // ==================== 学校管理端 ====================

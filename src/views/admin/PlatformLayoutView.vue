@@ -16,7 +16,7 @@ const menuItems = [
     icon: School,
     children: [
       { index: '/admin/tenants/list', title: '租户列表' },
-      { index: '/admin/tenants/plans', title: '套餐管理' },
+      { index: '/admin/plans', title: '套餐管理' },
     ],
   },
   { index: '/admin/onboarding/audit', title: '入驻审核', icon: DocumentChecked },

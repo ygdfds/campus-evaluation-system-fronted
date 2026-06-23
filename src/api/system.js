@@ -23,3 +23,24 @@ export function getOnboardingApplicationsApi(params) {
 export function auditOnboardingApi(id, action, reason) {
   return request.post(`/onboarding-applications/${id}/audit`, { action, reason })
 }
+
+/**
+ * 获取平台管理员列表（用户管理）
+ */
+export function getSystemAdminsApi(params) {
+  return request.get('/system-admins', { params })
+}
+
+/**
+ * 获取系统角色列表（角色管理）
+ */
+export function getSystemRolesApi(params) {
+  return request.get('/system-roles', { params })
+}
+
+/**
+ * 获取套餐列表（套餐管理）
+ */
+export function getTenantPlansApi(params) {
+  return request.get('/tenant-plans', { params })
+}
