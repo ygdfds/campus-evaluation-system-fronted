@@ -293,14 +293,16 @@ onMounted(() => loadData())
           <div class="audit-card-actions">
             <el-button text type="primary" size="small" :icon="View" @click="openDetail(item.id)">查看详情</el-button>
             <template v-if="item.status_code === 'pending'">
-              <el-tooltip
-                v-if="item.missing_items && item.missing_items.length"
-                :content="'请先' + item.missing_items.join('、')"
-                placement="top"
-              >
-                <el-button type="warning" size="small" plain :icon="Warning" disabled>存在风险</el-button>
-              </el-tooltip>
-              <el-button v-else type="primary" size="small" plain :icon="Check" @click="handleApprove(item)">通过</el-button>
+              <div class="approve-slot">
+                <el-tooltip
+                  v-if="item.missing_items && item.missing_items.length"
+                  :content="'请先' + item.missing_items.join('、')"
+                  placement="top"
+                >
+                  <el-button type="warning" size="small" plain :icon="Warning" disabled>存在风险</el-button>
+                </el-tooltip>
+                <el-button v-else type="primary" size="small" plain :icon="Check" @click="handleApprove(item)">通过</el-button>
+              </div>
               <el-button type="danger" size="small" plain :icon="Close" @click="openReject(item.id)">驳回</el-button>
             </template>
           </div>
@@ -612,6 +614,12 @@ onMounted(() => loadData())
   align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
+}
+/* 通过按钮固定占位，防止风险/通过切换时布局抖动 */
+.approve-slot {
+  display: inline-flex;
+  min-width: 88px;
+  justify-content: center;
 }
 
 /* 空状态 */
