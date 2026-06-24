@@ -241,6 +241,7 @@ const restResources = [
   'personProfiles', 'userAccounts', 'roles', 'userRoles',
   'tenantStatSnapshots', 'serviceStatSnapshots', 'tenants', 'schoolProfiles',
   'appealRequests', 'appealProcessRecords', 'traceAuthorizations', 'operationLogs',
+  'formPublishAudits',
 ]
 
 restResources.forEach(resource => {

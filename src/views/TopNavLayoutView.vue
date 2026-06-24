@@ -26,6 +26,16 @@ const navMenus = computed(() => {
       { title: '帮助中心', path: '/student/help' },
     ]
   }
+  if (role === 'school_admin') {
+    return [
+      { title: '首页', path: '/school/dashboard' },
+      { title: '审核中心', path: '/school/audit/list' },
+      { title: '组织架构', path: '/school/org/departments' },
+      { title: '教职工管理', path: '/school/users/staff' },
+      { title: '学生管理', path: '/school/users/student' },
+      { title: '表单管理', path: '/school/form/list' },
+    ]
+  }
   if (role === 'staff') {
     const roleCodes = getStaffRoleCodes(userStore.userInfo)
     // 普通 staff 无管理权限，不显示业务菜单
@@ -56,6 +66,7 @@ const staffRoleLabel = computed(() => {
 })
 
 const displayRoleTag = computed(() => {
+  if (userStore.userRole === 'school_admin') return '学校管理员'
   return staffRoleLabel.value || userStore.roleName
 })
 
@@ -107,7 +118,7 @@ function handleLogout() {
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="router.push(userStore.userRole === 'student' ? '/student/profile' : userStore.userRole === 'staff' ? '/staff/profile' : '/profile')">
+              <el-dropdown-item @click="router.push(userStore.userRole === 'student' ? '/student/profile' : userStore.userRole === 'staff' ? '/staff/profile' : userStore.userRole === 'school_admin' ? '/school/dashboard' : '/profile')">
                 <el-icon><User /></el-icon>个人信息
               </el-dropdown-item>
               <el-dropdown-item divided @click="handleLogout">

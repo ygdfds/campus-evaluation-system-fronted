@@ -4,7 +4,7 @@ defineOptions({ name: 'SchoolAuditListView' })
 </script>
 <template>
   <div class="page-container">
-    <PageHeader title="审核管理" subtitle="处理待审核的评价与投诉" />
+    <PageHeader title="审核中心" subtitle="审核评价表单发布申请" />
     <el-card shadow="hover" class="section-card">
       <el-table :data="[]" stripe style="width: 100%">
         <el-table-column prop="title" label="标题" />
