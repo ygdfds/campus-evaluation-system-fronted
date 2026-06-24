@@ -239,6 +239,9 @@ export async function getSchoolAuditSummaryApi(tenantId) {
  * 获取审核详情（含表单、题目、窗口等完整信息）
  */
 export async function getSchoolAuditDetailApi(tenantId, auditId) {
+  // formQuestions 集合可能不存在，单独 catch 避免整体失败
+  const questionsPromise = request.get('/formQuestions', { params: { tenant_id: tenantId, deleted: false } }).catch(() => ({ data: [] }))
+
   const [auditsRes, formsRes, profilesRes, teachingOrgsRes, serviceOrgsRes, windowsRes, coursesRes, serviceItemsRes, questionsRes] = await Promise.all([
     request.get('/formPublishAudits', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/evaluationForms', { params: { tenant_id: tenantId, deleted: false } }),
@@ -248,7 +251,7 @@ export async function getSchoolAuditDetailApi(tenantId, auditId) {
     request.get('/evaluationWindows', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/courses', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/serviceItems', { params: { tenant_id: tenantId, deleted: false } }),
-    request.get('/formQuestions', { params: { tenant_id: tenantId, deleted: false } }),
+    questionsPromise,
   ])
 
   const audits = (auditsRes.data || []).filter(a => !a.deleted)
