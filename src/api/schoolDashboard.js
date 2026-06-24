@@ -143,7 +143,7 @@ export async function getSchoolAuditFormsApi(tenantId) {
     return {
       id: a.id,
       form_id: a.form_id,
-      form_title: form.title || `表单#${a.form_id || '?'}`,
+      form_title: form.title || form.name || form.form_name || '未命名评价表单',
       form_type: formTypeMap[form.type] || '评价',
       form_status: formStatusMap[form.status] || form.status || '待审核',
       requester_name: requester.real_name || '提交人未匹配',
@@ -281,7 +281,7 @@ export async function getSchoolRecentActivitiesApi(tenantId) {
   audits.slice(0, 5).forEach(audit => {
     const form = formMap[audit.form_id] || {}
     const requester = profileMap[audit.requested_by] || {}
-    const formTitle = form.title || '评价表单'
+    const formTitle = form.title || form.name || form.form_name || '未命名评价表单'
     activities.push({
       id: `audit_${audit.id}`,
       type: 'audit',

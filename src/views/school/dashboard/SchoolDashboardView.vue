@@ -200,7 +200,7 @@ onMounted(loadData)
                 </div>
                 <p class="todo-item-reason">{{ item.reason }}</p>
               </div>
-              <div v-if="traceTasks.length < 3" class="empty-more-hint">暂无更多待办</div>
+              <div class="empty-more-hint">已展示全部待审批授权</div>
             </template>
             <div v-else class="empty-hint">
               <el-icon :size="24"><CircleCheck /></el-icon>
