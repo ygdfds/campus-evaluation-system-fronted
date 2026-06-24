@@ -131,6 +131,7 @@ function handleLogout() {
   min-height: 100vh;
   background: var(--page-bg);
   position: relative;
+  overflow-x: hidden;
 }
 
 /* 背景氛围圆 */

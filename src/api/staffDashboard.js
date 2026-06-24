@@ -52,23 +52,24 @@ export function getCoursesApi(tenantId) {
  * @returns {{ pendingForms: number, pendingFeedback: number, activeWindows: number, pendingAppeals: number }}
  */
 export async function getStaffTodoStatsApi(tenantId) {
-  const [formAudits, workOrders, windows, appeals] = await Promise.all([
+  const [formAudits, complaintsRes, windows, appeals] = await Promise.all([
     request.get('/formPublishAudits', { params: { tenant_id: tenantId, deleted: false } }),
-    request.get('/feedbackWorkOrders', { params: { tenant_id: tenantId, deleted: false } }),
+    request.get('/complaints', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/evaluationWindows', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/appealRequests', { params: { tenant_id: tenantId, deleted: false } }),
   ])
 
   const audits = (formAudits.data || []).filter(r => !r.deleted)
-  const orders = (workOrders.data || []).filter(r => !r.deleted)
+  // 待处理反馈基于 complaints 统计，与反馈处理页保持一致
+  const complaintList = (complaintsRes.data || []).filter(c => !c.deleted)
   const wins = (windows.data || []).filter(r => !r.deleted)
   const apps = (appeals.data || []).filter(r => !r.deleted)
 
   return {
     pendingForms: audits.filter(r => r.status === 'pending').length,
-    pendingFeedback: orders.filter(r => r.status === 'pending' || r.status === 'processing').length,
+    pendingFeedback: complaintList.filter(c => c.status === 'pending' || c.status === 'processing').length,
     activeWindows: wins.filter(r => r.status === 'open').length,
-    pendingAppeals: apps.filter(r => r.status === 'pending').length,
+    pendingAppeals: apps.filter(r => r.status === 'pending' || r.status === 'processing').length,
   }
 }
 
@@ -147,7 +148,7 @@ export async function getStaffPendingFeedbackApi(tenantId) {
     }
   })
 
-  const typeMap = { complaint: '投诉', suggestion: '建议', consultation: '咨询', praise: '表扬' }
+  const typeMap = { complaint: '投诉', suggestion: '建议', consultation: '咨询', inquiry: '咨询', praise: '表扬' }
   const statusMap = { pending: '待处理', processing: '处理中', resolved: '已办结', rejected: '已驳回', cancelled: '已撤销' }
 
   return complaints.map(c => {
@@ -163,7 +164,7 @@ export async function getStaffPendingFeedbackApi(tenantId) {
     return {
       id: c.id,
       title: c.title,
-      type: typeMap[c.complaint_type] || c.complaint_type,
+      type: typeMap[c.complaint_type] || '反馈',
       target_name: targetName,
       status: statusMap[c.status] || c.status,
       status_code: c.status,
@@ -342,9 +343,8 @@ export async function getStaffWorkNotificationsApi(tenantId, userId) {
  * 获取待处理申诉列表（最近 5 条）
  */
 export async function getStaffPendingAppealsApi(tenantId) {
-  const [appealsRes, submissionsRes, formsRes] = await Promise.all([
+  const [appealsRes, formsRes] = await Promise.all([
     request.get('/appealRequests', { params: { tenant_id: tenantId, deleted: false } }),
-    request.get('/evaluationSubmissions', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/evaluationForms', { params: { tenant_id: tenantId, deleted: false } }),
   ])
 
@@ -353,20 +353,19 @@ export async function getStaffPendingAppealsApi(tenantId) {
     .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
     .slice(0, 5)
 
-  const submissions = (submissionsRes.data || []).filter(s => !s.deleted)
   const forms = (formsRes.data || []).filter(f => !f.deleted)
-  const subMap = {}; submissions.forEach(s => { subMap[s.id] = s })
   const formMap = {}; forms.forEach(f => { formMap[f.id] = f })
 
   const statusMap = { pending: '待处理', processing: '处理中', resolved: '已办结', rejected: '已驳回' }
 
   return appeals.map(a => {
-    const sub = subMap[a.submission_id]
-    const form = sub ? formMap[sub.form_id] : null
+    // 优先使用申诉记录自身的 form_id，兜底通过 submission 查找
+    const formId = a.form_id
+    const form = formId ? formMap[formId] : null
     return {
       id: a.id,
       submission_id: a.submission_id,
-      form_title: form?.title || `评价表单 #${sub?.form_id || '?'}`,
+      form_title: form?.title || '评价表单',
       reason: a.reason,
       status: statusMap[a.status] || a.status,
       status_code: a.status,
