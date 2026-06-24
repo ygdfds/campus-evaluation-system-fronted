@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Refresh, Search, Plus, Upload,
+  Refresh, Search, Plus, Upload, Files,
 } from '@element-plus/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyPlaceholder from '@/components/common/EmptyPlaceholder.vue'
@@ -248,8 +248,53 @@ async function openDetail(row) {
 }
 
 // ==================== 批量导入 ====================
+const importVisible = ref(false)
+const importFile = ref(null)
+const importFileName = ref('')
+const importLoading = ref(false)
+const importInputRef = ref(null)
+
 function handleImport() {
-  ElMessage.info('批量导入功能开发中')
+  importFile.value = null
+  importFileName.value = ''
+  importVisible.value = true
+}
+
+function handleFileChange(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  const ext = file.name.split('.').pop().toLowerCase()
+  if (!['xlsx', 'xls'].includes(ext)) {
+    ElMessage.error('仅支持 .xlsx 或 .xls 格式的 Excel 文件')
+    if (importInputRef.value) importInputRef.value.value = ''
+    return
+  }
+  importFile.value = file
+  importFileName.value = file.name
+}
+
+function handleRemoveFile() {
+  importFile.value = null
+  importFileName.value = ''
+  if (importInputRef.value) importInputRef.value.value = ''
+}
+
+async function handleImportSubmit() {
+  if (!importFile.value) {
+    ElMessage.warning('请先选择文件')
+    return
+  }
+  importLoading.value = true
+  try {
+    // TODO: 后续对接后端上传接口
+    await new Promise(resolve => setTimeout(resolve, 800))
+    ElMessage.success('文件上传成功，后端处理功能开发中')
+    importVisible.value = false
+  } catch {
+    ElMessage.error('上传失败')
+  } finally {
+    importLoading.value = false
+  }
 }
 
 // ==================== 工具函数 ====================
@@ -530,6 +575,40 @@ onMounted(() => {
         </template>
       </div>
     </el-drawer>
+
+    <!-- 批量导入弹窗 -->
+    <el-dialog
+      v-model="importVisible"
+      title="批量导入学生"
+      width="480px"
+      :close-on-click-modal="false"
+    >
+      <div class="import-dialog-body">
+        <div class="import-upload-area">
+          <input
+            ref="importInputRef"
+            type="file"
+            accept=".xlsx,.xls"
+            class="import-file-input"
+            @change="handleFileChange"
+          />
+          <el-icon :size="40" class="import-upload-icon"><Upload /></el-icon>
+          <p class="import-upload-text">点击或拖拽 Excel 文件到此处</p>
+          <p class="import-upload-hint">支持 .xlsx / .xls 格式</p>
+        </div>
+        <div v-if="importFileName" class="import-file-info">
+          <el-icon :size="18" class="import-file-icon"><Files /></el-icon>
+          <span class="import-file-name">{{ importFileName }}</span>
+          <el-button link type="danger" size="small" @click="handleRemoveFile">移除</el-button>
+        </div>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="importVisible = false">取消</el-button>
+          <el-button type="primary" :loading="importLoading" @click="handleImportSubmit">上传</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -629,6 +708,80 @@ onMounted(() => {
   margin: 0 0 var(--space-3);
   padding-bottom: var(--space-2);
   border-bottom: var(--border-lighter);
+}
+
+/* 批量导入弹窗 */
+.import-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.import-upload-area {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-6);
+  border: 2px dashed var(--color-border-light);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-light);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.import-upload-area:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-50);
+}
+
+.import-file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.import-upload-icon {
+  color: var(--color-text-placeholder);
+  margin-bottom: var(--space-2);
+}
+
+.import-upload-text {
+  font-size: var(--font-base);
+  color: var(--color-text-body);
+  margin: 0;
+}
+
+.import-upload-hint {
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+  margin: var(--space-1) 0 0;
+}
+
+.import-file-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+}
+
+.import-file-icon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.import-file-name {
+  flex: 1;
+  font-size: var(--font-sm);
+  color: var(--color-text-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 响应式 */

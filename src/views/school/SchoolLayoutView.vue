@@ -77,12 +77,6 @@ function isExpanded(index) {
   return expandedMenus.value.includes(index)
 }
 
-// 判断子菜单是否包含当前路由
-function isChildActive(item) {
-  if (!item.children) return false
-  return item.children.some(c => route.path === c.index) || route.path.startsWith(item.index + '/')
-}
-
 function handleLogout() {
   userStore.logout()
   router.push('/login')
@@ -109,7 +103,6 @@ function handleLogout() {
           <div v-if="item.children" class="menu-group">
             <div
               class="menu-item menu-parent"
-              :class="{ active: isChildActive(item) }"
               @click="toggleMenu(item.index)"
             >
               <el-icon :size="18"><component :is="item.icon" /></el-icon>
@@ -118,7 +111,7 @@ function handleLogout() {
                 <ArrowDown />
               </el-icon>
             </div>
-            <div v-show="isExpanded(item.index)" class="menu-children">
+            <div :class="['menu-children', { 'menu-children--expanded': isExpanded(item.index) }]">
               <div
                 v-for="child in item.children"
                 :key="child.index"
@@ -313,7 +306,7 @@ function handleLogout() {
 
 .menu-arrow {
   margin-left: auto;
-  transition: transform 0.2s;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--color-text-placeholder);
 }
 
@@ -322,7 +315,13 @@ function handleLogout() {
 }
 
 .menu-children {
-  padding-left: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menu-children--expanded {
+  max-height: 200px;
 }
 
 .menu-child {
