@@ -644,7 +644,7 @@ export default { components: { OrgTreeNode } }
   padding: 3px;
   box-shadow: var(--shadow-card);
   align-self: flex-start;
-  height: 40px;
+  height: var(--input-height-lg);
 }
 .org-type-seg__item {
   display: flex;
@@ -684,18 +684,18 @@ export default { components: { OrgTreeNode } }
   box-shadow: var(--shadow-card);
 }
 .summary-icon {
-  width: 44px; height: 44px;
+  width: var(--space-11); height: var(--space-11);
   border-radius: var(--radius-md);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
 .tone-primary { background: var(--color-primary-50); color: var(--color-primary); }
-.tone-info { background: var(--color-info-light, #e8eaed); color: var(--color-info, #606266); }
-.tone-warning { background: var(--color-warning-light, #fdf6ec); color: var(--color-warning); }
-.tone-success { background: var(--color-success-light, #f0f9eb); color: var(--color-success); }
-.tone-danger { background: var(--color-danger-light, #fef0f0); color: var(--color-danger); }
-.summary-value { font-size: 24px; font-weight: var(--font-weight-bold); color: var(--color-text-primary); line-height: 1.2; }
-.summary-title { font-size: var(--font-sm); color: var(--color-text-secondary); margin-top: 2px; }
+.tone-info { background: var(--color-info-light); color: var(--color-info); }
+.tone-warning { background: var(--color-warning-light); color: var(--color-warning); }
+.tone-success { background: var(--color-success-light); color: var(--color-success); }
+.tone-danger { background: var(--color-danger-light); color: var(--color-danger); }
+.summary-value { font-size: var(--font-3xl); font-weight: var(--font-weight-bold); color: var(--color-text-primary); line-height: 1.2; }
+.summary-title { font-size: var(--font-sm); color: var(--color-text-secondary); margin-top: var(--space-0); }
 
 /* 主体布局 */
 .org-main {
@@ -715,7 +715,7 @@ export default { components: { OrgTreeNode } }
   flex-direction: column;
   overflow: hidden;
 }
-.tree-search { padding: var(--space-4); border-bottom: 1px solid var(--color-border-lighter, #ebeef5); }
+.tree-search { padding: var(--space-4); border-bottom: var(--border-lighter); }
 .tree-body { flex: 1; overflow-y: auto; padding: var(--space-2) 0; }
 
 /* 树节点 */
@@ -739,12 +739,12 @@ export default { components: { OrgTreeNode } }
   flex-shrink: 0;
   width: 18px; height: 18px;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--color-text-placeholder);
   transition: transform 0.2s, background 0.15s;
   cursor: pointer;
 }
-.tree-node-expand:hover { background: var(--color-border-lighter, #ebeef5); }
+.tree-node-expand:hover { background: var(--color-border-lighter); }
 .tree-node-expand.is-collapsed { transform: rotate(0deg); }
 .tree-node-expand:not(.is-collapsed) { transform: rotate(90deg); }
 .tree-node-expand-placeholder { width: 18px; flex-shrink: 0; }
@@ -754,12 +754,12 @@ export default { components: { OrgTreeNode } }
 .tree-node-status { flex-shrink: 0; }
 .tree-node-more {
   flex-shrink: 0; cursor: pointer; color: var(--color-text-placeholder);
-  padding: 2px; border-radius: 4px;
+  padding: var(--space-0); border-radius: var(--radius-sm);
   opacity: 0;
   transition: opacity 0.15s, background 0.15s, color 0.15s;
 }
 .tree-node:hover .tree-node-more { opacity: 1; }
-.tree-node-more:hover { background: var(--color-border-lighter, #ebeef5); color: var(--color-text-title); }
+.tree-node-more:hover { background: var(--color-border-lighter); color: var(--color-text-title); }
 
 /* 右侧详情 */
 .org-detail-panel {
@@ -779,7 +779,7 @@ export default { components: { OrgTreeNode } }
   justify-content: space-between;
   margin-bottom: var(--space-5);
   padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--color-border-lighter, #ebeef5);
+  border-bottom: var(--border-lighter);
 }
 .detail-header-info { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
 .detail-header-name {
@@ -800,17 +800,17 @@ export default { components: { OrgTreeNode } }
   color: var(--color-text-title);
   margin: 0 0 var(--space-4);
   padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--color-border-lighter, #ebeef5);
+  border-bottom: var(--border-lighter);
 }
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-3) var(--space-6);
 }
-.detail-item { display: flex; flex-direction: column; gap: 2px; }
+.detail-item { display: flex; flex-direction: column; gap: var(--space-0); }
 .detail-label { font-size: var(--font-xs); color: var(--color-text-placeholder); }
 .detail-value { font-size: var(--font-sm); color: var(--color-text-title); }
-.detail-value.code { font-family: 'Courier New', monospace; background: var(--color-bg-page); padding: 1px 6px; border-radius: 4px; font-size: var(--font-xs); }
+.detail-value.code { font-family: 'Courier New', monospace; background: var(--color-bg-page); padding: var(--space-0) var(--space-1); border-radius: var(--radius-sm); font-size: var(--font-xs); }
 .detail-desc { font-size: var(--font-sm); color: var(--color-text-body); line-height: 1.6; margin: 0; }
 .detail-desc-empty { color: var(--color-text-placeholder); font-style: italic; }
 
@@ -823,13 +823,13 @@ export default { components: { OrgTreeNode } }
   border-radius: var(--radius-md);
   min-width: 100px;
 }
-.related-num { font-size: 22px; font-weight: var(--font-weight-bold); color: var(--color-primary); }
-.related-label { font-size: var(--font-xs); color: var(--color-text-secondary); margin-top: 2px; }
+.related-num { font-size: var(--font-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary); }
+.related-label { font-size: var(--font-xs); color: var(--color-text-secondary); margin-top: var(--space-0); }
 
 /* 操作日志 */
 .log-timeline { display: flex; flex-direction: column; gap: var(--space-3); }
 .log-item { display: flex; align-items: center; gap: var(--space-2); }
-.log-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--color-text-placeholder); }
+.log-dot { width: var(--space-2); height: var(--space-2); border-radius: 50%; flex-shrink: 0; background: var(--color-text-placeholder); }
 .log-dot.tone-success { background: var(--color-success); }
 .log-dot.tone-danger { background: var(--color-danger); }
 .log-dot.tone-info { background: var(--color-primary); }
@@ -841,7 +841,7 @@ export default { components: { OrgTreeNode } }
 .form-hint {
   font-size: var(--font-xs);
   color: var(--color-warning);
-  margin-top: 4px;
+  margin-top: var(--space-1);
   line-height: 1.4;
 }
 

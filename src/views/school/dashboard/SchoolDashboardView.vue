@@ -324,7 +324,7 @@ onMounted(loadData)
 .page-subtitle {
   font-size: var(--font-sm);
   color: var(--color-text-secondary);
-  margin: 2px 0 0;
+  margin: var(--space-0) 0 0;
 }
 
 /* 核心指标卡 */
@@ -337,7 +337,7 @@ onMounted(loadData)
 .metric-card {
   background: var(--color-bg-card);
   border-radius: var(--radius-card);
-  border: 1px solid var(--color-border-light, #ebeef5);
+  border: var(--border-light);
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
@@ -346,12 +346,12 @@ onMounted(loadData)
 }
 
 .metric-card:hover {
-  border-color: var(--color-primary-200, #b7e4c7);
+  border-color: var(--color-primary-200);
 }
 
 .metric-card.has-alert {
-  border-color: var(--color-warning-200, #f5dab1);
-  background: #fffbf5;
+  border-color: var(--color-warning-200, var(--color-warning));
+  background: var(--color-warning-bg);
 }
 
 .metric-top {
@@ -390,7 +390,7 @@ onMounted(loadData)
 .todo-card {
   background: var(--color-bg-card);
   border-radius: var(--radius-card);
-  border: 1px solid var(--color-border-light, #ebeef5);
+  border: var(--border-light);
   overflow: hidden;
 }
 
@@ -399,7 +399,7 @@ onMounted(loadData)
   justify-content: space-between;
   align-items: center;
   padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--color-border-lighter, #f2f3f5);
+  border-bottom: var(--border-lighter);
 }
 
 .todo-title {
@@ -418,7 +418,7 @@ onMounted(loadData)
 
 .todo-item {
   padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--color-border-lighter, #f2f3f5);
+  border-bottom: var(--border-lighter);
 }
 
 .todo-item:last-child {
@@ -429,7 +429,7 @@ onMounted(loadData)
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .todo-item-name {
@@ -457,7 +457,7 @@ onMounted(loadData)
 .todo-item-reason {
   font-size: var(--font-xs);
   color: var(--color-text-body);
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   line-height: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -514,7 +514,7 @@ onMounted(loadData)
 .overview-card {
   background: var(--color-bg-card);
   border-radius: var(--radius-card);
-  border: 1px solid var(--color-border-light, #ebeef5);
+  border: var(--border-light);
   padding: var(--space-4);
 }
 
@@ -528,7 +528,7 @@ onMounted(loadData)
 .overview-card-desc {
   font-size: var(--font-xs);
   color: var(--color-text-secondary);
-  margin: 2px 0 var(--space-3);
+  margin: var(--space-0) 0 var(--space-3);
 }
 
 .status-bars {
@@ -553,15 +553,15 @@ onMounted(loadData)
 
 .status-bar-track {
   flex: 1;
-  height: 8px;
-  background: var(--color-bg-light, #f5f7f5);
-  border-radius: 4px;
+  height: var(--space-2);
+  background: var(--color-bg-light);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .status-bar-fill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: width 0.4s ease;
   min-width: 0;
 }
@@ -613,14 +613,14 @@ onMounted(loadData)
   padding: var(--space-3);
   background: var(--color-bg-card);
   border-radius: var(--radius-card);
-  border: 1px solid var(--color-border-light, #ebeef5);
+  border: var(--border-light);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .quick-card:hover {
-  border-color: var(--color-primary-200, #b7e4c7);
-  background: var(--color-primary-50, #f5faf5);
+  border-color: var(--color-primary-200);
+  background: var(--color-primary-50);
 }
 
 .quick-icon {
@@ -659,7 +659,7 @@ onMounted(loadData)
 .activities-card {
   background: var(--color-bg-card);
   border-radius: var(--radius-card);
-  border: 1px solid var(--color-border-light, #ebeef5);
+  border: var(--border-light);
   padding: var(--space-3) var(--space-4);
 }
 
@@ -668,7 +668,7 @@ onMounted(loadData)
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--color-border-lighter, #f2f3f5);
+  border-bottom: var(--border-lighter);
   font-size: var(--font-sm);
 }
 

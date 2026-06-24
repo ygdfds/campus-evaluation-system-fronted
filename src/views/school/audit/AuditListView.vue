@@ -525,7 +525,7 @@ onMounted(() => loadData())
 .status-card {
   background: var(--color-bg-card);
   border-radius: var(--radius-card);
-  border: 1px solid var(--color-border-lighter);
+  border: var(--border-lighter);
   padding: var(--space-4) var(--space-4);
   display: flex;
   flex-direction: column;
@@ -554,7 +554,7 @@ onMounted(() => loadData())
   gap: var(--space-3);
   background: var(--color-bg-card);
   border-radius: var(--radius-card);
-  border: 1px solid var(--color-border-lighter);
+  border: var(--border-lighter);
   padding: var(--space-3) var(--space-4);
   flex-wrap: wrap;
 }
@@ -564,12 +564,12 @@ onMounted(() => loadData())
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  min-height: 200px;
+  min-height: var(--space-16);
 }
 .audit-card {
   background: var(--color-bg-card);
   border-radius: var(--radius-card);
-  border: 1px solid var(--color-border-lighter);
+  border: var(--border-lighter);
   padding: var(--space-4) var(--space-5);
   display: flex;
   align-items: center;
@@ -652,7 +652,7 @@ onMounted(() => loadData())
   color: var(--color-text-primary);
   margin: 0 0 var(--space-3);
   padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--color-border-lighter);
+  border-bottom: var(--border-lighter);
 }
 .detail-grid {
   display: grid;
@@ -711,7 +711,7 @@ onMounted(() => loadData())
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  margin-top: 4px;
+  margin-top: var(--space-1);
   flex-shrink: 0;
   background: var(--color-text-placeholder);
 }
@@ -745,13 +745,13 @@ onMounted(() => loadData())
   font-size: var(--font-sm);
   color: var(--color-warning);
   padding: var(--space-2) var(--space-3);
-  background: rgba(255, 152, 0, 0.08);
+  background: var(--color-risk-warning-bg);
   border-radius: var(--radius-sm);
   margin-bottom: var(--space-2);
 }
 .risk-item.risk-blocking {
   color: var(--color-danger);
-  background: rgba(244, 67, 54, 0.08);
+  background: var(--color-risk-danger-bg);
 }
 .risk-item.risk-history {
   color: var(--color-text-secondary);
@@ -767,7 +767,7 @@ onMounted(() => loadData())
   color: var(--color-warning);
   margin-top: var(--space-2);
   padding: var(--space-1) var(--space-2);
-  background: rgba(255, 152, 0, 0.06);
+  background: var(--color-risk-warning-light);
   border-radius: var(--radius-sm);
 }
 
@@ -790,14 +790,14 @@ onMounted(() => loadData())
 .quick-tag:hover, .quick-tag.active {
   color: var(--color-primary);
   border-color: var(--color-primary);
-  background: rgba(0, 128, 96, 0.06);
+  background: var(--color-risk-tag-hover);
 }
 
 /* 审核通过确认弹窗按钮样式 */
 :deep(.el-message-box__btns .audit-confirm-btn) {
   background-color: var(--color-primary);
   border-color: var(--color-primary);
-  color: #fff;
+  color: var(--color-text-white);
 }
 :deep(.el-message-box__btns .audit-confirm-btn:hover) {
   background-color: var(--color-primary-hover);

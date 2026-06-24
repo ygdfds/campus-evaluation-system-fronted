@@ -16,26 +16,26 @@ defineOptions({ name: 'SchoolDataOverview' })
 
 <style scoped>
 .page-container {
-  padding: 24px 0;
+  padding: var(--space-6) 0;
 }
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 .page-header h2 {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--color-text-title, #1a1a1a);
-  margin: 0 0 6px;
+  font-size: var(--font-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-1);
 }
 .page-desc {
-  font-size: 14px;
-  color: var(--color-text-secondary, #8c8c8c);
+  font-size: var(--font-base);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 .empty-placeholder {
-  background: var(--color-bg-card, #fff);
-  border-radius: var(--radius-card, 12px);
-  border: 1px solid #e8ebe8;
-  padding: 60px 24px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-card);
+  border: var(--border-light);
+  padding: var(--space-14) var(--space-6);
 }
 </style>

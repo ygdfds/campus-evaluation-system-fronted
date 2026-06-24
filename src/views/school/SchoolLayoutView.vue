@@ -213,8 +213,8 @@ function handleLogout() {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f8faf8;
-  border-right: 1px solid #e8ebe8;
+  background: var(--color-bg-page-alt);
+  border-right: var(--border-light);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -226,14 +226,14 @@ function handleLogout() {
   padding: 0 var(--space-4);
   height: 60px;
   flex-shrink: 0;
-  border-bottom: 1px solid #e8ebe8;
+  border-bottom: var(--border-light);
 }
 
 .logo-icon {
   width: 34px;
   height: 34px;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-text-white);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -276,7 +276,7 @@ function handleLogout() {
   align-items: center;
   gap: var(--space-2);
   padding: 0 var(--space-4);
-  height: 44px;
+  height: var(--space-11);
   cursor: pointer;
   color: var(--color-text-body);
   font-size: var(--font-sm);
@@ -286,12 +286,12 @@ function handleLogout() {
 }
 
 .menu-item:hover {
-  background: #eef3ee;
+  background: var(--color-primary-50);
   color: var(--color-text-title);
 }
 
 .menu-item.active {
-  background: var(--color-primary-50, #eef7ee);
+  background: var(--color-primary-50);
   color: var(--color-primary);
   font-weight: var(--font-weight-semibold);
 }
@@ -347,7 +347,7 @@ function handleLogout() {
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
-  border-top: 1px solid #e8ebe8;
+  border-top: var(--border-light);
   font-size: var(--font-xs);
   color: var(--color-text-secondary);
   flex-shrink: 0;
@@ -370,7 +370,7 @@ function handleLogout() {
   justify-content: space-between;
   padding: 0 var(--space-6);
   background: var(--color-bg-card);
-  border-bottom: 1px solid var(--color-border-light, #ebeef5);
+  border-bottom: var(--border-light);
   flex-shrink: 0;
 }
 
@@ -406,7 +406,7 @@ function handleLogout() {
 
 .crumb-sep {
   color: var(--color-text-placeholder);
-  margin: 0 2px;
+  margin: 0 var(--space-0);
 }
 
 .toolbar-right {
@@ -419,7 +419,7 @@ function handleLogout() {
   font-size: var(--font-sm);
   color: var(--color-text-body);
   padding: var(--space-1) var(--space-3);
-  background: var(--color-bg-light, #f5f7f5);
+  background: var(--color-bg-light);
   border-radius: var(--radius-sm);
 }
 
@@ -438,8 +438,8 @@ function handleLogout() {
 }
 
 .user-avatar {
-  width: 30px;
-  height: 30px;
+  width: var(--space-8);
+  height: var(--space-8);
   border-radius: var(--radius-full);
   background: var(--color-primary-50);
   color: var(--color-primary);
@@ -461,7 +461,7 @@ function handleLogout() {
   font-size: var(--font-xs);
   background: var(--color-primary-50);
   color: var(--color-primary);
-  border-color: var(--color-primary-200, #b7e4c7);
+  border-color: var(--color-primary-200);
 }
 
 /* 主内容区 */

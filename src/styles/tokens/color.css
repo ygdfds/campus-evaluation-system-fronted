@@ -103,6 +103,20 @@
   --color-carousel-tag-bg: rgba(232, 245, 233, 0.9);
   --color-carousel-time-text: rgba(255, 255, 255, 0.8);
 
+  /* ========== 图表/状态色 ========== */
+  --color-chart-info: #909399;
+  --color-chart-warning: #e6a23c;
+  --color-chart-success: #67c23a;
+  --color-chart-danger: #f56c6c;
+  --color-chart-blue: #409eff;
+  --color-warning-bg: #fffbf5;
+
+  /* ========== 风险提示背景 ========== */
+  --color-risk-warning-bg: rgba(255, 152, 0, 0.08);
+  --color-risk-danger-bg: rgba(244, 67, 54, 0.08);
+  --color-risk-warning-light: rgba(255, 152, 0, 0.06);
+  --color-risk-tag-hover: rgba(0, 128, 96, 0.06);
+
   /* ========== 组件叠加色 ========== */
   --color-overlay-white-20: rgba(255, 255, 255, 0.2);
   --color-overlay-white-60: rgba(255, 255, 255, 0.6);
