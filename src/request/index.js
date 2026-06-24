@@ -54,7 +54,7 @@ service.interceptors.response.use(
       clearAuth()
       router.push('/login')
       ElMessage.error('登录已过期，请重新登录')
-    } else {
+    } else if (!error.config?.silent) {
       ElMessage.error(error.message || '网络错误')
     }
     return Promise.reject(error)
