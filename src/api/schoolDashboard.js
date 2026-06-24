@@ -30,8 +30,8 @@ const auditStatusMap = {
 // 追溯授权状态中文映射
 const traceStatusMap = {
   pending: '待审批',
-  approved: '已批准',
-  rejected: '已驳回',
+  approved: '已授权',
+  rejected: '已拒绝',
 }
 
 // 操作日志模块中文映射
@@ -114,31 +114,31 @@ export async function getSchoolDashboardOverviewApi(tenantId) {
  * 获取待审核评价表单列表
  */
 export async function getSchoolAuditFormsApi(tenantId) {
-  const [auditsRes, formsRes, usersRes] = await Promise.all([
+  const [auditsRes, formsRes, profilesRes] = await Promise.all([
     request.get('/formPublishAudits', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/evaluationForms', { params: { tenant_id: tenantId, deleted: false } }),
-    request.get('/userAccounts', { params: { tenant_id: tenantId, deleted: false } }),
+    request.get('/personProfiles', { params: { tenant_id: tenantId, deleted: false } }),
   ])
 
   const audits = (auditsRes.data || []).filter(a => !a.deleted && a.status === 'pending')
   const forms = (formsRes.data || []).filter(f => !f.deleted)
-  const users = (usersRes.data || []).filter(u => !u.deleted)
+  const profiles = (profilesRes.data || []).filter(p => !p.deleted)
 
   const formMap = {}
   forms.forEach(f => { formMap[f.id] = f })
-  const userMap = {}
-  users.forEach(u => { userMap[u.id] = u })
+  const profileMap = {}
+  profiles.forEach(p => { profileMap[p.user_id] = p })
 
   return audits.map(a => {
     const form = formMap[a.form_id] || {}
-    const requester = userMap[a.requested_by] || {}
+    const requester = profileMap[a.requested_by] || {}
     return {
       id: a.id,
       form_id: a.form_id,
       form_title: form.title || '评价表单',
       form_type: formTypeMap[form.type] || '评价',
       form_status: formStatusMap[form.status] || form.status || '未知',
-      requester_name: requester.real_name || requester.username || '未知',
+      requester_name: requester.real_name || '提交人未匹配',
       submit_reason: a.submit_reason || '申请发布评价表单',
       requested_at: a.requested_at,
       status: auditStatusMap[a.status] || a.status,
@@ -150,29 +150,29 @@ export async function getSchoolAuditFormsApi(tenantId) {
  * 获取待处理追溯授权申请列表
  */
 export async function getSchoolTraceAuthTasksApi(tenantId) {
-  const [tracesRes, appealsRes, usersRes] = await Promise.all([
+  const [tracesRes, appealsRes, profilesRes] = await Promise.all([
     request.get('/traceAuthorizations', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/appealRequests', { params: { tenant_id: tenantId, deleted: false } }),
-    request.get('/userAccounts', { params: { tenant_id: tenantId, deleted: false } }),
+    request.get('/personProfiles', { params: { deleted: false } }),
   ])
 
   const traces = (tracesRes.data || []).filter(t => (t.deleted === false || t.deleted === undefined) && t.status === 'pending')
   const appeals = (appealsRes.data || []).filter(a => !a.deleted)
-  const users = (usersRes.data || []).filter(u => !u.deleted)
+  const profiles = (profilesRes.data || []).filter(p => !p.deleted)
 
   const appealMap = {}
   appeals.forEach(a => { appealMap[a.id] = a })
-  const userMap = {}
-  users.forEach(u => { userMap[u.id] = u })
+  const profileMap = {}
+  profiles.forEach(p => { profileMap[p.user_id] = p })
 
   return traces.map(t => {
     const appeal = appealMap[t.appeal_id] || {}
-    const applicant = userMap[t.applicant_id] || {}
+    const applicant = profileMap[t.applicant_id] || {}
     return {
       id: t.id,
       appeal_id: t.appeal_id,
       appeal_no: appeal.appeal_no || `申诉#${t.appeal_id || '?'}`,
-      applicant_name: applicant.real_name || applicant.username || '未知',
+      applicant_name: applicant.real_name || '申请人未匹配',
       reason: t.reason || '无',
       status: traceStatusMap[t.status] || t.status,
       requested_at: t.requested_at,
@@ -232,40 +232,54 @@ export async function getSchoolOperationOverviewApi(tenantId) {
  * 获取最近操作动态
  */
 export async function getSchoolRecentActivitiesApi(tenantId) {
-  const [logsRes, auditsRes, tracesRes] = await Promise.all([
+  const [logsRes, auditsRes, tracesRes, formsRes, profilesRes] = await Promise.all([
     request.get('/operationLogs', { params: { tenant_id: tenantId } }),
     request.get('/formPublishAudits', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/traceAuthorizations', { params: { tenant_id: tenantId, deleted: false } }),
+    request.get('/evaluationForms', { params: { tenant_id: tenantId, deleted: false } }),
+    request.get('/personProfiles', { params: { deleted: false } }),
   ])
 
   const logs = (logsRes.data || []).slice(0, 20)
   const audits = (auditsRes.data || []).filter(a => !a.deleted)
   const traces = (tracesRes.data || []).filter(t => t.deleted === false || t.deleted === undefined)
+  const forms = (formsRes.data || []).filter(f => !f.deleted)
+  const profiles = (profilesRes.data || []).filter(p => !p.deleted)
 
-  // 合并并排序，取最新6条
+  const formMap = {}
+  forms.forEach(f => { formMap[f.id] = f })
+  const profileMap = {}
+  profiles.forEach(p => { profileMap[p.user_id] = p })
+
   const activities = []
 
   // 操作日志
   logs.forEach(log => {
+    const operator = profileMap[log.user_id] || {}
     activities.push({
       id: `log_${log.id}`,
       type: 'operation',
       module: moduleMap[log.module] || log.module || '其他',
       action: actionMap[log.action] || log.action || '操作',
       content: log.content || '',
+      operator_name: operator.real_name || '',
       target_type: log.target_type,
       created_at: log.created_at,
     })
   })
 
-  // 审核记录（最近创建的）
+  // 审核记录
   audits.slice(0, 5).forEach(audit => {
+    const form = formMap[audit.form_id] || {}
+    const requester = profileMap[audit.requested_by] || {}
+    const formTitle = form.title || '评价表单'
     activities.push({
       id: `audit_${audit.id}`,
       type: 'audit',
       module: '审核管理',
       action: audit.status === 'pending' ? '待审核' : auditStatusMap[audit.status] || audit.status,
-      content: `表单审核 #${audit.id}`,
+      content: `${requester.real_name || '提交人未匹配'}提交了《${formTitle}》审核申请`,
+      operator_name: requester.real_name || '',
       target_type: 'form_publish_audit',
       created_at: audit.requested_at || audit.created_at,
     })
@@ -273,12 +287,14 @@ export async function getSchoolRecentActivitiesApi(tenantId) {
 
   // 追溯授权申请
   traces.slice(0, 5).forEach(trace => {
+    const applicant = profileMap[trace.applicant_id] || {}
     activities.push({
       id: `trace_${trace.id}`,
       type: 'trace',
       module: '追溯授权',
       action: traceStatusMap[trace.status] || trace.status,
-      content: `追溯授权申请 #${trace.id}`,
+      content: `${applicant.real_name || '申请人未匹配'}发起匿名评价追溯授权申请`,
+      operator_name: applicant.real_name || '',
       target_type: 'trace_authorization',
       created_at: trace.requested_at || trace.created_at,
     })

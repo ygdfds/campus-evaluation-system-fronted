@@ -75,7 +75,7 @@ const router = createRouter({
     {
       path: '/school',
       name: 'SchoolLayout',
-      component: () => import('@/views/TopNavLayoutView.vue'),
+      component: () => import('@/views/school/SchoolLayoutView.vue'),
       meta: { title: '学校管理', requiresAuth: true, roles: ['school_admin'] },
       children: [
         { path: 'dashboard', name: 'SchoolDashboard', component: () => import('@/views/school/dashboard/SchoolDashboardView.vue'), meta: { title: '学校概览' } },
@@ -84,6 +84,8 @@ const router = createRouter({
         { path: 'users/student', name: 'SchoolStudentList', component: () => import('@/views/school/users/StudentListView.vue'), meta: { title: '学生管理' } },
         { path: 'form/list', name: 'SchoolFormList', component: () => import('@/views/school/form/FormListView.vue'), meta: { title: '表单列表' } },
         { path: 'audit/list', name: 'SchoolAuditList', component: () => import('@/views/school/audit/AuditListView.vue'), meta: { title: '审核列表' } },
+        { path: 'data/overview', name: 'SchoolDataOverview', component: () => import('@/views/school/data/DataOverviewView.vue'), meta: { title: '数据概览' } },
+        { path: 'school-info', name: 'SchoolInfo', component: () => import('@/views/school/info/SchoolInfoView.vue'), meta: { title: '学校信息' } },
       ],
     },
     // ==================== 教职工端 ====================
