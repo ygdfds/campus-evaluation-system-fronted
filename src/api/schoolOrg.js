@@ -179,11 +179,21 @@ export async function getSchoolOrgDetailApi(tenantId, type, orgId) {
 
   const parentOrg = orgs.find(o => o.id === org.parent_id)
 
+  // 解析负责人名称
+  let managerName = ''
+  if (org.manager_user_id) {
+    const profilesRes2 = await request.get('/personProfiles', { params: { deleted: false } })
+    const allProfiles = (profilesRes2.data || []).filter(p => !p.deleted)
+    const mgr = allProfiles.find(p => p.user_id === org.manager_user_id)
+    managerName = mgr?.real_name || ''
+  }
+
   return {
     ...org,
     type_label: typeMap[org.type] || org.type,
     status_label: orgStatusMap[org.status] || org.status,
     parent_name: parentOrg?.name || '',
+    manager_name: managerName,
     ...relatedData,
     logs,
   }
@@ -319,6 +329,79 @@ export async function deleteSchoolOrgApi(tenantId, type, orgId, orgName) {
   } catch { /* ignore */ }
 
   return res
+}
+
+/**
+ * 启用组织
+ */
+export async function enableSchoolOrgApi(tenantId, type, orgId, orgName) {
+  const endpoint = type === 'teaching' ? '/teachingOrgUnits' : '/serviceOrgUnits'
+  const now = new Date().toISOString()
+  const res = await request.patch(`${endpoint}/${orgId}`, {
+    status: 'active',
+    updated_at: now,
+  })
+  try {
+    await request.post('/operationLogs', {
+      tenant_id: tenantId,
+      user_id: null,
+      module: 'org',
+      action: 'enable',
+      target_type: type === 'teaching' ? 'teaching_org' : 'service_org',
+      target_id: orgId,
+      content: `启用组织：${orgName || ''}`,
+      created_at: now,
+    })
+  } catch { /* ignore */ }
+  return res
+}
+
+/**
+ * 检查组织是否可删除（无子组织、无关联数据）
+ */
+export async function checkOrgDeleteRisksApi(tenantId, type, orgId) {
+  const endpoint = type === 'teaching' ? '/teachingOrgUnits' : '/serviceOrgUnits'
+  const res = await request.get(endpoint, { params: { tenant_id: tenantId, deleted: false } })
+  const orgs = (res.data || []).filter(o => !o.deleted)
+  const warnings = []
+  const children = orgs.filter(o => o.parent_id === Number(orgId))
+  if (children.length > 0) warnings.push(`存在 ${children.length} 个子组织`)
+  const allOrgIds = [Number(orgId)]
+  function collectChildIds(pid) {
+    orgs.filter(o => o.parent_id === pid).forEach(o => { allOrgIds.push(o.id); collectChildIds(o.id) })
+  }
+  collectChildIds(orgId)
+  if (type === 'teaching') {
+    const cRes = await request.get('/courses', { params: { tenant_id: tenantId, deleted: false } })
+    const linked = (cRes.data || []).filter(c => !c.deleted && allOrgIds.includes(c.teaching_org_id))
+    if (linked.length > 0) warnings.push(`关联 ${linked.length} 门课程`)
+  } else {
+    const iRes = await request.get('/serviceItems', { params: { tenant_id: tenantId, deleted: false } })
+    const linked = (iRes.data || []).filter(i => !i.deleted && allOrgIds.includes(i.service_org_id))
+    if (linked.length > 0) warnings.push(`关联 ${linked.length} 个服务项目`)
+  }
+  return warnings
+}
+
+/**
+ * 检查组织编辑时是否有关联数据（用于禁用组织类型字段）
+ */
+export async function checkOrgHasAssociationsApi(tenantId, type, orgId) {
+  const allOrgIds = [Number(orgId)]
+  const endpoint = type === 'teaching' ? '/teachingOrgUnits' : '/serviceOrgUnits'
+  const res = await request.get(endpoint, { params: { tenant_id: tenantId, deleted: false } })
+  const orgs = (res.data || []).filter(o => !o.deleted)
+  function collectChildIds(pid) {
+    orgs.filter(o => o.parent_id === pid).forEach(o => { allOrgIds.push(o.id); collectChildIds(o.id) })
+  }
+  collectChildIds(orgId)
+  if (type === 'teaching') {
+    const cRes = await request.get('/courses', { params: { tenant_id: tenantId, deleted: false } })
+    return (cRes.data || []).filter(c => !c.deleted && allOrgIds.includes(c.teaching_org_id)).length > 0
+  } else {
+    const iRes = await request.get('/serviceItems', { params: { tenant_id: tenantId, deleted: false } })
+    return (iRes.data || []).filter(i => !i.deleted && allOrgIds.includes(i.service_org_id)).length > 0
+  }
 }
 
 /**
