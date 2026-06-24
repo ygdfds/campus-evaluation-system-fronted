@@ -160,9 +160,7 @@ onMounted(loadData)
                   <el-tag size="small" effect="plain" class="type-tag">{{ item.form_type }}</el-tag>
                 </div>
                 <div class="todo-item-row2">
-                  <span>提交人：{{ item.requester_name }}</span>
-                  <span v-if="item.org_name">{{ item.org_name }}</span>
-                  <span>{{ formatTime(item.requested_at) }}</span>
+                  <span class="todo-meta">提交人：{{ item.requester_name }} · 所属组织：{{ item.org_name || '组织未匹配' }} · {{ formatTime(item.requested_at) }}</span>
                   <el-button text type="primary" size="small" class="todo-action-btn" @click="router.push('/school/audit/list')">去审核</el-button>
                 </div>
               </div>
@@ -466,6 +464,14 @@ onMounted(loadData)
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.todo-meta {
+  font-size: var(--font-xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .todo-action-btn {
