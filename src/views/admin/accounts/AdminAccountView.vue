@@ -2,18 +2,25 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
+import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import {
+  createSystemAdminApi,
+  deleteSystemAdminApi,
+  getAdminStatusOptionsApi,
+  getSystemAdminsApi,
+  resetSystemAdminPasswordApi,
+  toggleSystemAdminStatusApi,
+  updateSystemAdminApi,
+  SYSTEM_STATUS_MAP,
+} from '@/api/system'
 
 defineOptions({ name: 'AdminAccountView' })
 
 const loading = ref(false)
 const accounts = ref([])
 const searchForm = ref({ username: '', realName: '', status: '' })
-const statusOptions = [
-  { value: '', label: '全部状态' },
-  { value: 'active', label: '启用' },
-  { value: 'inactive', label: '禁用' }
-]
+const statusOptions = ref([])
 
 // Dialog state
 const dialogVisible = ref(false)
@@ -24,10 +31,8 @@ const accountForm = ref({ username: '', password: '', realName: '', email: '', p
 const fetchAccounts = async () => {
   loading.value = true
   try {
-    const { default: axios } = await import('axios')
-    const base = import.meta.env.VITE_API_BASE_URL || '/api'
-    const res = await axios.get(`${base}/system-admins`, { params: { ...searchForm.value } })
-    accounts.value = res.data?.data?.list || []
+    const response = await getSystemAdminsApi({ ...searchForm.value })
+    accounts.value = response.data?.list || []
   } catch (error) {
     console.error('获取账号列表失败:', error)
   } finally {
@@ -54,8 +59,6 @@ const handleSave = async () => {
   if (!accountForm.value.realName.trim()) { ElMessage.warning('请输入真实姓名'); return }
   if (!isEdit.value && !accountForm.value.password.trim()) { ElMessage.warning('请输入密码'); return }
   try {
-    const { default: axios } = await import('axios')
-    const base = import.meta.env.VITE_API_BASE_URL || '/api'
     const payload = {
       username: accountForm.value.username,
       realName: accountForm.value.realName,
@@ -65,11 +68,11 @@ const handleSave = async () => {
     if (!isEdit.value) {
       if (!accountForm.value.password) { ElMessage.warning('请输入密码'); return }
       payload.password = accountForm.value.password
-      await axios.post(`${base}/system-admins`, payload)
+      await createSystemAdminApi(payload)
       ElMessage.success('新增成功')
     } else {
       delete payload.password
-      await axios.put(`${base}/system-admins/${editingId.value}`, payload)
+      await updateSystemAdminApi(editingId.value, payload)
       ElMessage.success('编辑成功')
     }
     dialogVisible.value = false
@@ -87,9 +90,7 @@ const handleToggleStatus = async (row) => {
   const action = row.status === 'active' ? '禁用' : '启用'
   try {
     await ElMessageBox.confirm(`确定${action}管理员「${row.realName}」吗？`, `确认${action}`)
-    const { default: axios } = await import('axios')
-    const base = import.meta.env.VITE_API_BASE_URL || '/api'
-    await axios.patch(`${base}/system-admins/${row.id}/status`)
+    await toggleSystemAdminStatusApi(row.id)
     ElMessage.success(`已${action}`)
     fetchAccounts()
   } catch { /* cancel or error */ }
@@ -98,9 +99,7 @@ const handleToggleStatus = async (row) => {
 const handleResetPassword = async (row) => {
   try {
     await ElMessageBox.confirm(`确定重置管理员「${row.realName}」的密码吗？新密码将为 admin123`, '确认重置密码', { type: 'warning' })
-    const { default: axios } = await import('axios')
-    const base = import.meta.env.VITE_API_BASE_URL || '/api'
-    await axios.post(`${base}/system-admins/${row.id}/reset-password`)
+    await resetSystemAdminPasswordApi(row.id)
     ElMessage.success('密码已重置为 admin123')
   } catch { /* cancel or error */ }
 }
@@ -108,15 +107,18 @@ const handleResetPassword = async (row) => {
 const handleDelete = async (row) => {
   try {
     await ElMessageBox.confirm(`确定删除管理员「${row.realName}」吗？此操作不可恢复。`, '确认删除', { type: 'warning' })
-    const { default: axios } = await import('axios')
-    const base = import.meta.env.VITE_API_BASE_URL || '/api'
-    await axios.delete(`${base}/system-admins/${row.id}`)
+    await deleteSystemAdminApi(row.id)
     ElMessage.success('删除成功')
     fetchAccounts()
   } catch { /* cancel or error */ }
 }
 
-onMounted(() => { fetchAccounts() })
+onMounted(() => {
+  getAdminStatusOptionsApi('binary').then((response) => {
+    statusOptions.value = response.data?.list || []
+  })
+  fetchAccounts()
+})
 </script>
 
 <template>
@@ -124,7 +126,7 @@ onMounted(() => { fetchAccounts() })
     <PageHeader title="平台管理员账号" subtitle="平台后台账号管理与权限分配" />
 
     <!-- 搜索区域 -->
-    <el-card shadow="hover" class="section-card">
+    <PageSection>
       <el-form :model="searchForm" :inline="true">
         <el-form-item label="用户名">
           <el-input v-model="searchForm.username" placeholder="搜索用户名" clearable />
@@ -142,11 +144,11 @@ onMounted(() => { fetchAccounts() })
           <el-button @click="searchForm = { username: '', realName: '', status: '' }; fetchAccounts()">重置</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+    </PageSection>
 
     <!-- 操作按钮 + 表格 -->
-    <el-card shadow="hover" class="section-card">
-      <el-button type="primary" @click="openAddDialog" style="margin-bottom: 16px;">新增账号</el-button>
+    <PageSection>
+      <el-button type="primary" class="section-actions" @click="openAddDialog">新增账号</el-button>
 
       <el-table :data="accounts" stripe style="width: 100%" :loading="loading">
         <el-table-column prop="username" label="账号" min-width="150" />
@@ -154,9 +156,10 @@ onMounted(() => { fetchAccounts() })
         <el-table-column prop="roleName" label="角色" width="120" />
         <el-table-column prop="email" label="邮箱" min-width="180" />
         <el-table-column prop="phone" label="电话" width="140" />
+        <el-table-column prop="createdAt" label="创建时间" width="160" />
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <StatusTag :status="row.status" />
+            <StatusTag :status="row.status" :status-map="SYSTEM_STATUS_MAP" />
           </template>
         </el-table-column>
         <el-table-column label="操作" width="280" fixed="right">
@@ -170,7 +173,7 @@ onMounted(() => { fetchAccounts() })
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+    </PageSection>
 
     <!-- 新增/编辑对话框 -->
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑账号' : '新增账号'" width="480px">
@@ -201,5 +204,5 @@ onMounted(() => { fetchAccounts() })
 
 <style scoped>
 .page-container { display: flex; flex-direction: column; gap: var(--space-5); }
-.section-card { border-radius: var(--radius-lg); }
+.section-actions { margin-bottom: var(--space-4); }
 </style>

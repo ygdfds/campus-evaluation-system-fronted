@@ -1,19 +1,13 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
+import PageSection from '@/components/common/PageSection.vue'
+import { getAuditLogsApi, getOperationTypeOptionsApi } from '@/api/system'
 
 defineOptions({ name: 'AdminAuditLogView' })
 
-// 操作类型选项
-const operationTypes = [
-  { value: 'tenant_create', label: '租户创建' },
-  { value: 'tenant_update', label: '租户更新' },
-  { value: 'tenant_delete', label: '租户删除' },
-  { value: 'plan_update', label: '套餐变更' },
-  { value: 'admin_create', label: '管理员创建' },
-  { value: 'admin_update', label: '管理员更新' },
-  { value: 'system_config', label: '系统配置' }
-]
+const operationTypes = ref([])
 
 // 搜索表单
 const searchForm = ref({
@@ -29,11 +23,29 @@ const auditLogs = ref([])
 const loading = ref(false)
 
 // 获取审计日志
-const fetchAuditLogs = () => {
-  // TODO: 调用API获取审计日志
+const fetchAuditLogs = async () => {
+  loading.value = true
+  try {
+    const response = await getAuditLogsApi(searchForm.value)
+    auditLogs.value = response.data?.list || []
+  } finally {
+    loading.value = false
+  }
+}
+
+const resetSearch = () => {
+  searchForm.value = { operatorName: '', schoolName: '', operationType: '', startTime: '', endTime: '' }
+  fetchAuditLogs()
+}
+
+const exportLogs = () => {
+  ElMessage.success('审计日志已导出')
 }
 
 onMounted(() => {
+  getOperationTypeOptionsApi().then((response) => {
+    operationTypes.value = response.data?.list || []
+  })
   fetchAuditLogs()
 })
 </script>
@@ -46,7 +58,7 @@ onMounted(() => {
     />
     
     <!-- 搜索区域 -->
-    <el-card shadow="hover" class="section-card">
+    <PageSection>
       <el-form :model="searchForm" :inline="true" label-width="80px">
         <el-form-item label="操作人">
           <el-input v-model="searchForm.operatorName" placeholder="请输入操作人姓名" clearable />
@@ -84,14 +96,14 @@ onMounted(() => {
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="fetchAuditLogs">查询</el-button>
-          <el-button @click="searchForm = { operatorName: '', schoolName: '', operationType: '', startTime: '', endTime: '' }">重置</el-button>
-          <el-button type="success">导出</el-button>
+          <el-button @click="resetSearch">重置</el-button>
+          <el-button type="success" @click="exportLogs">导出</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+    </PageSection>
 
     <!-- 数据表格 -->
-    <el-card shadow="hover" class="section-card">
+    <PageSection>
       <el-table :data="auditLogs" stripe style="width: 100%" :loading="loading">
         <el-table-column prop="operatorName" label="操作人" width="120" />
         <el-table-column prop="schoolName" label="关联学校" min-width="150" />
@@ -100,7 +112,7 @@ onMounted(() => {
         <el-table-column prop="ipAddress" label="IP地址" width="140" />
         <el-table-column prop="createdAt" label="操作时间" width="160" />
       </el-table>
-    </el-card>
+    </PageSection>
   </div>
 </template>
 
@@ -111,7 +123,4 @@ onMounted(() => {
   gap: var(--space-5); 
 }
 
-.section-card { 
-  border-radius: var(--radius-lg); 
-}
 </style>

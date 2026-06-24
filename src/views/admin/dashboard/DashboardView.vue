@@ -2,36 +2,30 @@
 import { ref, onMounted } from 'vue'
 import { School, User, DocumentChecked, DataAnalysis } from '@element-plus/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import PageSection from '@/components/common/PageSection.vue'
 import StatCard from '@/components/common/StatCard.vue'
+import { getAdminDashboardStatsApi } from '@/api/system'
 
 defineOptions({ name: 'AdminDashboardView' })
 
 const loading = ref(true)
-const stats = ref([
-  { title: '入驻学校', value: 0, icon: School, color: 'primary' },
-  { title: '待审核申请', value: 0, icon: DocumentChecked, color: 'warning' },
-  { title: '活跃租户', value: 0, icon: User, color: 'success' },
-  { title: '平台用户', value: 0, icon: DataAnalysis, color: 'primary' },
-])
+const stats = ref([])
+
+const iconMap = {
+  School,
+  User,
+  DocumentChecked,
+  DataAnalysis,
+}
 
 const fetchStats = async () => {
   loading.value = true
   try {
-    const { default: axios } = await import('axios')
-    const base = import.meta.env.VITE_API_BASE_URL || '/api'
-
-    const res = await axios.get(`${base}/admin/stats`)
-    const data = res.data?.data || {}
-
-    const tenantsRes = await axios.get(`${base}/tenants`)
-    const activeTenants = (tenantsRes.data?.list || []).length
-
-    stats.value = [
-      { title: '入驻学校', value: data.activeSchools || 0, icon: School, color: 'primary' },
-      { title: '待审核申请', value: data.pendingApps || 0, icon: DocumentChecked, color: 'warning' },
-      { title: '活跃租户', value: activeTenants, icon: User, color: 'success' },
-      { title: '平台用户', value: data.totalUsers || 0, icon: DataAnalysis, color: 'primary' },
-    ]
+    const response = await getAdminDashboardStatsApi()
+    stats.value = (response.data?.list || []).map((item) => ({
+      ...item,
+      icon: iconMap[item.icon],
+    }))
   } catch (error) {
     console.error('获取仪表盘数据失败:', error)
   } finally {
@@ -50,16 +44,14 @@ onMounted(() => { fetchStats() })
     </div>
     <el-row :gutter="20">
       <el-col :span="12">
-        <el-card shadow="hover" class="section-card">
-          <template #header><span class="card-title">租户分布</span></template>
+        <PageSection title="租户分布">
           <div class="chart-placeholder">图表区域</div>
-        </el-card>
+        </PageSection>
       </el-col>
       <el-col :span="12">
-        <el-card shadow="hover" class="section-card">
-          <template #header><span class="card-title">入驻趋势</span></template>
+        <PageSection title="入驻趋势">
           <div class="chart-placeholder">图表区域</div>
-        </el-card>
+        </PageSection>
       </el-col>
     </el-row>
   </div>
@@ -68,8 +60,6 @@ onMounted(() => { fetchStats() })
 <style scoped>
 .page-container { display: flex; flex-direction: column; gap: var(--space-5); }
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
-.section-card { border-radius: var(--radius-lg); }
-.card-title { font-size: var(--font-lg); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
 .chart-placeholder { height: 200px; display: flex; align-items: center; justify-content: center; color: var(--color-text-placeholder); background: var(--color-bg-light); border-radius: var(--radius-md); }
 @media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
 </style>

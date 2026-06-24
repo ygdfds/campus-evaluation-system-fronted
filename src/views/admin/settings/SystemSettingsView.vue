@@ -1,29 +1,26 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
+import PageSection from '@/components/common/PageSection.vue'
+import { getSystemSettingsApi, saveSystemSettingsApi } from '@/api/system'
 
 defineOptions({ name: 'AdminSystemSettingsView' })
 
-// 配置表单
-const settingsForm = ref({
-  // 短信模板
-  onboardingNotificationTemplate: '',
-  expirationWarningTemplate: '',
-  
-  // 敏感词库
-  sensitiveWords: '',
-  
-  // 审核规则
-  extremeLowScoreThreshold: 2,
-  manualReviewEnabled: true,
-  
-  // 文件存储配置
-  maxFileSize: 10, // MB
-  attachmentExpiryDays: 30
-})
+const settingsForm = ref({})
+
+const fetchSettings = async () => {
+  const response = await getSystemSettingsApi()
+  settingsForm.value = response.data || {}
+}
+
+const handleSave = async () => {
+  await saveSystemSettingsApi(settingsForm.value)
+  ElMessage.success('配置已保存')
+}
 
 onMounted(() => {
-  // TODO: 获取当前系统配置
+  fetchSettings()
 })
 </script>
 
@@ -34,7 +31,7 @@ onMounted(() => {
       subtitle="平台基础配置与业务规则设置" 
     />
     
-    <el-card shadow="hover" class="section-card">
+    <PageSection>
       <el-form :model="settingsForm" label-width="180px">
         <!-- 短信模板配置 -->
         <el-form-item label="入驻通知短信模板">
@@ -100,11 +97,11 @@ onMounted(() => {
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary">保存配置</el-button>
-          <el-button>重置</el-button>
+          <el-button type="primary" @click="handleSave">保存配置</el-button>
+          <el-button @click="fetchSettings">重置</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+    </PageSection>
   </div>
 </template>
 
@@ -113,10 +110,6 @@ onMounted(() => {
   display: flex; 
   flex-direction: column; 
   gap: var(--space-5); 
-}
-
-.section-card { 
-  border-radius: var(--radius-lg); 
 }
 
 .form-hint {

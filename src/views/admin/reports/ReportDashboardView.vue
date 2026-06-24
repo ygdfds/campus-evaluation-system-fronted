@@ -1,18 +1,26 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import PageSection from '@/components/common/PageSection.vue'
+import { getReportDashboardApi } from '@/api/system'
 
 defineOptions({ name: 'AdminReportDashboardView' })
 
-// 报表数据
-const reportData = ref({
-  monthlyTenants: [],
-  ticketStats: [],
-  resourceUsage: []
-})
+const reportData = ref({})
+const reportSections = ref([])
+
+const fetchReportData = async () => {
+  const response = await getReportDashboardApi()
+  reportData.value = response.data || {}
+  reportSections.value = response.data?.sections || []
+}
+
+const maxSectionValue = (section) => {
+  return Math.max(...(section.items || []).map((item) => item.value), 1)
+}
 
 onMounted(() => {
-  // TODO: 获取报表数据
+  fetchReportData()
 })
 </script>
 
@@ -24,34 +32,21 @@ onMounted(() => {
     />
     
     <!-- 操作按钮 -->
-    <el-card shadow="hover" class="section-card">
+    <PageSection>
       <el-button type="success">导出Excel</el-button>
-    </el-card>
+    </PageSection>
 
-    <!-- 图表区域 -->
-    <el-card shadow="hover" class="section-card">
-      <h3>月度新增/到期租户统计</h3>
-      <div class="chart-placeholder">
-        <!-- TODO: 集成图表组件 -->
-        <p>柱状图占位符 - 显示月度新增/到期租户数量</p>
+    <PageSection v-for="section in reportSections" :key="section.key" :title="section.title">
+      <div class="chart-bars">
+        <div v-for="item in section.items" :key="item.label" class="chart-row">
+          <span class="chart-label">{{ item.label }}</span>
+          <div class="chart-track">
+            <div class="chart-bar" :style="{ width: `${(item.value / maxSectionValue(section)) * 100}%` }" />
+          </div>
+          <span class="chart-value">{{ item.value }}</span>
+        </div>
       </div>
-    </el-card>
-
-    <el-card shadow="hover" class="section-card">
-      <h3>工单处理量统计</h3>
-      <div class="chart-placeholder">
-        <!-- TODO: 集成图表组件 -->
-        <p>图表占位符 - 显示工单处理量趋势</p>
-      </div>
-    </el-card>
-
-    <el-card shadow="hover" class="section-card">
-      <h3>系统资源占用情况</h3>
-      <div class="chart-placeholder">
-        <!-- TODO: 集成图表组件 -->
-        <p>图表占位符 - 显示系统资源占用图表</p>
-      </div>
-    </el-card>
+    </PageSection>
   </div>
 </template>
 
@@ -62,17 +57,34 @@ onMounted(() => {
   gap: var(--space-5); 
 }
 
-.section-card { 
-  border-radius: var(--radius-lg); 
+.chart-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
-.chart-placeholder {
-  min-height: 300px;
-  display: flex;
+.chart-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 48px;
+  gap: var(--space-3);
   align-items: center;
-  justify-content: center;
-  background-color: var(--color-bg-light);
-  border-radius: var(--radius-md);
-  margin-top: var(--space-4);
+}
+
+.chart-label,
+.chart-value {
+  color: var(--color-text-secondary);
+  font-size: var(--font-sm);
+}
+
+.chart-track {
+  height: var(--space-4);
+  background: var(--color-bg-light);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.chart-bar {
+  height: 100%;
+  background: var(--color-primary-500);
 }
 </style>

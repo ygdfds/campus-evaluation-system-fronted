@@ -1,22 +1,29 @@
 <script setup>
 defineOptions({ name: 'PageHeader' })
 
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   /** 页面标题 */
   title: { type: String, required: true },
   /** 描述文字 */
   description: { type: String, default: '' },
+  /** 页面副标题，兼容既有页面传参 */
+  subtitle: { type: String, default: '' },
 })
+
+const helperText = computed(() => props.subtitle || props.description)
 </script>
 
 <template>
   <div class="page-header">
     <div class="header-info">
       <h2 class="header-title">{{ title }}</h2>
-      <p v-if="description" class="header-desc">{{ description }}</p>
+      <p v-if="helperText" class="header-desc">{{ helperText }}</p>
     </div>
     <div class="header-actions">
       <slot name="actions" />
+      <slot name="extra" />
     </div>
   </div>
 </template>

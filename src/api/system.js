@@ -1,46 +1,649 @@
 import request from '@/request'
 
-/**
- * 获取租户列表
- */
+const adminMenuItems = [
+  { index: '/admin/dashboard', title: '平台概览', icon: 'HomeFilled' },
+  {
+    index: '/admin/tenants',
+    title: '租户管理',
+    icon: 'School',
+    children: [
+      { index: '/admin/tenants/lifecycle', title: '生命周期' },
+      { index: '/admin/plans', title: '套餐管理' },
+    ],
+  },
+  { index: '/admin/onboarding/audit', title: '入驻审核', icon: 'DocumentChecked' },
+  {
+    index: '/admin/users',
+    title: '用户管理',
+    icon: 'User',
+    children: [
+      { index: '/admin/users/list', title: '用户列表' },
+      { index: '/admin/users/roles', title: '角色管理' },
+    ],
+  },
+  { index: '/admin/system', title: '系统设置', icon: 'Setting' },
+  {
+    index: '/admin/ops',
+    title: '平台运维',
+    icon: 'Monitor',
+    children: [
+      { index: '/admin/monitoring', title: '监控告警' },
+      { index: '/admin/audit/logs', title: '审计日志' },
+      { index: '/admin/reports', title: '统计报表' },
+    ],
+  },
+  {
+    index: '/admin/services',
+    title: '服务支持',
+    icon: 'Files',
+    children: [
+      { index: '/admin/documents', title: '凭证材料' },
+      { index: '/admin/support', title: '工单帮助' },
+    ],
+  },
+]
+
+const adminDashboardCards = [
+  { key: 'activeSchools', title: '入驻学校', icon: 'School', color: 'primary' },
+  { key: 'pendingApps', title: '待审核申请', icon: 'DocumentChecked', color: 'warning' },
+  { key: 'activeTenants', title: '活跃租户', icon: 'User', color: 'success' },
+  { key: 'totalUsers', title: '平台用户', icon: 'DataAnalysis', color: 'primary' },
+]
+
+const statusOptionsMap = {
+  binary: [
+    { value: '', label: '全部状态' },
+    { value: 'active', label: '启用' },
+    { value: 'inactive', label: '禁用' },
+  ],
+  plan: [
+    { value: '', label: '全部状态' },
+    { value: 'active', label: '启用中' },
+    { value: 'inactive', label: '已下架' },
+  ],
+  onboarding: [
+    { value: '', label: '全部状态' },
+    { value: 'pending', label: '待审核' },
+    { value: 'approved', label: '已通过' },
+    { value: 'rejected', label: '已驳回' },
+  ],
+  credential: [
+    { value: '', label: '全部状态' },
+    { value: 'valid', label: '有效' },
+    { value: 'expired', label: '已过期' },
+    { value: 'pending', label: '待审核' },
+    { value: 'revoked', label: '已撤销' },
+  ],
+  ticket: [
+    { value: '', label: '全部状态' },
+    { value: 'pending', label: '待处理' },
+    { value: 'processing', label: '处理中' },
+    { value: 'resolved', label: '已解决' },
+    { value: 'closed', label: '已关闭' },
+  ],
+  document: [
+    { value: '', label: '全部状态' },
+    { value: 'draft', label: '草稿' },
+    { value: 'published', label: '已发布' },
+    { value: 'archived', label: '已归档' },
+  ],
+}
+
+export const SYSTEM_STATUS_MAP = {
+  active: { label: '启用', type: 'success' },
+  inactive: { label: '禁用', type: 'info' },
+  pending: { label: '待审核', type: 'warning' },
+  approved: { label: '已通过', type: 'success' },
+  rejected: { label: '已驳回', type: 'danger' },
+  valid: { label: '有效', type: 'success' },
+  expired: { label: '已过期', type: 'danger' },
+  revoked: { label: '已撤销', type: 'info' },
+  processing: { label: '处理中', type: 'warning' },
+  resolved: { label: '已解决', type: 'success' },
+  closed: { label: '已关闭', type: 'info' },
+  draft: { label: '草稿', type: 'info' },
+  published: { label: '已发布', type: 'success' },
+  archived: { label: '已归档', type: 'info' },
+  onboarded: { label: '已入驻', type: 'success' },
+  frozen: { label: '已冻结', type: 'warning' },
+  cancelled: { label: '已注销', type: 'info' },
+}
+
+const dataScopeOptions = [
+  { value: 'all', label: '全部数据' },
+  { value: 'assigned', label: '指定租户' },
+  { value: 'self', label: '仅自己创建' },
+]
+
+const planPermissionModules = [
+  {
+    id: 'dashboard',
+    title: '平台概览',
+    description: '查看、刷新',
+    checked: true,
+    disabled: true,
+  },
+  {
+    id: 'tenant',
+    title: '租户管理',
+    description: '查看列表、查看套餐、编辑、分配',
+    checked: true,
+    disabled: true,
+  },
+  {
+    id: 'onboarding',
+    title: '入驻审核',
+    description: '查看所有申请、审核通过、审核驳回、查看材料',
+    checked: true,
+    disabled: true,
+  },
+  {
+    id: 'account',
+    title: '用户管理',
+    description: '查看列表、新增账号、编辑账号、启用/禁用、重置密码、删除',
+    checked: true,
+    disabled: true,
+  },
+  {
+    id: 'role',
+    title: '角色管理',
+    description: '查看列表、新增角色、编辑角色、配置权限、删除',
+    checked: true,
+    disabled: true,
+  },
+  {
+    id: 'settings',
+    title: '系统设置',
+    description: '查看、编辑、重置配置',
+    checked: true,
+    disabled: true,
+  },
+  {
+    id: 'plan',
+    title: '套餐管理',
+    description: '查看列表、编辑套餐、下架套餐、创建套餐、配置权限',
+    checked: true,
+    disabled: false,
+  },
+  {
+    id: 'monitoring',
+    title: '监控中心',
+    description: '只读',
+    checked: false,
+    disabled: true,
+  },
+  {
+    id: 'reports',
+    title: '报表中心',
+    description: '查看、导出',
+    checked: false,
+    disabled: true,
+  },
+  {
+    id: 'documents',
+    title: '凭证管理',
+    description: '只读',
+    checked: false,
+    disabled: true,
+  },
+  {
+    id: 'support',
+    title: '客服支持',
+    description: '查看工单、回复反馈',
+    checked: false,
+    disabled: true,
+  },
+]
+
+const roleDefaultPermissionKeys = {
+  系统管理员: 'all',
+  学生: [41, 46, 71, 75],
+  教职工: [71, 72],
+}
+
+const systemSettingsDefaults = {
+  onboardingNotificationTemplate: '',
+  expirationWarningTemplate: '',
+  sensitiveWords: '',
+  extremeLowScoreThreshold: 2,
+  manualReviewEnabled: true,
+  maxFileSize: 10,
+  attachmentExpiryDays: 30,
+}
+
+const operationTypeOptions = [
+  { value: 'tenant_create', label: '租户创建' },
+  { value: 'tenant_update', label: '租户更新' },
+  { value: 'tenant_delete', label: '租户删除' },
+  { value: 'plan_update', label: '套餐变更' },
+  { value: 'admin_create', label: '管理员创建' },
+  { value: 'admin_update', label: '管理员更新' },
+  { value: 'system_config', label: '系统配置' },
+]
+
+const credentialTypeOptions = [
+  { value: 'business_license', label: '营业执照' },
+  { value: 'school_permit', label: '办学许可' },
+  { value: 'legal_person_id', label: '法人身份证' },
+]
+
+const monitoringStats = [
+  { title: '新增租户', value: 0, unit: '个', trend: 'up' },
+  { title: '到期预警', value: 0, unit: '个', trend: 'down' },
+  { title: '冻结租户', value: 0, unit: '个', trend: 'neutral' },
+  { title: '系统异常', value: 0, unit: '条', trend: 'up' },
+]
+
+const onboardingMaterials = [
+  { id: 1, type: 'business_license', fileName: '复旦大学营业执照.pdf', fileSize: '1.8MB', uploadedAt: '2026-05-20 08:12:00' },
+  { id: 2, type: 'legal_person_id', fileName: '法人身份证明.pdf', fileSize: '960KB', uploadedAt: '2026-05-20 08:13:00' },
+  { id: 3, type: 'school_permit', fileName: '办学许可证明.pdf', fileSize: '1.2MB', uploadedAt: '2026-05-20 08:15:00' },
+]
+
+const tenantLifecycleRecords = [
+  {
+    id: 1,
+    tenantId: 'T001',
+    schoolName: '清华大学',
+    planName: '基础版',
+    expireAt: '2027-06-30',
+    status: 'active',
+    adminName: '赵主任',
+    adminUsername: 'school_admin',
+    storageQuota: '100GB',
+    formQuota: 30,
+    concurrencyQuota: 500,
+    createdAt: '2026-01-12 09:00:00',
+  },
+  {
+    id: 2,
+    tenantId: 'T002',
+    schoolName: '北京大学',
+    planName: '专业版',
+    expireAt: '2026-12-31',
+    status: 'active',
+    adminName: '钱主任',
+    adminUsername: 'pku_admin',
+    storageQuota: '500GB',
+    formQuota: 80,
+    concurrencyQuota: 2000,
+    createdAt: '2026-02-18 10:30:00',
+  },
+  {
+    id: 3,
+    tenantId: 'T003',
+    schoolName: '中国人民大学',
+    planName: '旗舰版',
+    expireAt: '2026-09-15',
+    status: 'frozen',
+    adminName: '周老师',
+    adminUsername: 'ruc_admin',
+    storageQuota: '1TB',
+    formQuota: 200,
+    concurrencyQuota: 5000,
+    createdAt: '2026-03-02 14:00:00',
+  },
+]
+
+const credentialRecords = [
+  {
+    id: 1,
+    tenantId: 'T001',
+    schoolName: '清华大学',
+    credentialType: 'business_license',
+    fileName: '营业执照.pdf',
+    uploadTime: '2026-01-12 09:20:00',
+    expirationDate: '2027-01-11',
+    status: 'valid',
+  },
+  {
+    id: 2,
+    tenantId: 'T002',
+    schoolName: '北京大学',
+    credentialType: 'school_permit',
+    fileName: '办学许可证.pdf',
+    uploadTime: '2026-02-18 10:45:00',
+    expirationDate: '2026-08-18',
+    status: 'valid',
+  },
+  {
+    id: 3,
+    tenantId: 'T003',
+    schoolName: '中国人民大学',
+    credentialType: 'legal_person_id',
+    fileName: '法人身份证.pdf',
+    uploadTime: '2026-03-02 14:20:00',
+    expirationDate: '2026-06-30',
+    status: 'expired',
+  },
+]
+
+const supportTickets = [
+  {
+    id: 1,
+    ticketId: 'TK202606001',
+    schoolName: '清华大学',
+    title: '套餐升级后资源未生效',
+    status: 'processing',
+    createdAt: '2026-06-20 11:20:00',
+  },
+  {
+    id: 2,
+    ticketId: 'TK202606002',
+    schoolName: '北京大学',
+    title: '帮助文档中缺少表单导出说明',
+    status: 'pending',
+    createdAt: '2026-06-21 15:35:00',
+  },
+]
+
+const helpDocuments = [
+  { id: 1, title: '学校管理员开通指引', category: '入驻配置', status: 'published', updatedAt: '2026-06-10 09:30:00' },
+  { id: 2, title: '评价表单发布流程', category: '业务操作', status: 'draft', updatedAt: '2026-06-18 14:10:00' },
+]
+
+const auditLogRecords = [
+  {
+    id: 1,
+    operatorName: '系统管理员',
+    schoolName: '清华大学',
+    operationType: 'tenant_update',
+    description: '调整清华大学租户资源配额',
+    ipAddress: '10.0.0.12',
+    createdAt: '2026-06-20 09:10:00',
+  },
+  {
+    id: 2,
+    operatorName: '王建国',
+    schoolName: '北京大学',
+    operationType: 'plan_update',
+    description: '将北京大学套餐升级为专业版',
+    ipAddress: '10.0.0.18',
+    createdAt: '2026-06-21 16:25:00',
+  },
+]
+
+const monitoringAlerts = [
+  { id: 1, alertType: '存储超限', description: '北京大学对象存储使用率超过 90%', severity: '高', createdAt: '2026-06-22 08:30:00', status: 'pending' },
+  { id: 2, alertType: '敏感评价', description: '清华大学评价追溯服务发现高风险敏感词', severity: '中', createdAt: '2026-06-22 13:15:00', status: 'processing' },
+  { id: 3, alertType: '服务异常', description: '表单配置服务响应时间超过阈值', severity: '高', createdAt: '2026-06-23 10:05:00', status: 'resolved' },
+]
+
+function clone(data) {
+  return JSON.parse(JSON.stringify(data))
+}
+
+function resolveList(response) {
+  return response.data?.list || []
+}
+
+export function getAdminMenuApi() {
+  return Promise.resolve({ data: { list: clone(adminMenuItems) } })
+}
+
+export async function getAdminDashboardStatsApi() {
+  const [statsResponse, tenantsResponse] = await Promise.all([
+    request.get('/admin/stats'),
+    request.get('/tenants'),
+  ])
+  const stats = statsResponse.data || {}
+  const activeTenants = resolveList(tenantsResponse).length
+
+  return {
+    data: {
+      list: adminDashboardCards.map((card) => ({
+        ...card,
+        value: card.key === 'activeTenants' ? activeTenants : stats[card.key] || 0,
+      })),
+    },
+  }
+}
+
+export function getAdminStatusOptionsApi(scope) {
+  return Promise.resolve({ data: { list: clone(statusOptionsMap[scope] || []) } })
+}
+
+export function getAdminDataScopeOptionsApi() {
+  return Promise.resolve({ data: { list: clone(dataScopeOptions) } })
+}
+
+export function getPlanPermissionModulesApi() {
+  return Promise.resolve({ data: { list: clone(planPermissionModules) } })
+}
+
+export function getSystemSettingsApi() {
+  return Promise.resolve({ data: clone(systemSettingsDefaults) })
+}
+
+export function saveSystemSettingsApi(data) {
+  return Promise.resolve({ data: clone(data) })
+}
+
+export function getOperationTypeOptionsApi() {
+  return Promise.resolve({ data: { list: clone(operationTypeOptions) } })
+}
+
+export function getAuditLogsApi() {
+  return Promise.resolve({ data: { list: clone(auditLogRecords) } })
+}
+
+export function getCredentialTypeOptionsApi() {
+  return Promise.resolve({ data: { list: clone(credentialTypeOptions) } })
+}
+
+export function getCredentialListApi() {
+  return Promise.resolve({ data: { list: clone(credentialRecords) } })
+}
+
+export function getMonitoringStatsApi() {
+  const frozenCount = tenantLifecycleRecords.filter((item) => item.status === 'frozen').length
+  return Promise.resolve({
+    data: {
+      list: clone(monitoringStats).map((item) => {
+        if (item.title === '新增租户') return { ...item, value: 3 }
+        if (item.title === '到期预警') return { ...item, value: 2 }
+        if (item.title === '冻结租户') return { ...item, value: frozenCount }
+        if (item.title === '系统异常') return { ...item, value: monitoringAlerts.length }
+        return item
+      }),
+    },
+  })
+}
+
+export function getMonitoringAlertsApi() {
+  return Promise.resolve({ data: { list: clone(monitoringAlerts) } })
+}
+
+export function getSupportTicketsApi() {
+  return Promise.resolve({ data: { list: clone(supportTickets) } })
+}
+
+export function getHelpDocumentsApi() {
+  return Promise.resolve({ data: { list: clone(helpDocuments) } })
+}
+
+export function getReportDashboardApi() {
+  return Promise.resolve({
+    data: {
+      sections: [
+        {
+          key: 'monthlyTenants',
+          title: '月度新增 / 到期租户统计',
+          items: [
+            { label: '4月新增', value: 8 },
+            { label: '5月新增', value: 12 },
+            { label: '6月新增', value: 15 },
+            { label: '6月到期', value: 3 },
+          ],
+        },
+        {
+          key: 'ticketStats',
+          title: '工单处理量统计',
+          items: [
+            { label: '待处理', value: 4 },
+            { label: '处理中', value: 7 },
+            { label: '已解决', value: 26 },
+            { label: '已关闭', value: 18 },
+          ],
+        },
+        {
+          key: 'resourceUsage',
+          title: '系统资源占用情况',
+          items: [
+            { label: '对象存储', value: 72 },
+            { label: '导入队列', value: 38 },
+            { label: '评价并发', value: 56 },
+            { label: '日志索引', value: 64 },
+          ],
+        },
+      ],
+    },
+  })
+}
+
+export function getOnboardingMaterialsApi() {
+  return Promise.resolve({ data: { list: clone(onboardingMaterials) } })
+}
+
+export function getTenantLifecycleApi() {
+  return Promise.resolve({ data: { list: clone(tenantLifecycleRecords) } })
+}
+
+export function getTenantDetailApi(tenantId) {
+  const tenant = tenantLifecycleRecords.find((item) => item.tenantId === tenantId)
+  return Promise.resolve({
+    data: {
+      tenant: clone(tenant || tenantLifecycleRecords[0]),
+      admins: [
+        { id: 1, username: tenant?.adminUsername || 'school_admin', realName: tenant?.adminName || '学校管理员', phone: '13800000001', status: 'active' },
+      ],
+      quotas: {
+        formQuota: tenant?.formQuota || 30,
+        storageQuota: tenant?.storageQuota || '100GB',
+        concurrencyQuota: tenant?.concurrencyQuota || 500,
+      },
+      auditLogs: clone(auditLogRecords.filter((item) => !tenant || item.schoolName === tenant.schoolName)),
+    },
+  })
+}
+
+export function createTenantApi(data) {
+  return Promise.resolve({ data })
+}
+
+export function freezeTenantApi(tenantId) {
+  return Promise.resolve({ data: { tenantId, status: 'frozen' } })
+}
+
+export function cancelTenantApi(tenantId) {
+  return Promise.resolve({ data: { tenantId, status: 'cancelled' } })
+}
+
+export function changeTenantPlanApi(tenantId, planName) {
+  return Promise.resolve({ data: { tenantId, planName } })
+}
+
+export function resetTenantAdminApi(tenantId) {
+  return Promise.resolve({ data: { tenantId, password: 'admin123' } })
+}
+
 export function getTenantsApi(params) {
   return request.get('/tenants', { params })
 }
 
-/**
- * 获取入驻申请列表
- */
+export function normalizeTenantStatus(status) {
+  return status === '已入驻' ? 'onboarded' : 'pending'
+}
+
 export function getOnboardingApplicationsApi(params) {
   return request.get('/onboarding-applications', { params })
 }
 
-/**
- * 审核入驻申请
- * @param {number} id - 申请ID
- * @param {string} action - 'approved' | 'rejected'
- * @param {string} reason - 审核意见
- */
-export function auditOnboardingApi(id, action, reason) {
-  return request.post(`/onboarding-applications/${id}/audit`, { action, reason })
+export function auditOnboardingApi(id, action, reason, planId) {
+  return request.post(`/onboarding-applications/${id}/audit`, { action, reason, planId })
 }
 
-/**
- * 获取平台管理员列表（用户管理）
- */
-export function getSystemAdminsApi(params) {
-  return request.get('/system-admins', { params })
+export async function getSystemAdminsApi(params) {
+  const response = await request.get('/system-admins', { params })
+  return {
+    ...response,
+    data: {
+      ...response.data,
+      list: (response.data?.list || []).map((item) => ({
+        ...item,
+        createdAt: item.createdAt || '2026-06-01 09:00:00',
+      })),
+    },
+  }
 }
 
-/**
- * 获取系统角色列表（角色管理）
- */
+export function createSystemAdminApi(data) {
+  return request.post('/system-admins', data)
+}
+
+export function updateSystemAdminApi(id, data) {
+  return request.put(`/system-admins/${id}`, data)
+}
+
+export function toggleSystemAdminStatusApi(id) {
+  return request.patch(`/system-admins/${id}/status`)
+}
+
+export function resetSystemAdminPasswordApi(id) {
+  return request.post(`/system-admins/${id}/reset-password`)
+}
+
+export function deleteSystemAdminApi(id) {
+  return request.delete(`/system-admins/${id}`)
+}
+
 export function getSystemRolesApi(params) {
   return request.get('/system-roles', { params })
 }
 
-/**
- * 获取套餐列表（套餐管理）
- */
+export function getCustomRolesApi() {
+  return request.get('/custom-roles')
+}
+
+export function createSystemRoleApi(data) {
+  return request.post('/system-roles', data)
+}
+
+export function updateSystemRoleApi(id, data) {
+  return request.put(`/system-roles/${id}`, data)
+}
+
+export function deleteSystemRoleApi(id) {
+  return request.delete(`/system-roles/${id}`)
+}
+
+export function getMenuPermissionsApi() {
+  return request.get('/menu-permissions')
+}
+
+export function getRoleDefaultPermissionKeys(roleName, permissions) {
+  const defaultValue = roleDefaultPermissionKeys[roleName]
+  if (defaultValue === 'all') {
+    return permissions.flatMap((item) => [
+      item.id,
+      ...(item.children || []).map((child) => child.id),
+    ])
+  }
+  return defaultValue || []
+}
+
 export function getTenantPlansApi(params) {
   return request.get('/tenant-plans', { params })
+}
+
+export function createTenantPlanApi(data) {
+  return request.post('/tenant-plans', data)
+}
+
+export function updateTenantPlanApi(id, data) {
+  return request.put(`/tenant-plans/${id}`, data)
+}
+
+export function deleteTenantPlanApi(id) {
+  return request.delete(`/tenant-plans/${id}`)
 }

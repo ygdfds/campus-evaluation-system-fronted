@@ -1,7 +1,15 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
+import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import {
+  getAdminStatusOptionsApi,
+  getCredentialListApi,
+  getCredentialTypeOptionsApi,
+  SYSTEM_STATUS_MAP,
+} from '@/api/system'
 
 defineOptions({ name: 'AdminCredentialListView' })
 
@@ -17,59 +25,85 @@ const searchForm = ref({
   expirationDate: ''
 })
 
-// 证件类型选项（从常量获取，避免硬编码）
-const credentialTypes = [
-  { value: 'business_license', label: '营业执照' },
-  { value: 'school_permit', label: '办学许可' },
-  { value: 'legal_person_id', label: '法人身份证' }
-]
-
-// 状态选项
-const statusOptions = [
-  { value: 'valid', label: '有效' },
-  { value: 'expired', label: '已过期' },
-  { value: 'pending', label: '待审核' },
-  { value: 'revoked', label: '已撤销' }
-]
+const credentialTypes = ref([])
+const statusOptions = ref([])
+const previewDialogVisible = ref(false)
+const expirationDialogVisible = ref(false)
+const currentCredential = ref(null)
+const expirationForm = ref({ expirationDate: '' })
 
 // 获取证件列表
 const fetchCredentials = async () => {
   loading.value = true
   try {
-    // TODO: 调用API获取数据
-    // const res = await getCredentialListApi(searchForm.value)
-    // credentials.value = res.data
+    const response = await getCredentialListApi(searchForm.value)
+    credentials.value = response.data?.list || []
   } finally {
     loading.value = false
   }
 }
 
+const resolveCredentialTypeLabel = (type) => {
+  return credentialTypes.value.find((item) => item.value === type)?.label || '-'
+}
+
+const resetSearch = () => {
+  searchForm.value = { schoolName: '', credentialType: '', status: '', expirationDate: '' }
+  fetchCredentials()
+}
+
 // 预览证件
 const previewCredential = (credential) => {
-  // TODO: 实现预览逻辑
+  currentCredential.value = credential
+  previewDialogVisible.value = true
 }
 
 // 下载证件
 const downloadCredential = (credential) => {
-  // TODO: 实现下载逻辑
+  ElMessage.success(`已加入归档下载：${credential.fileName}`)
 }
 
 // 配置有效期
 const configureExpiration = (credential) => {
-  // TODO: 实现配置有效期逻辑
+  currentCredential.value = credential
+  expirationForm.value = { expirationDate: credential.expirationDate }
+  expirationDialogVisible.value = true
 }
 
 // 续期操作
 const renewCredential = (credential) => {
-  // TODO: 实现续期逻辑
+  currentCredential.value = credential
+  expirationForm.value = { expirationDate: credential.expirationDate }
+  expirationDialogVisible.value = true
 }
 
 // 撤销授权
-const revokeCredential = (credential) => {
-  // TODO: 实现撤销授权逻辑
+const revokeCredential = async (credential) => {
+  try {
+    await ElMessageBox.confirm(`确定撤销「${credential.schoolName}」的证件授权吗？`, '撤销授权', { type: 'warning' })
+    ElMessage.success('授权已撤销')
+  } catch {
+    // 用户取消
+  }
+}
+
+const saveExpiration = () => {
+  if (!expirationForm.value.expirationDate) {
+    ElMessage.warning('请选择有效期')
+    return
+  }
+  ElMessage.success('证件有效期已更新')
+  expirationDialogVisible.value = false
 }
 
 onMounted(() => {
+  Promise.all([
+    getCredentialTypeOptionsApi(),
+    getAdminStatusOptionsApi('credential'),
+  ]).then(([typeResponse, statusResponse]) => {
+    credentialTypes.value = typeResponse.data?.list || []
+    statusOptions.value = statusResponse.data?.list || []
+  })
   fetchCredentials()
 })
 </script>
@@ -82,7 +116,7 @@ onMounted(() => {
     />
     
     <!-- 搜索区域 -->
-    <el-card shadow="hover" class="section-card">
+    <PageSection>
       <el-form :model="searchForm" :inline="true" label-width="80px">
         <el-form-item label="学校名称">
           <el-input v-model="searchForm.schoolName" placeholder="请输入学校名称" clearable />
@@ -118,13 +152,13 @@ onMounted(() => {
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="fetchCredentials">查询</el-button>
-          <el-button @click="searchForm = { schoolName: '', credentialType: '', status: '', expirationDate: '' }">重置</el-button>
+          <el-button @click="resetSearch">重置</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+    </PageSection>
 
     <!-- 数据表格 -->
-    <el-card shadow="hover" class="section-card">
+    <PageSection>
       <el-table 
         :data="credentials" 
         stripe 
@@ -134,7 +168,7 @@ onMounted(() => {
         <el-table-column prop="schoolName" label="学校名称" min-width="150" />
         <el-table-column prop="credentialType" label="证件类型" width="120">
           <template #default="{ row }">
-            <span>{{ credentialTypes.find(t => t.value === row.credentialType)?.label || '-' }}</span>
+            <span>{{ resolveCredentialTypeLabel(row.credentialType) }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="fileName" label="文件名" min-width="180" />
@@ -142,7 +176,7 @@ onMounted(() => {
         <el-table-column prop="expirationDate" label="有效期至" width="120" />
         <el-table-column prop="status" label="授权状态" width="100">
           <template #default="{ row }">
-            <StatusTag :status="row.status" />
+            <StatusTag :status="row.status" :status-map="SYSTEM_STATUS_MAP" />
           </template>
         </el-table-column>
         <el-table-column label="操作" width="280" fixed="right">
@@ -192,7 +226,35 @@ onMounted(() => {
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+    </PageSection>
+
+    <el-dialog v-model="previewDialogVisible" title="证件预览" width="560px">
+      <el-descriptions :column="1" border>
+        <el-descriptions-item label="学校名称">{{ currentCredential?.schoolName }}</el-descriptions-item>
+        <el-descriptions-item label="证件类型">{{ resolveCredentialTypeLabel(currentCredential?.credentialType) }}</el-descriptions-item>
+        <el-descriptions-item label="文件名称">{{ currentCredential?.fileName }}</el-descriptions-item>
+        <el-descriptions-item label="有效期至">{{ currentCredential?.expirationDate }}</el-descriptions-item>
+      </el-descriptions>
+      <div class="preview-box">证件文件预览区域</div>
+    </el-dialog>
+
+    <el-dialog v-model="expirationDialogVisible" title="配置授权有效期" width="420px">
+      <el-form :model="expirationForm" label-width="90px">
+        <el-form-item label="有效期至" required>
+          <el-date-picker
+            v-model="expirationForm.expirationDate"
+            type="date"
+            placeholder="选择日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="expirationDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveExpiration">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -202,8 +264,14 @@ onMounted(() => {
   flex-direction: column; 
   gap: var(--space-5); 
 }
-
-.section-card { 
-  border-radius: var(--radius-lg); 
+.preview-box {
+  min-height: 220px;
+  margin-top: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-placeholder);
+  background: var(--color-bg-light);
+  border-radius: var(--radius-md);
 }
 </style>

@@ -1,40 +1,36 @@
 <script setup>
-import { ref } from 'vue'
-import { HomeFilled, School, User, Setting, DocumentChecked } from '@element-plus/icons-vue'
+import { onMounted, ref } from 'vue'
+import { Files, HomeFilled, Monitor, School, User, Setting, DocumentChecked } from '@element-plus/icons-vue'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import TopHeader from '@/components/layout/TopHeader.vue'
+import { getAdminMenuApi } from '@/api/system'
 
 defineOptions({ name: 'PlatformLayoutView' })
 
 const collapsed = ref(false)
+const menuItems = ref([])
 
-const menuItems = [
-  { index: '/admin/dashboard', title: '平台概览', icon: HomeFilled },
-  {
-    index: '/admin/tenants',
-    title: '租户管理',
-    icon: School,
-    children: [
-      { index: '/admin/tenants/list', title: '租户列表' },
-      { index: '/admin/plans', title: '套餐管理' },
-    ],
-  },
-  { index: '/admin/onboarding/audit', title: '入驻审核', icon: DocumentChecked },
-  {
-    index: '/admin/users',
-    title: '用户管理',
-    icon: User,
-    children: [
-      { index: '/admin/users/list', title: '用户列表' },
-      { index: '/admin/users/roles', title: '角色管理' },
-    ],
-  },
-  { index: '/admin/system', title: '系统设置', icon: Setting },
-]
+const iconMap = {
+  HomeFilled,
+  School,
+  User,
+  Setting,
+  DocumentChecked,
+  Monitor,
+  Files,
+}
 
 function toggleSidebar() {
   collapsed.value = !collapsed.value
 }
+
+onMounted(async () => {
+  const response = await getAdminMenuApi()
+  menuItems.value = (response.data?.list || []).map((item) => ({
+    ...item,
+    icon: iconMap[item.icon],
+  }))
+})
 </script>
 
 <template>
