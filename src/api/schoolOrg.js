@@ -419,7 +419,7 @@ export async function checkOrgHasAssociationsApi(tenantId, type, orgId) {
 /**
  * 获取教职工选项列表（用于负责人选择）
  */
-export async function getSchoolOrgStaffOptionsApi() {
+export async function getSchoolOrgStaffOptionsApi(tenantId) {
   const [profilesRes, accountsRes] = await Promise.all([
     request.get('/personProfiles', { params: { deleted: false } }),
     request.get('/userAccounts', { params: { deleted: false } }),
@@ -431,6 +431,7 @@ export async function getSchoolOrgStaffOptionsApi() {
 
   return profiles
     .filter(p => ['staff', 'teaching_admin', 'service_admin'].includes(p.role_type))
+    .filter(p => !tenantId || !p.tenant_id || p.tenant_id === Number(tenantId))
     .map(p => ({
       user_id: p.user_id,
       real_name: p.real_name || accountMap[p.user_id]?.username || '',

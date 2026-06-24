@@ -191,7 +191,7 @@ function flattenTreeData(nodes, result = []) {
 
 async function loadStaffOptions() {
   try {
-    staffOptions.value = await getSchoolOrgStaffOptionsApi()
+    staffOptions.value = await getSchoolOrgStaffOptionsApi(tenantId.value)
   } catch { staffOptions.value = [] }
 }
 
