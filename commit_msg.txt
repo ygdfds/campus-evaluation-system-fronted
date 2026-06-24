@@ -1,0 +1,8 @@
+feat: add school org management page
+
+- Add teaching and service org tree management for school admin
+- Support org tree view, search, detail panel and summary cards
+- Support create, edit, disable org with validation
+- Add related data stats (staff, courses, service items, forms)
+- Write operation logs and maintain tenant data isolation
+- Responsive layout and empty state handling

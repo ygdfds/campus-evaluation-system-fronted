@@ -79,7 +79,7 @@ const router = createRouter({
       meta: { title: '学校管理', requiresAuth: true, roles: ['school_admin'] },
       children: [
         { path: 'dashboard', name: 'SchoolDashboard', component: () => import('@/views/school/dashboard/SchoolDashboardView.vue'), meta: { title: '学校概览' } },
-        { path: 'org/departments', name: 'SchoolDeptList', component: () => import('@/views/school/org/DepartmentListView.vue'), meta: { title: '院系管理' } },
+        { path: 'org/departments', name: 'SchoolDeptList', component: () => import('@/views/school/org/DepartmentListView.vue'), meta: { title: '组织架构' } },
         { path: 'users/staff', name: 'SchoolStaffList', component: () => import('@/views/school/users/StaffListView.vue'), meta: { title: '教职工管理' } },
         { path: 'users/student', name: 'SchoolStudentList', component: () => import('@/views/school/users/StudentListView.vue'), meta: { title: '学生管理' } },
         { path: 'form/list', name: 'SchoolFormList', component: () => import('@/views/school/form/FormListView.vue'), meta: { title: '表单列表' } },
