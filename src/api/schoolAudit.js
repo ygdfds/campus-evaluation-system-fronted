@@ -374,13 +374,29 @@ export async function getSchoolAuditDetailApi(tenantId, auditId) {
  */
 export async function approveSchoolAuditApi(tenantId, schoolId, auditId, currentUserId) {
   // 1. 获取审核记录和表单
-  const [auditsRes, formsRes] = await Promise.all([
+  const [auditsRes, formsRes, windowsRes] = await Promise.all([
     request.get('/formPublishAudits', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/evaluationForms', { params: { tenant_id: tenantId, deleted: false } }),
+    request.get('/evaluationWindows', { params: { tenant_id: tenantId, deleted: false } }),
   ])
   const audit = (auditsRes.data || []).find(a => a.id === Number(auditId))
   const form = (formsRes.data || []).find(f => f.id === audit?.form_id)
   if (!audit || !form) throw new Error('审核记录或表单不存在')
+
+  // 二次校验：阻断风险检查
+  const windows = (windowsRes.data || []).filter(w => !w.deleted && w.form_id === audit.form_id)
+  const blockingRisks = []
+  if (!form.title && !form.name && !form.form_name) blockingRisks.push('表单名称未配置')
+  if (!form.teaching_org_id && !form.service_org_id && !form.course_id && !form.service_item_id) blockingRisks.push('评价对象未配置')
+  if (!windows.length) blockingRisks.push('评价窗口未配置')
+  else {
+    const w = windows[0]
+    if (!w.start_at || !w.end_at) blockingRisks.push('评价窗口时间不完整')
+    else if (new Date(w.end_at) <= new Date(w.start_at)) blockingRisks.push('评价截止时间必须晚于开始时间')
+  }
+  if (blockingRisks.length > 0) {
+    throw new Error('存在阻断风险，无法通过审核：' + blockingRisks.join('、'))
+  }
 
   const now = new Date().toISOString()
   const formTitle = resolveFormName(form)

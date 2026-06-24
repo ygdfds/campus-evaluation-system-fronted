@@ -113,19 +113,25 @@ async function openDetail(auditId) {
 }
 
 // ==================== 审核通过 ====================
-function checkBlockingRisks(detail) {
-  if (!detail) return []
-  return detail.blocking_risks || []
+function hasBlockingRisks(item) {
+  // 列表项：通过 missing_items 判断
+  if (item.missing_items && item.missing_items.length > 0) return true
+  // 详情项：通过 blocking_risks 判断
+  if (item.blocking_risks && item.blocking_risks.length > 0) return true
+  return false
+}
+
+function blockingTooltip(item) {
+  if (item.missing_items?.length) return '请先' + item.missing_items.join('、')
+  if (item.blocking_risks?.length) return item.blocking_risks.join('、')
+  return ''
 }
 
 async function handleApprove(audit) {
-  // 前置校验：如果是从详情抽屉打开，先检查阻断风险
-  if (drawerVisible.value && drawerDetail.value) {
-    const blockingRisks = checkBlockingRisks(drawerDetail.value)
-    if (blockingRisks.length > 0) {
-      ElMessage.warning('存在阻断风险，无法通过审核：' + blockingRisks.join('、'))
-      return
-    }
+  // 前置校验：检查阻断风险
+  if (hasBlockingRisks(audit)) {
+    ElMessage.warning('存在阻断风险，无法通过审核：' + blockingTooltip(audit))
+    return
   }
 
   try {
@@ -136,7 +142,7 @@ async function handleApprove(audit) {
         confirmButtonText: '确认通过',
         cancelButtonText: '取消',
         type: 'success',
-        confirmButtonClass: 'el-button--primary',
+        confirmButtonClass: 'audit-confirm-btn',
       }
     )
     const uid = userStore.userInfo?.id
@@ -277,7 +283,8 @@ onMounted(() => loadData())
             </div>
             <div v-if="item.missing_items && item.missing_items.length" class="audit-card-risk">
               <el-icon :size="14" color="var(--color-warning)"><Warning /></el-icon>
-              <span>风险：{{ item.missing_items.join('、') }}</span>
+              <span v-if="item.missing_items.length <= 2">风险：{{ item.missing_items.join('、') }}</span>
+              <span v-else>风险：存在 {{ item.missing_items.length }} 项阻断问题</span>
             </div>
             <div v-if="item.review_comment" class="audit-card-row3">
               <span class="review-label">审核意见：</span>{{ item.review_comment }}
@@ -286,7 +293,14 @@ onMounted(() => loadData())
           <div class="audit-card-actions">
             <el-button text type="primary" size="small" :icon="View" @click="openDetail(item.id)">查看详情</el-button>
             <template v-if="item.status_code === 'pending'">
-              <el-button type="primary" size="small" plain :icon="Check" @click="handleApprove(item)">通过</el-button>
+              <el-tooltip
+                v-if="item.missing_items && item.missing_items.length"
+                :content="'请先' + item.missing_items.join('、')"
+                placement="top"
+              >
+                <el-button type="warning" size="small" plain :icon="Warning" disabled>存在风险</el-button>
+              </el-tooltip>
+              <el-button v-else type="primary" size="small" plain :icon="Check" @click="handleApprove(item)">通过</el-button>
               <el-button type="danger" size="small" plain :icon="Close" @click="openReject(item.id)">驳回</el-button>
             </template>
           </div>
@@ -390,24 +404,41 @@ onMounted(() => loadData())
             </div>
           </div>
 
-          <!-- 风险检查 -->
+          <!-- 风险检查 / 配置记录检查 -->
           <div class="detail-section">
-            <h3 class="detail-section-title">风险检查</h3>
-            <template v-if="drawerDetail.blocking_risks && drawerDetail.blocking_risks.length">
-              <div v-for="(risk, i) in drawerDetail.blocking_risks" :key="'b'+i" class="risk-item risk-blocking">
-                <el-icon color="var(--color-danger)"><Warning /></el-icon>
-                <span>{{ risk }}（阻断项）</span>
-              </div>
+            <h3 class="detail-section-title">
+              {{ drawerDetail.audit_status_code === 'pending' ? '风险检查' : '配置记录检查' }}
+            </h3>
+            <!-- 待审核：显示阻断/警告风险 -->
+            <template v-if="drawerDetail.audit_status_code === 'pending'">
+              <template v-if="drawerDetail.blocking_risks && drawerDetail.blocking_risks.length">
+                <div v-for="(risk, i) in drawerDetail.blocking_risks" :key="'b'+i" class="risk-item risk-blocking">
+                  <el-icon color="var(--color-danger)"><Warning /></el-icon>
+                  <span>{{ risk }}（阻断项）</span>
+                </div>
+              </template>
+              <template v-if="drawerDetail.warning_risks && drawerDetail.warning_risks.length">
+                <div v-for="(risk, i) in drawerDetail.warning_risks" :key="'w'+i" class="risk-item">
+                  <el-icon color="var(--color-warning)"><Warning /></el-icon>
+                  <span>{{ risk }}</span>
+                </div>
+              </template>
+              <p v-if="(!drawerDetail.blocking_risks || !drawerDetail.blocking_risks.length) && (!drawerDetail.warning_risks || !drawerDetail.warning_risks.length)" class="detail-empty" style="color: var(--color-success)">
+                <el-icon :size="16"><Check /></el-icon> 未发现配置风险
+              </p>
             </template>
-            <template v-if="drawerDetail.warning_risks && drawerDetail.warning_risks.length">
-              <div v-for="(risk, i) in drawerDetail.warning_risks" :key="'w'+i" class="risk-item">
-                <el-icon color="var(--color-warning)"><Warning /></el-icon>
-                <span>{{ risk }}</span>
-              </div>
+            <!-- 已处理：显示历史配置提示 -->
+            <template v-else>
+              <template v-if="drawerDetail.blocking_risks && drawerDetail.blocking_risks.length">
+                <div v-for="(risk, i) in drawerDetail.blocking_risks" :key="'h'+i" class="risk-item risk-history">
+                  <el-icon color="var(--color-text-placeholder)"><Warning /></el-icon>
+                  <span>历史数据缺少{{ risk.replace('未配置', '配置记录').replace('至少需要配置1个题目', '题目配置记录') }}</span>
+                </div>
+              </template>
+              <p v-else class="detail-empty" style="color: var(--color-success)">
+                <el-icon :size="16"><Check /></el-icon> 配置记录完整
+              </p>
             </template>
-            <p v-if="(!drawerDetail.blocking_risks || !drawerDetail.blocking_risks.length) && (!drawerDetail.warning_risks || !drawerDetail.warning_risks.length)" class="detail-empty" style="color: var(--color-success)">
-              <el-icon :size="16"><Check /></el-icon> 未发现配置风险
-            </p>
           </div>
         </template>
         <div v-else-if="!drawerLoading" class="empty-state">
@@ -417,12 +448,17 @@ onMounted(() => loadData())
       <template #footer>
         <template v-if="drawerDetail?.audit_status_code === 'pending'">
           <el-button type="danger" plain @click="openReject(drawerDetail.audit_id)">驳回</el-button>
-          <el-button
-            type="primary"
-            :disabled="drawerDetail.blocking_risks && drawerDetail.blocking_risks.length > 0"
-            @click="handleApprove({ ...drawerDetail, id: drawerDetail.audit_id, form_title: drawerDetail.form_title, status_code: 'pending' })"
+          <el-tooltip
+            v-if="drawerDetail.blocking_risks && drawerDetail.blocking_risks.length > 0"
+            content="请修复风险项后再审核通过"
+            placement="top"
           >
-            {{ drawerDetail.blocking_risks && drawerDetail.blocking_risks.length > 0 ? '存在阻断风险' : '审核通过' }}
+            <el-button class="btn-disabled-hint" disabled>
+              存在阻断风险
+            </el-button>
+          </el-tooltip>
+          <el-button v-else type="primary" @click="handleApprove({ ...drawerDetail, id: drawerDetail.audit_id, form_title: drawerDetail.form_title, status_code: 'pending' })">
+            审核通过
           </el-button>
         </template>
         <el-button v-else @click="drawerVisible = false">关闭</el-button>
@@ -709,6 +745,10 @@ onMounted(() => loadData())
   color: var(--color-danger);
   background: rgba(244, 67, 54, 0.08);
 }
+.risk-item.risk-history {
+  color: var(--color-text-secondary);
+  background: var(--color-bg-page);
+}
 
 /* 列表风险提示 */
 .audit-card-risk {
@@ -746,13 +786,22 @@ onMounted(() => loadData())
 }
 
 /* 审核通过确认弹窗按钮样式 */
-:deep(.el-message-box__btns .el-button--primary) {
+:deep(.el-message-box__btns .audit-confirm-btn) {
   background-color: var(--color-primary);
   border-color: var(--color-primary);
+  color: #fff;
 }
-:deep(.el-message-box__btns .el-button--primary:hover) {
+:deep(.el-message-box__btns .audit-confirm-btn:hover) {
   background-color: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
+}
+
+/* 禁用状态阻断按钮 */
+.btn-disabled-hint {
+  color: var(--color-text-placeholder) !important;
+  background: var(--color-bg-page) !important;
+  border-color: var(--color-border-lighter) !important;
+  cursor: not-allowed;
 }
 
 /* 响应式 */
