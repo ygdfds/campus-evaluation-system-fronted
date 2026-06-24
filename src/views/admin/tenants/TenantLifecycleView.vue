@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowDown } from '@element-plus/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
@@ -105,6 +106,16 @@ const viewDetail = (row) => {
   router.push({ name: 'AdminTenantDetail', params: { tenantId: row.tenantId } })
 }
 
+const handleTenantCommand = (command, tenant) => {
+  const commandMap = {
+    plan: openPlanDialog,
+    reset: resetAdmin,
+    freeze: freezeTenant,
+    cancel: cancelTenant,
+  }
+  commandMap[command]?.(tenant)
+}
+
 onMounted(() => {
   getTenantPlansApi().then((response) => {
     planOptions.value = response.data?.list || []
@@ -138,13 +149,25 @@ onMounted(() => {
             {{ row.storageQuota }} / 表单 {{ row.formQuota }} / 并发 {{ row.concurrencyQuota }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="340" fixed="right">
+        <el-table-column label="操作" width="170" fixed="right">
           <template #default="{ row }">
-            <ActionButton @click="viewDetail(row)">详情</ActionButton>
-            <ActionButton action="warning" @click="openPlanDialog(row)">套餐调整</ActionButton>
-            <ActionButton action="warning" @click="resetAdmin(row)">重置管理员</ActionButton>
-            <ActionButton action="danger" @click="freezeTenant(row)">冻结</ActionButton>
-            <ActionButton action="danger" @click="cancelTenant(row)">注销</ActionButton>
+            <div class="tenant-actions">
+              <ActionButton variant="subtle" @click="viewDetail(row)">详情</ActionButton>
+              <el-dropdown trigger="click" @command="(command) => handleTenantCommand(command, row)">
+                <ActionButton variant="subtle" action="warning">
+                  更多
+                  <el-icon class="dropdown-icon"><ArrowDown /></el-icon>
+                </ActionButton>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="plan">套餐调整</el-dropdown-item>
+                    <el-dropdown-item command="reset">重置管理员</el-dropdown-item>
+                    <el-dropdown-item command="freeze" divided>冻结</el-dropdown-item>
+                    <el-dropdown-item command="cancel">注销</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -201,5 +224,16 @@ onMounted(() => {
 
 .full-control {
   width: 100%;
+}
+
+.tenant-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.dropdown-icon {
+  margin-left: var(--space-1);
 }
 </style>
