@@ -2,7 +2,9 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { SwitchButton, ArrowDown, Bell } from '@element-plus/icons-vue'
+import { SwitchButton, ArrowDown, User } from '@element-plus/icons-vue'
+import NotificationDropdown from '@/components/NotificationDropdown.vue'
+import { getStaffRoleCodes, isStaffPortalUser, canViewStaffMenu, getStaffRoleNames } from '@/utils/staffPermission'
 
 defineOptions({ name: 'TopNavLayoutView' })
 
@@ -10,26 +12,51 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
+// 当前子路由是否要求隐藏主导航（如消息通知页）
+const hideStaffNav = computed(() => !!route.meta.hideStaffNav)
+
 const navMenus = computed(() => {
-  const role = userStore.role
+  const role = userStore.userRole
   if (role === 'student') {
     return [
       { title: '首页', path: '/student/dashboard' },
-      { title: '服务评价', path: '/student/evaluation/submit' },
-      { title: '我的评价', path: '/student/evaluation/history' },
+      { title: '评价中心', path: '/student/evaluations' },
+      { title: '我的评价', path: '/student/my-evaluations' },
       { title: '投诉建议', path: '/student/complaint' },
       { title: '帮助中心', path: '/student/help' },
     ]
   }
   if (role === 'staff') {
+    const roleCodes = getStaffRoleCodes(userStore.userInfo)
+    // 普通 staff 无管理权限，不显示业务菜单
+    if (!isStaffPortalUser(roleCodes)) {
+      return [
+        { title: '首页', path: '/staff/dashboard' },
+        { title: '帮助中心', path: '/staff/help' },
+      ]
+    }
     return [
       { title: '首页', path: '/staff/dashboard' },
-      { title: '评价结果', path: '/staff/evaluation/results' },
-      { title: '部门管理', path: '/staff/department' },
+      canViewStaffMenu('evaluation', roleCodes) && { title: '评价管理', path: '/staff/evaluation/forms' },
+      canViewStaffMenu('feedback', roleCodes) && { title: '反馈处理', path: '/staff/feedback' },
+      canViewStaffMenu('reports', roleCodes) && { title: '数据看板', path: '/staff/reports' },
+      canViewStaffMenu('appeals', roleCodes) && { title: '申诉处理', path: '/staff/appeals' },
       { title: '帮助中心', path: '/staff/help' },
-    ]
+    ].filter(Boolean)
   }
   return []
+})
+
+// 职工端角色标签：显示具体管理角色而非“教职工”
+const staffRoleLabel = computed(() => {
+  if (userStore.userRole !== 'staff') return ''
+  const roleCodes = getStaffRoleCodes(userStore.userInfo)
+  if (roleCodes.length === 0) return userStore.roleName
+  return getStaffRoleNames(roleCodes)
+})
+
+const displayRoleTag = computed(() => {
+  return staffRoleLabel.value || userStore.roleName
 })
 
 function handleNavClick(path) {
@@ -57,31 +84,32 @@ function handleLogout() {
           <div class="brand-icon">评</div>
           <span class="brand-text">校园服务质量在线评测系统</span>
         </div>
-        <nav class="nav-menu">
-          <span
-            v-for="menu in navMenus"
-            :key="menu.path"
-            class="nav-item"
-            :class="{ active: route.path === menu.path }"
-            @click="handleNavClick(menu.path)"
-          >
-            {{ menu.title }}
-          </span>
+        <nav v-if="!hideStaffNav" class="nav-menu">
+        <span
+          v-for="menu in navMenus"
+          :key="menu.path"
+          class="nav-item"
+          :class="{ active: route.path === menu.path || route.path.startsWith(menu.path + '/') }"
+          @click="handleNavClick(menu.path)"
+        >
+          {{ menu.title }}
+        </span>
         </nav>
       </div>
       <div class="nav-right">
-        <el-button text class="nav-icon-btn">
-          <el-icon :size="20"><Bell /></el-icon>
-        </el-button>
+        <NotificationDropdown />
         <el-dropdown trigger="click">
           <span class="user-trigger">
+            <span class="user-avatar">{{ userStore.realName?.charAt(0) || 'U' }}</span>
             <span class="user-name">{{ userStore.realName }}</span>
-            <el-tag size="small" effect="plain" class="role-tag">{{ userStore.roleName }}</el-tag>
+            <el-tag size="small" effect="plain" class="role-tag">{{ displayRoleTag }}</el-tag>
             <el-icon :size="14"><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="router.push('/profile')">个人信息</el-dropdown-item>
+              <el-dropdown-item @click="router.push(userStore.userRole === 'student' ? '/student/profile' : userStore.userRole === 'staff' ? '/staff/profile' : '/profile')">
+                <el-icon><User /></el-icon>个人信息
+              </el-dropdown-item>
               <el-dropdown-item divided @click="handleLogout">
                 <el-icon><SwitchButton /></el-icon>退出登录
               </el-dropdown-item>
@@ -103,6 +131,7 @@ function handleLogout() {
   min-height: 100vh;
   background: var(--page-bg);
   position: relative;
+  overflow-x: hidden;
 }
 
 /* 背景氛围圆 */
@@ -156,7 +185,7 @@ function handleLogout() {
 .nav-left {
   display: flex;
   align-items: center;
-  gap: var(--space-12);
+  gap: var(--space-8);
 }
 
 .nav-brand {
@@ -222,14 +251,6 @@ function handleLogout() {
   gap: var(--space-2);
 }
 
-.nav-icon-btn {
-  color: var(--color-text-muted);
-}
-
-.nav-icon-btn:hover {
-  color: var(--color-accent-user-700);
-}
-
 .user-trigger {
   display: flex;
   align-items: center;
@@ -242,6 +263,20 @@ function handleLogout() {
 
 .user-trigger:hover {
   background: var(--color-bg-hover);
+}
+
+.user-avatar {
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-50);
+  color: var(--color-accent-user-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-md);
+  font-weight: var(--font-weight-semibold);
+  flex-shrink: 0;
 }
 
 .user-name {
@@ -267,10 +302,10 @@ function handleLogout() {
   .top-nav {
     padding: 0 var(--spacing-base);
   }
-  .nav-left {
-    gap: var(--spacing-base);
-  }
   .brand-text {
+    display: none;
+  }
+  .nav-menu {
     display: none;
   }
   .nav-main {

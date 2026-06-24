@@ -61,12 +61,16 @@
   /* ========== 输入框 Token ========== */
   --input-height-sm: 24px;
   --input-height-default: 32px;
+  --input-height-pill: 36px;
   --input-height-lg: 40px;
   --input-padding-x: var(--space-3);
   --input-font-size: var(--font-base);
   --input-border-radius: var(--radius-md);
+  --input-pill-radius: var(--radius-full);
   --input-border-color: var(--color-border);
   --input-focus-border-color: var(--color-primary-500);
+  --input-focus-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+  --input-ring-border: 1px;
   --input-bg: var(--color-bg-card);
   --input-placeholder-color: var(--color-text-placeholder);
 
@@ -76,11 +80,20 @@
   --tag-border-radius: var(--radius-sm);
   --tag-font-weight: var(--font-weight-semibold);
 
+  /* 角标 */
+  --badge-bg: var(--color-danger);
+  --badge-text: var(--color-text-white);
+  --badge-font-size: var(--font-2xs);
+  --badge-min-size: 18px;
+  --badge-offset: 2px;
+  --badge-padding-x: 4px;
+
   /* ========== 导航栏 Token ========== */
   --nav-height: 64px;
   --nav-bg: var(--color-bg-card);
   --nav-shadow: var(--shadow-nav);
   --nav-padding-x: var(--space-10);
+  --nav-search-width: 220px;
   --nav-item-padding: var(--space-2) var(--space-5);
   --nav-item-font-size: var(--font-base);
   --nav-item-color: var(--color-text-body);
@@ -106,4 +119,31 @@
   /* ========== 布局栅格 Token ========== */
   --grid-main-col: 760px;
   --grid-gap: var(--spacing-lg);
+
+  /* ========== 区块间距 ========== */
+  --section-gap: var(--space-7); /* 28px */
+
+  /* ========== 首页公告轮播 Token ========== */
+  --carousel-height: 360px;
+  --carousel-gradient-height: 120px;
+
+  /* ========== 首页待办任务 Token ========== */
+  --task-row-height: 64px;
+  --task-btn-height: 30px;
+
+  /* ========== 首页评价卡片 Token ========== */
+  --eval-cover-width: 120px;
+  --eval-action-width: 150px;
+  --eval-action-btn-width: 72px;
+  --eval-hover-offset: -1px;
+
+  /* ========== 首页筛选器 Token ========== */
+  --filter-select-width: 110px;
+
+  /* ========== 首页进度条 Token ========== */
+  --progress-bar-height: 7px;
+
+  /* ========== 首页日历 Token ========== */
+  --calendar-date-min-width: 44px;
+  --calendar-info-gap: var(--space-1); /* 2px → 4px 统一 Token */
 }

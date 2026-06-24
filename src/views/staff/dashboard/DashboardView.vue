@@ -1,234 +1,302 @@
 <script setup>
+import { ref, onMounted, onActivated, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 import {
-  DataAnalysis, ChatDotRound, Tickets, QuestionFilled,
-  Clock, ArrowRight,
+  Document, ChatLineSquare, Timer, Warning,
+  ArrowRight, Clock,
 } from '@element-plus/icons-vue'
+import {
+  getStaffTodoStatsApi,
+  getStaffActiveWindowsApi,
+  getStaffPendingFeedbackApi,
+  getStaffPendingAppealsApi,
+  getStaffEvalSummaryApi,
+  getStaffRecentActivitiesApi,
+} from '@/api/staffDashboard'
 
 defineOptions({ name: 'StaffDashboardView' })
 
 const router = useRouter()
+const userStore = useUserStore()
 
-// 轮播公告数据
-const announcements = [
+const loading = ref(true)
+const todoStats = ref({ pendingForms: 0, pendingFeedback: 0, activeWindows: 0, pendingAppeals: 0 })
+const activeWindows = ref([])
+const pendingFeedback = ref([])
+const pendingAppeals = ref([])
+const evalSummary = ref({ monthCount: 0, avgScore: 0, participationRate: 0, lowScoreCount: 0 })
+const recentActivities = ref([])
+
+const statusTypeMap = {
+  pending: 'warning', processing: '', resolved: 'success',
+  rejected: 'danger', cancelled: 'info', open: 'success', closed: 'info',
+}
+
+const windowTypeMap = {
+  teaching: '教学评价', service: '后勤服务评价', instant: '即时评价',
+}
+
+// 待办项中最重要的项高亮
+const highlightKey = computed(() => {
+  if (todoStats.value.pendingFeedback > 0) return 'pendingFeedback'
+  if (todoStats.value.pendingAppeals > 0) return 'pendingAppeals'
+  if (todoStats.value.pendingForms > 0) return 'pendingForms'
+  return ''
+})
+
+const todoItems = computed(() => [
   {
-    id: 1,
-    title: '2026 春季学期教学评价进行中',
-    desc: '请及时查看学生评价反馈，处理待回复事项与工单',
-    tag: '评价进行中',
-    time: '2026-06-01',
-    img: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&h=400&fit=crop',
+    key: 'pendingForms',
+    count: todoStats.value.pendingForms,
+    title: '待提交审核表单',
+    desc: '需要审核或发布的评价表单',
+    icon: Document,
+    iconClass: 'icon-blue',
+    link: '/staff/evaluation/forms?status=draft',
   },
   {
-    id: 2,
-    title: '您有 2 条新评价待回复',
-    desc: '「高等数学」和「线性代数」课程评价结果已发布，请尽快回复',
-    tag: '待回复',
-    time: '2026-05-30',
-    img: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=1200&h=400&fit=crop',
+    key: 'pendingFeedback',
+    count: todoStats.value.pendingFeedback,
+    title: '待处理反馈',
+    desc: '待跟进的投诉建议与反馈工单',
+    icon: ChatLineSquare,
+    iconClass: 'icon-orange',
+    link: '/staff/feedback?status=pending',
   },
   {
-    id: 3,
-    title: '工单处理提醒',
-    desc: '教室设备报修工单 #1024 已等待 3 天，请及时处理',
-    tag: '工单提醒',
-    time: '2026-05-28',
-    img: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=1200&h=400&fit=crop',
+    key: 'activeWindows',
+    count: todoStats.value.activeWindows,
+    title: '进行中评价窗口',
+    desc: '当前正在运行的评价窗口',
+    icon: Timer,
+    iconClass: 'icon-green',
+    link: '/staff/evaluation/forms?status=active',
   },
-]
+  {
+    key: 'pendingAppeals',
+    count: todoStats.value.pendingAppeals,
+    title: '待处理申诉',
+    desc: '学生提交的评价申诉',
+    icon: Warning,
+    iconClass: 'icon-red',
+    link: '/staff/appeals?status=pending',
+  },
+])
 
-// 待处理事项
-const pendingItems = [
-  { id: 1, title: '回复「高等数学」课程评价反馈', deadline: '06-08', type: '评价回复', urgent: true },
-  { id: 2, title: '处理工单 #1024：教室设备报修', deadline: '06-10', type: '工单', urgent: false },
-  { id: 3, title: '确认「大学物理」期末评价结果', deadline: '06-15', type: '结果确认', urgent: false },
-]
+async function loadDashboardData() {
+  loading.value = true
+  try {
+    const tid = userStore.tenantId
+    if (!tid) return
 
-// 服务提醒
-const serviceReminders = [
-  { id: 1, text: '评价回复建议 3 个工作日内完成', urgent: false },
-  { id: 2, text: '工单处理情况将纳入学期考核', urgent: true },
-]
+    const [todoRes, windowsRes, feedbackRes, appealsRes, summaryRes, activitiesRes] = await Promise.all([
+      getStaffTodoStatsApi(tid).catch(() => ({ pendingForms: 0, pendingFeedback: 0, activeWindows: 0, pendingAppeals: 0 })),
+      getStaffActiveWindowsApi(tid).catch(() => []),
+      getStaffPendingFeedbackApi(tid).catch(() => []),
+      getStaffPendingAppealsApi(tid).catch(() => []),
+      getStaffEvalSummaryApi(tid).catch(() => ({ monthCount: 0, avgScore: 0, participationRate: 0, lowScoreCount: 0 })),
+      getStaffRecentActivitiesApi(tid, userStore.userInfo?.id).catch(() => []),
+    ])
 
-// 最近动态
-const recentActivities = [
-  { id: 1, action: '发布', title: '「高等数学」课程评价结果', time: '06-01', status: '待回复', statusType: 'warning' },
-  { id: 2, action: '回复', title: '「线性代数」课程评价反馈', time: '05-28', status: '已回复', statusType: 'success' },
-  { id: 3, action: '处理', title: '工单 #1020：实验室空调故障', time: '05-25', status: '已处理', statusType: 'success' },
-]
+    todoStats.value = todoRes
+    activeWindows.value = windowsRes
+    pendingFeedback.value = feedbackRes
+    pendingAppeals.value = appealsRes
+    evalSummary.value = summaryRes
+    recentActivities.value = activitiesRes
+  } catch (e) {
+    console.error('加载职工工作台数据失败:', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadDashboardData()
+})
+
+// 支持 keep-alive 场景下重新进入时刷新数据
+onActivated(() => {
+  loadDashboardData()
+})
+
+function formatDate(dateStr) {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function formatTime(dateStr) {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr)
+  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
 </script>
 
 <template>
-  <div class="dashboard">
-    <!-- 1. 公告区：左轮播 + 右列表 -->
-    <div class="announce-section">
-      <div class="module-header">
-        <h2 class="module-title">校园公告</h2>
-        <el-button text type="primary" size="small" @click="router.push('/staff/announcements')">
-          查看更多 <el-icon :size="14"><ArrowRight /></el-icon>
-        </el-button>
+  <div v-loading="loading" class="staff-dashboard">
+    <!-- 1. 页面标题区 -->
+    <div class="page-header">
+      <h1 class="page-title">职工工作台</h1>
+      <p class="page-subtitle">处理评价发布、反馈跟进与授权范围内的服务质量数据</p>
+    </div>
+
+    <!-- 2. 今日待办卡片 -->
+    <div class="todo-row">
+      <div
+        v-for="item in todoItems"
+        :key="item.key"
+        class="todo-card"
+        :class="{ 'is-highlighted': item.key === highlightKey }"
+        @click="router.push(item.link)"
+      >
+        <div class="todo-icon" :class="item.iconClass">
+          <el-icon :size="24"><component :is="item.icon" /></el-icon>
+        </div>
+        <div class="todo-info">
+          <span class="todo-count">{{ item.count }}</span>
+          <span class="todo-title">{{ item.title }}</span>
+          <span class="todo-desc">{{ item.desc }}</span>
+        </div>
+        <el-icon class="todo-arrow" :size="14"><ArrowRight /></el-icon>
       </div>
-      <div class="announce-grid">
-        <!-- 左侧轮播 760px -->
-        <div class="carousel-card">
-          <el-carousel
-            height="360px"
-            :interval="5000"
-            arrow="hover"
-            indicator-position="outside"
-            class="announcement-carousel"
-          >
-            <el-carousel-item v-for="item in announcements" :key="item.id">
-              <div class="announce-slide" @click="router.push('/staff/announcements')">
-                <img :src="item.img" :alt="item.title" class="slide-bg" />
-                <!-- 底部深色渐变遮罩 -->
-                <div class="slide-gradient" />
-                <div class="slide-text">
-                  <h3 class="slide-title">{{ item.title }}</h3>
-                  <div class="slide-meta">
-                    <span class="slide-tag">{{ item.tag }}</span>
-                    <span class="slide-time">{{ item.time }}</span>
-                  </div>
+    </div>
+
+    <!-- 3. 业务区 -->
+    <div class="biz-area">
+        <!-- 3a. 进行中的评价窗口 -->
+        <div class="section-card">
+          <div class="section-header">
+            <h3 class="section-title">进行中的评价窗口</h3>
+            <el-button text size="small" @click="router.push('/staff/evaluation/forms')">
+              查看全部 <el-icon :size="14"><ArrowRight /></el-icon>
+            </el-button>
+          </div>
+          <div v-if="activeWindows.length === 0" class="empty-tip">暂无进行中的评价窗口</div>
+          <div v-else class="window-list">
+            <div v-for="win in activeWindows" :key="win.id" class="window-row">
+              <div class="window-thumb">
+                <img v-if="win.cover_url" :src="win.cover_url" :alt="win.form_title" class="window-thumb-img" />
+                <div v-else class="window-thumb-placeholder">
+                  <el-icon :size="20"><Document /></el-icon>
                 </div>
               </div>
-            </el-carousel-item>
-          </el-carousel>
-        </div>
-
-        <!-- 右侧公告列表 416px -->
-        <div class="announce-list-card">
-          <div
-            v-for="(item, idx) in announcements"
-            :key="item.id"
-            class="announce-list-item"
-            :class="{ active: idx === 0 }"
-            @click="router.push('/staff/announcements')"
-          >
-            <div class="list-item-content">
-              <span class="list-item-tag">{{ item.tag }}</span>
-              <span class="list-item-title">{{ item.title }}</span>
+              <div class="window-body">
+                <div class="window-title-row">
+                  <span class="window-title">{{ win.form_title }}</span>
+                  <el-tag size="small" effect="plain">{{ windowTypeMap[win.form_type] || win.form_type || '评价' }}</el-tag>
+                </div>
+                <div class="window-time">
+                  <el-icon :size="13"><Clock /></el-icon>
+                  {{ formatDate(win.start_at) }} ~ {{ formatDate(win.end_at) }}
+                </div>
+              </div>
+              <div class="window-stats-col">
+                <div class="window-stat">参与 <strong>{{ win.submission_count }}</strong> 人</div>
+                <el-tag :type="statusTypeMap[win.status] || 'info'" size="small" effect="plain">
+                  {{ win.status === 'open' ? '进行中' : win.status }}
+                </el-tag>
+              </div>
             </div>
-            <span class="list-item-time">{{ item.time.slice(5) }}</span>
           </div>
         </div>
-      </div>
+
+        <!-- 3b. 待处理反馈 -->
+        <div class="section-card">
+          <div class="section-header">
+            <h3 class="section-title">待处理反馈</h3>
+            <el-button text size="small" @click="router.push('/staff/feedback')">
+              查看全部 <el-icon :size="14"><ArrowRight /></el-icon>
+            </el-button>
+          </div>
+          <div v-if="pendingFeedback.length === 0" class="empty-tip">暂无待处理反馈</div>
+          <div v-else class="feedback-list">
+            <div v-for="item in pendingFeedback" :key="item.id" class="feedback-row">
+              <div class="feedback-main">
+                <span class="feedback-title">{{ item.title }}</span>
+                <el-tag size="small" effect="plain">{{ item.type }}</el-tag>
+              </div>
+              <div class="feedback-target">{{ item.target_name }}</div>
+              <div class="feedback-meta">
+                <el-tag :type="statusTypeMap[item.status_code] || 'info'" size="small" effect="plain">{{ item.status }}</el-tag>
+                <span class="feedback-time">{{ formatTime(item.latest_process_time) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3c. 待处理申诉 -->
+        <div v-if="pendingAppeals.length > 0" class="section-card">
+          <div class="section-header">
+            <h3 class="section-title">待处理申诉</h3>
+            <el-button text size="small" @click="router.push('/staff/appeals')">
+              查看全部 <el-icon :size="14"><ArrowRight /></el-icon>
+            </el-button>
+          </div>
+          <div v-if="pendingAppeals.length === 0" class="empty-tip">暂无待处理申诉</div>
+          <div v-else class="appeal-list">
+            <div v-for="item in pendingAppeals" :key="item.id" class="appeal-row">
+              <div class="appeal-main">
+                <span class="appeal-form-title">{{ item.form_title }}</span>
+                <span class="appeal-reason">{{ item.reason }}</span>
+              </div>
+              <div class="appeal-meta">
+                <el-tag :type="statusTypeMap[item.status_code] || 'info'" size="small" effect="plain">{{ item.status }}</el-tag>
+                <span class="appeal-time">{{ formatTime(item.updated_at) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
     </div>
 
-    <!-- 2. 常用服务入口 -->
-    <div class="module-header">
-      <h2 class="module-title">常用服务</h2>
-    </div>
-    <div class="entries-row">
-      <div class="entry-card entry-primary" @click="router.push('/staff/evaluation/results')">
-        <div class="entry-icon">
-          <el-icon :size="24"><DataAnalysis /></el-icon>
-        </div>
-        <div class="entry-info">
-          <span class="entry-title">我的评价结果</span>
-          <span class="entry-desc">查看本学期评价数据</span>
-        </div>
-        <el-icon class="entry-arrow" :size="16"><ArrowRight /></el-icon>
-      </div>
-      <div class="entry-card" @click="router.push('/staff/evaluation/replies')">
-        <div class="entry-icon icon-orange">
-          <el-icon :size="22"><ChatDotRound /></el-icon>
-        </div>
-        <span class="entry-label">待回复</span>
-      </div>
-      <div class="entry-card" @click="router.push('/staff/work-orders')">
-        <div class="entry-icon icon-green">
-          <el-icon :size="22"><Tickets /></el-icon>
-        </div>
-        <span class="entry-label">工单处理</span>
-      </div>
-      <div class="entry-card" @click="router.push('/staff/help')">
-        <div class="entry-icon icon-gray">
-          <el-icon :size="22"><QuestionFilled /></el-icon>
-        </div>
-        <span class="entry-label">帮助中心</span>
-      </div>
-    </div>
-
-    <!-- 3. 两栏内容 -->
-    <div class="content-two-col">
-      <!-- 左侧：待处理事项 -->
-      <div class="section-card col-left">
-        <div class="section-header">
-          <h3 class="section-title">待处理事项</h3>
-          <el-tag type="warning" size="small" effect="plain">{{ pendingItems.length }} 项待处理</el-tag>
-        </div>
-        <div class="task-list">
-          <div v-for="task in pendingItems" :key="task.id" class="task-row">
-            <span class="task-title">{{ task.title }}</span>
-            <el-tag size="small" effect="plain">{{ task.type }}</el-tag>
-            <span class="task-deadline" :class="{ urgent: task.urgent }">
-              <el-icon :size="14"><Clock /></el-icon>
-              {{ task.deadline }}
-            </span>
-            <el-button type="primary" size="small" @click="router.push('/staff/evaluation/replies')">去处理</el-button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 右侧：概览 + 提醒 -->
-      <div class="col-right">
-        <div class="section-card overview-card">
-          <h3 class="section-title">本学期评价概览</h3>
-          <div class="overview-stats">
-            <div class="stat-item">
-              <span class="stat-value">28</span>
-              <span class="stat-label">收到评价</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-value">4.3</span>
-              <span class="stat-label">平均评分</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-value">2</span>
-              <span class="stat-label">待回复</span>
-            </div>
-          </div>
-          <div class="progress-section">
-            <div class="progress-header">
-              <span class="progress-label">回复率</span>
-              <span class="progress-value">92%</span>
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill" style="width: 92%" />
-            </div>
-          </div>
-        </div>
-
-        <div class="section-card reminders-card">
-          <h3 class="section-title">服务提醒</h3>
-          <div class="reminder-list">
-            <div v-for="item in serviceReminders" :key="item.id" class="reminder-item">
-              <span class="reminder-dot" :class="{ urgent: item.urgent }" />
-              <span class="reminder-text">{{ item.text }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 4. 最近动态 -->
+    <!-- 4. 评价概览 -->
     <div class="section-card">
       <div class="section-header">
-        <h3 class="section-title">最近动态</h3>
+        <h3 class="section-title">本部门 / 本学院评价概览</h3>
+        <span class="section-hint">基于当前授权范围统计</span>
       </div>
-      <div class="timeline">
+      <div class="summary-row">
+        <div class="summary-item">
+          <span class="summary-value">{{ evalSummary.monthCount }}</span>
+          <span class="summary-label">本月评价数</span>
+          <span class="summary-desc">授权范围内本月提交的评价总数</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-value">{{ evalSummary.avgScore }}</span>
+          <span class="summary-label">平均评分</span>
+          <span class="summary-desc">所有评价指标得分的平均值</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-value">{{ evalSummary.participationRate }}%</span>
+          <span class="summary-label">参与率</span>
+          <span class="summary-desc">已参与学生占应参与学生的比例</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-value" :class="{ 'is-warning': evalSummary.lowScoreCount > 0 }">{{ evalSummary.lowScoreCount }}</span>
+          <span class="summary-label">低分预警</span>
+          <span class="summary-desc">评分 ≤ 2 分的评价条目数</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. 最近处理记录 -->
+    <div class="section-card">
+      <div class="section-header">
+        <h3 class="section-title">最近处理记录</h3>
+      </div>
+      <div v-if="recentActivities.length === 0" class="empty-tip compact">暂无处理记录</div>
+      <div v-else class="timeline">
         <div v-for="item in recentActivities" :key="item.id" class="timeline-item">
-          <div class="timeline-dot" />
+          <div class="timeline-dot" :class="[`dot-${item.type}`, item.actionColor && `dot-${item.actionColor}`]" />
           <div class="timeline-content">
             <div class="timeline-main">
-              <span class="timeline-action">{{ item.action }}</span>
+              <span class="timeline-action" :class="item.actionColor && `action-${item.actionColor}`">{{ item.action }}</span>
               <span class="timeline-title">{{ item.title }}</span>
             </div>
-            <span class="timeline-time">{{ item.time }}</span>
+            <div v-if="item.content" class="timeline-desc">{{ item.content }}</div>
+            <span class="timeline-time">{{ formatTime(item.time) }}</span>
           </div>
-          <el-tag :type="item.statusType" size="small" effect="plain" class="timeline-status">
-            {{ item.status }}
-          </el-tag>
         </div>
       </div>
     </div>
@@ -236,317 +304,104 @@ const recentActivities = [
 </template>
 
 <style scoped>
-.dashboard {
+.staff-dashboard {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
 }
 
-/* ===== 模块标题 ===== */
-.module-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: calc(-1 * var(--space-2));
+/* ==================== 1. 页面标题 ==================== */
+.page-header {
+  padding: var(--space-2) 0;
 }
 
-.module-title {
-  font-size: var(--font-lg);
+.page-title {
+  font-size: var(--font-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-heading);
   margin: 0;
+  line-height: var(--line-height-tight);
 }
 
-/* ===== 公告区 ===== */
-.announce-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.announce-grid {
-  display: grid;
-  grid-template-columns: var(--grid-main-col) 1fr;
-  gap: var(--grid-gap);
-}
-
-/* 左侧轮播 */
-.carousel-card {
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
-}
-
-.announcement-carousel {
-  border-radius: var(--radius-xl);
-}
-
-.announcement-carousel :deep(.el-carousel__container) {
-  height: 360px !important;
-}
-
-.announcement-carousel :deep(.el-carousel__arrow) {
-  background: var(--color-overlay-white-90);
-  color: var(--color-accent-user-700);
-  box-shadow: var(--shadow-sm);
-}
-
-.announcement-carousel :deep(.el-carousel__indicators--outside) {
-  margin-top: var(--space-3);
-}
-
-.announcement-carousel :deep(.el-carousel__button) {
-  width: var(--space-2);
-  height: var(--space-2);
-  border-radius: var(--radius-full);
-}
-
-.announce-slide {
-  position: relative;
-  height: 100%;
-  cursor: pointer;
-  overflow: hidden;
-}
-
-/* 图片满铺 */
-.slide-bg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* 底部深色渐变遮罩 */
-.slide-gradient {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 120px;
-  background: linear-gradient(
-    to top,
-    var(--color-carousel-gradient-dark-1),
-    var(--color-carousel-gradient-dark-2),
-    var(--color-carousel-gradient-dark-3)
-  );
-}
-
-/* 底部文字 */
-.slide-text {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: var(--space-5) var(--spacing-lg);
-}
-
-.slide-title {
-  font-size: var(--font-xl);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-white);
-  margin: 0 0 var(--space-2);
-  line-height: var(--line-height-snug);
-}
-
-.slide-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.slide-tag {
-  display: inline-block;
-  padding: var(--space-1) var(--space-2);
-  background: var(--color-carousel-tag-bg);
-  color: var(--color-accent-user-700);
-  font-size: var(--font-xs);
-  font-weight: var(--font-weight-semibold);
-  border-radius: var(--radius-sm);
-}
-
-.slide-time {
+.page-subtitle {
   font-size: var(--font-sm);
-  color: var(--color-carousel-time-text);
+  color: var(--color-text-muted);
+  margin: var(--space-1) 0 0;
 }
 
-/* 右侧公告列表 */
-.announce-list-card {
-  background: var(--color-bg-card);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-  padding: var(--spacing-base);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.announce-list-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--spacing-base);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.announce-list-item:hover {
-  background: var(--color-bg-primary-hover);
-}
-
-.announce-list-item.active {
-  background: var(--color-primary-50);
-}
-
-.list-item-content {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex: 1;
-  min-width: 0;
-}
-
-.list-item-tag {
-  flex-shrink: 0;
-  padding: var(--tag-padding);
-  background: var(--color-primary-50);
-  color: var(--color-accent-user-700);
-  font-size: var(--font-2xs);
-  font-weight: var(--tag-font-weight);
-  border-radius: var(--tag-border-radius);
-}
-
-.list-item-title {
-  font-size: var(--font-base);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-heading);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.list-item-time {
-  font-size: var(--font-sm);
-  color: var(--color-text-muted-light);
-  flex-shrink: 0;
-  margin-left: var(--space-3);
-}
-
-/* ===== 常用服务入口 ===== */
-.entries-row {
+/* ==================== 2. 待办事项 ==================== */
+.todo-row {
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-3);
 }
 
-.entry-card {
+.todo-card {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--spacing-base) var(--space-4);
+  padding: var(--space-4);
   background: var(--color-bg-card);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  border: var(--border-lighter);
   cursor: pointer;
   transition: all 0.2s;
+  border: 2px solid transparent;
+  min-height: 96px;
 }
 
-.entry-card:hover {
+.todo-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
   border-color: var(--color-primary-100);
 }
 
-.entry-primary {
-  background: var(--color-accent-user-700);
-  border: none;
+.todo-card.is-highlighted {
+  border-color: var(--color-accent-user-700);
+  background: var(--color-primary-50);
 }
 
-.entry-primary:hover {
-  background: var(--color-primary-700);
-  border: none;
-}
-
-.entry-primary .entry-icon {
-  width: 40px;
-  height: 40px;
-  background: var(--color-overlay-white-20);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-white);
-}
-
-.entry-primary .entry-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-}
-
-.entry-primary .entry-title {
-  font-size: var(--font-md);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-white);
-}
-
-.entry-primary .entry-desc {
-  font-size: var(--font-xs);
-  color: var(--color-overlay-white-70);
-}
-
-.entry-primary .entry-arrow {
-  color: var(--color-overlay-white-60);
-}
-
-.entry-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-md);
+.todo-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.icon-green {
-  background: var(--color-primary-50);
-  color: var(--color-accent-user-700);
-}
+.icon-blue { background: var(--color-primary-50); color: var(--color-accent-user-700); }
+.icon-orange { background: var(--color-warning-light); color: var(--color-warning); }
+.icon-green { background: var(--color-success-light); color: var(--color-success); }
+.icon-red { background: var(--color-danger-light); color: var(--color-danger); }
 
-.icon-orange {
-  background: var(--color-warning-light);
-  color: var(--color-warning);
-}
-
-.icon-gray {
-  background: var(--color-info-light);
-  color: var(--color-accent-sys-500);
-}
-
-.entry-label {
-  font-size: var(--font-base);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-heading);
-}
-
-/* ===== 两栏内容 ===== */
-.content-two-col {
-  display: grid;
-  grid-template-columns: var(--grid-main-col) 1fr;
-  gap: var(--grid-gap);
-}
-
-.col-right {
+.todo-info {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-base);
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 
-/* ===== 通用卡片 ===== */
+.todo-count {
+  font-size: var(--font-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-heading);
+  line-height: var(--line-height-tight);
+}
+
+.todo-title { font-size: var(--font-sm); color: var(--color-text-body); font-weight: var(--font-weight-medium); }
+.todo-desc { font-size: var(--font-xs); color: var(--color-text-placeholder); }
+.todo-arrow { color: var(--color-text-placeholder); flex-shrink: 0; }
+
+/* ==================== 3. 业务区 ==================== */
+.biz-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
 .section-card {
   background: var(--color-bg-card);
   border-radius: var(--radius-lg);
@@ -568,187 +423,247 @@ const recentActivities = [
   margin: 0;
 }
 
-/* ===== 待办任务 ===== */
-.task-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+.section-hint {
+  font-size: var(--font-xs);
+  color: var(--color-text-placeholder);
 }
 
-.task-row {
+.empty-tip {
+  text-align: center;
+  padding: var(--space-8) 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+}
+
+.empty-tip.compact {
+  padding: var(--space-5) 0;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 评价窗口列表 */
+.window-list { display: flex; flex-direction: column; }
+
+.window-row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  height: 52px;
-  padding: 0 var(--space-3);
-  background: var(--color-bg-light);
+  padding: var(--space-3);
+  border-bottom: var(--border-lighter);
+  transition: background 0.15s;
   border-radius: var(--radius-md);
-  border: var(--border-lighter);
-  cursor: pointer;
-  transition: all 0.15s;
 }
 
-.task-row:hover {
-  background: var(--color-bg-primary-hover);
-  border-color: var(--color-primary-100);
+.window-row:last-child { border-bottom: none; }
+.window-row:hover { background: var(--color-bg-primary-hover); }
+
+.window-thumb {
+  width: 88px;
+  height: 64px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--color-bg-page-alt);
 }
 
-.task-title {
+.window-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.window-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-placeholder);
+  opacity: 0.5;
+}
+
+.window-body {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.window-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.window-title {
   font-size: var(--font-base);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-heading);
-  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.task-deadline {
+.window-time {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: var(--font-sm);
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-}
-
-.task-deadline.urgent {
-  color: var(--color-warning);
-  font-weight: var(--font-weight-semibold);
-}
-
-.task-row .el-button {
-  height: 30px;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-}
-
-/* ===== 概览卡片 ===== */
-.overview-card .section-title {
-  margin-bottom: var(--space-3);
-}
-
-.overview-stats {
-  display: flex;
-  gap: var(--space-3);
-  margin-bottom: var(--spacing-base);
-}
-
-.stat-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-1);
-  background: var(--color-bg-page-alt);
-  border-radius: var(--radius-md);
-}
-
-.stat-value {
-  font-size: var(--font-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-heading);
-}
-
-.stat-label {
   font-size: var(--font-xs);
   color: var(--color-text-muted);
 }
 
-.progress-section {
-  padding-top: var(--space-3);
-  border-top: var(--border-lighter);
-}
-
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: var(--space-2);
-}
-
-.progress-label {
-  font-size: var(--font-sm);
-  color: var(--color-text-muted);
-}
-
-.progress-value {
-  font-size: var(--font-xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-accent-user-700);
-}
-
-.progress-bar {
-  height: 7px;
-  background: var(--color-primary-50);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--color-success), var(--color-accent-user-700));
-  border-radius: var(--radius-sm);
-}
-
-/* ===== 服务提醒（轻量化） ===== */
-.reminders-card .section-title {
-  margin-bottom: var(--space-3);
-}
-
-.reminder-list {
+.window-stats-col {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-}
-
-.reminder-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-bg-page-alt);
-  border-radius: var(--radius-md);
-  border: var(--border-light);
-}
-
-.reminder-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-full);
-  background: var(--color-text-muted-light);
+  align-items: flex-end;
+  gap: var(--space-1);
   flex-shrink: 0;
 }
 
-.reminder-dot.urgent {
-  background: var(--color-warning);
-}
+.window-stat { font-size: var(--font-sm); color: var(--color-text-muted); }
+.window-stat strong { color: var(--color-accent-user-700); font-weight: var(--font-weight-semibold); }
 
-.reminder-text {
-  font-size: var(--font-sm);
-  color: var(--color-text-body);
-  line-height: var(--line-height-normal);
-}
+/* 反馈列表 */
+.feedback-list { display: flex; flex-direction: column; }
 
-/* ===== 时间线 ===== */
-.timeline {
+.feedback-row {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--border-lighter);
+  transition: background 0.15s;
+  border-radius: var(--radius-md);
 }
 
-.timeline-item {
+.feedback-row:last-child { border-bottom: none; }
+.feedback-row:hover { background: var(--color-bg-primary-hover); }
+
+.feedback-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.feedback-title {
+  font-size: var(--font-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feedback-target {
+  font-size: var(--font-sm);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.feedback-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.feedback-time { font-size: var(--font-xs); color: var(--color-text-muted-light); }
+
+/* 申诉列表 */
+.appeal-list { display: flex; flex-direction: column; }
+
+.appeal-row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  height: 52px;
+  padding: var(--space-3);
+  border-bottom: var(--border-lighter);
+  transition: background 0.15s;
+  border-radius: var(--radius-md);
+}
+
+.appeal-row:last-child { border-bottom: none; }
+.appeal-row:hover { background: var(--color-bg-primary-hover); }
+
+.appeal-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.appeal-form-title {
+  font-size: var(--font-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-heading);
+}
+
+.appeal-reason {
+  font-size: var(--font-sm);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appeal-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.appeal-time { font-size: var(--font-xs); color: var(--color-text-muted-light); }
+
+/* ==================== 4. 评价概览 ==================== */
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-2);
+  background: var(--color-bg-page-alt);
+  border-radius: var(--radius-md);
+}
+
+.summary-value {
+  font-size: var(--font-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-heading);
+  line-height: var(--line-height-tight);
+}
+
+.summary-value.is-warning { color: var(--color-danger); }
+.summary-label { font-size: var(--font-xs); color: var(--color-text-muted); font-weight: var(--font-weight-medium); }
+.summary-desc { font-size: 11px; color: var(--color-text-placeholder); text-align: center; line-height: var(--line-height-relaxed); }
+
+/* ==================== 5. 处理记录时间线 ==================== */
+.timeline { display: flex; flex-direction: column; }
+
+.timeline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
   border-bottom: var(--border-lighter);
 }
 
-.timeline-item:last-child {
-  border-bottom: none;
-}
+.timeline-item:last-child { border-bottom: none; }
 
 .timeline-dot {
   width: var(--space-2);
@@ -756,13 +671,22 @@ const recentActivities = [
   border-radius: var(--radius-full);
   background: var(--color-accent-user-700);
   flex-shrink: 0;
+  margin-top: var(--space-1);
 }
+
+.timeline-dot.dot-notification { background: var(--color-info); }
+.timeline-dot.dot-audit { background: var(--color-warning); }
+.timeline-dot.dot-success { background: var(--color-primary); }
+.timeline-dot.dot-danger { background: var(--color-danger); }
+.timeline-dot.dot-muted { background: var(--color-text-muted); }
+.timeline-dot.dot-info { background: var(--color-info); }
+.timeline-dot.dot-warning { background: var(--color-warning); }
 
 .timeline-content {
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -780,9 +704,23 @@ const recentActivities = [
   flex-shrink: 0;
 }
 
+.timeline-action.action-success { color: var(--color-primary); }
+.timeline-action.action-danger { color: var(--color-danger); }
+.timeline-action.action-muted { color: var(--color-text-muted); }
+.timeline-action.action-info { color: var(--color-info); }
+.timeline-action.action-warning { color: var(--color-warning); }
+
 .timeline-title {
   font-size: var(--font-base);
   color: var(--color-text-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-desc {
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -792,32 +730,17 @@ const recentActivities = [
   font-size: var(--font-sm);
   color: var(--color-text-muted-light);
   flex-shrink: 0;
-  margin: 0 var(--space-3);
+  align-self: flex-start;
 }
 
-.timeline-status {
-  flex-shrink: 0;
-}
-
-/* 响应式 */
+/* ==================== 响应式 ==================== */
 @media (max-width: 900px) {
-  .content-two-col {
-    grid-template-columns: 1fr;
-  }
-  .entries-row {
-    grid-template-columns: 1fr 1fr;
-  }
-  .entry-primary {
-    grid-column: span 2;
-  }
+  .todo-row { grid-template-columns: repeat(2, 1fr); }
+  .summary-row { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 600px) {
-  .entries-row {
-    grid-template-columns: 1fr;
-  }
-  .entry-primary {
-    grid-column: span 1;
-  }
+  .todo-row { grid-template-columns: 1fr; }
+  .summary-row { grid-template-columns: repeat(2, 1fr); }
 }
 </style>

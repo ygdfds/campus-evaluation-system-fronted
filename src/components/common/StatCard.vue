@@ -12,7 +12,11 @@ defineProps({
   color: { type: String, default: 'primary' },
   /** 描述文字 */
   description: { type: String, default: '' },
+  /** 是否激活（筛选选中态） */
+  active: { type: Boolean, default: false },
 })
+
+defineEmits(['click'])
 
 const colorMap = {
   primary: { bg: 'var(--color-primary-50)', text: 'var(--color-primary-500)' },
@@ -24,7 +28,7 @@ const colorMap = {
 </script>
 
 <template>
-  <div class="stat-card">
+  <div class="stat-card" :class="{ 'is-active': active }" @click="$emit('click')">
     <div class="stat-icon" :style="{ background: colorMap[color]?.bg, color: colorMap[color]?.text }">
       <el-icon v-if="icon" :size="24"><component :is="icon" /></el-icon>
     </div>
@@ -45,11 +49,23 @@ const colorMap = {
   background: var(--color-bg-card);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-top: 3px solid transparent;
 }
 
 .stat-card:hover {
   box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.stat-card.is-active {
+  border-top-color: var(--color-accent-user-700);
+  border-left-color: var(--color-primary-100);
+  border-right-color: var(--color-primary-100);
+  border-bottom-color: var(--color-primary-100);
+  background: var(--color-primary-50);
 }
 
 .stat-icon {
@@ -63,7 +79,7 @@ const colorMap = {
 }
 
 .stat-value {
-  font-size: var(--font-3xl);
+  font-size: 28px;
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   line-height: var(--line-height-tight);

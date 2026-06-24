@@ -50,8 +50,8 @@ const testAccounts = computed(() => {
   }
   // 默认（/login）：用户登录
   return [
-    { label: '教师', username: 'teacher', password: '123456' },
-    { label: '学生', username: 'student', password: '123456' },
+    { label: '清华教师', username: 'teacher_li', password: '123456' },
+    { label: '清华学生', username: 'student_zhang', password: '123456' },
     { label: '北大教师', username: 'pku_teacher', password: '123456' },
     { label: '北大学生', username: 'pku_student', password: '123456' },
   ]

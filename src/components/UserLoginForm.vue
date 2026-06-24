@@ -72,7 +72,7 @@ async function handleLogin() {
     if (redirect) {
       router.push(redirect)
     } else {
-      const role = res.data.userInfo.role
+      const role = res.data.user?.role_type || res.data.userInfo?.role || 'student'
       const roleRouteMap = {
         staff: '/staff/dashboard',
         student: '/student/dashboard',

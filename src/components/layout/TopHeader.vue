@@ -35,7 +35,10 @@ function handleLogout() {
     </div>
     <div class="header-right">
       <span class="user-name">{{ userStore.realName }}</span>
-      <el-tag size="small" :type="userStore.role === 'system_admin' ? 'danger' : 'success'">
+      <el-tag
+        size="small"
+        :type="userStore.userRole === 'system_admin' ? 'danger' : userStore.userRole === 'school_admin' ? 'warning' : ''"
+      >
         {{ userStore.roleName }}
       </el-tag>
       <el-button type="info" text @click="handleLogout">
