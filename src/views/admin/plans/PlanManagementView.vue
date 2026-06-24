@@ -4,6 +4,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
 import {
   createTenantPlanApi,
   deleteTenantPlanApi,
@@ -155,9 +156,9 @@ onMounted(() => {
         <el-table-column prop="createdAt" label="创建时间" width="160" />
         <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" link @click="openEditDialog(row)">编辑</el-button>
-            <el-button size="small" type="success" link @click="handleConfigPermissions(row)">配置权限</el-button>
-            <el-button size="small" type="danger" link @click="handleDelete(row)">下架</el-button>
+            <ActionButton @click="openEditDialog(row)">编辑</ActionButton>
+            <ActionButton action="warning" @click="handleConfigPermissions(row)">配置权限</ActionButton>
+            <ActionButton action="danger" @click="handleDelete(row)">下架</ActionButton>
           </template>
         </el-table-column>
       </el-table>

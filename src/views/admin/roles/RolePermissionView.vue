@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
 import {
   createSystemRoleApi,
   deleteSystemRoleApi,
@@ -174,9 +175,9 @@ onMounted(() => {
         <el-table-column prop="createdAt" label="创建时间" width="160" />
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" link @click="openEditDialog(row)" :disabled="row.builtin">编辑</el-button>
-            <el-button size="small" type="success" link @click="handleConfigPermissions(row)">配置权限</el-button>
-            <el-button size="small" type="danger" link @click="handleDelete(row)" :disabled="row.builtin">删除</el-button>
+            <ActionButton :disabled="row.builtin" @click="openEditDialog(row)">编辑</ActionButton>
+            <ActionButton action="warning" @click="handleConfigPermissions(row)">配置权限</ActionButton>
+            <ActionButton action="danger" :disabled="row.builtin" @click="handleDelete(row)">删除</ActionButton>
           </template>
         </el-table-column>
       </el-table>
@@ -216,7 +217,7 @@ onMounted(() => {
         </el-table-column>
         <el-table-column label="操作" width="120">
           <template #default="{ row }">
-            <el-button type="primary" link @click="saveAccountRole(row)">保存</el-button>
+            <ActionButton @click="saveAccountRole(row)">保存</ActionButton>
           </template>
         </el-table-column>
       </el-table>

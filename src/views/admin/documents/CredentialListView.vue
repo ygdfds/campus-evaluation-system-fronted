@@ -1,9 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowDown } from '@element-plus/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
 import {
   getAdminStatusOptionsApi,
   getCredentialListApi,
@@ -96,6 +98,15 @@ const saveExpiration = () => {
   expirationDialogVisible.value = false
 }
 
+const handleCredentialCommand = (command, credential) => {
+  const commandMap = {
+    expiration: configureExpiration,
+    renew: renewCredential,
+    revoke: revokeCredential,
+  }
+  commandMap[command]?.(credential)
+}
+
 onMounted(() => {
   Promise.all([
     getCredentialTypeOptionsApi(),
@@ -179,50 +190,29 @@ onMounted(() => {
             <StatusTag :status="row.status" :status-map="SYSTEM_STATUS_MAP" />
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="210" fixed="right">
           <template #default="{ row }">
-            <el-button 
-              size="small" 
-              type="primary" 
-              plain 
-              @click="previewCredential(row)"
-            >
+            <div class="credential-actions">
+            <ActionButton variant="subtle" @click="previewCredential(row)">
               预览
-            </el-button>
-            <el-button 
-              size="small" 
-              type="success" 
-              plain 
-              @click="downloadCredential(row)"
-            >
+            </ActionButton>
+            <ActionButton variant="subtle" action="muted" @click="downloadCredential(row)">
               下载
-            </el-button>
-            <el-button 
-              size="small" 
-              type="warning" 
-              plain 
-              @click="configureExpiration(row)"
-            >
-              配置有效期
-            </el-button>
-            <el-button 
-              v-if="row.status === 'valid'"
-              size="small" 
-              type="info" 
-              plain 
-              @click="renewCredential(row)"
-            >
-              续期
-            </el-button>
-            <el-button 
-              v-if="row.status !== 'revoked'"
-              size="small" 
-              type="danger" 
-              plain 
-              @click="revokeCredential(row)"
-            >
-              撤销
-            </el-button>
+            </ActionButton>
+            <el-dropdown trigger="click" @command="(command) => handleCredentialCommand(command, row)">
+              <ActionButton variant="subtle" action="warning">
+                更多
+                <el-icon class="dropdown-icon"><ArrowDown /></el-icon>
+              </ActionButton>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="expiration">配置有效期</el-dropdown-item>
+                  <el-dropdown-item v-if="row.status === 'valid'" command="renew">续期</el-dropdown-item>
+                  <el-dropdown-item v-if="row.status !== 'revoked'" command="revoke" divided>撤销</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -273,5 +263,16 @@ onMounted(() => {
   color: var(--color-text-placeholder);
   background: var(--color-bg-light);
   border-radius: var(--radius-md);
+}
+
+.credential-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.dropdown-icon {
+  margin-left: var(--space-1);
 }
 </style>

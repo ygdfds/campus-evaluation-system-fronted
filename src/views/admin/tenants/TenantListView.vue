@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
 import { getTenantsApi, normalizeTenantStatus, SYSTEM_STATUS_MAP } from '@/api/system'
 
 const tableData = ref([])
@@ -41,7 +42,7 @@ defineOptions({ name: 'AdminTenantListView' })
         <el-table-column prop="createdAt" label="入驻时间" width="180" />
         <el-table-column label="操作" width="120">
           <template #default>
-            <el-button type="primary" link>详情</el-button>
+            <ActionButton>详情</ActionButton>
           </template>
         </el-table-column>
       </el-table>

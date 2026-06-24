@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
 import { getHelpDocumentsApi, getSupportTicketsApi, SYSTEM_STATUS_MAP } from '@/api/system'
 
 defineOptions({ name: 'AdminSupportCenterView' })
@@ -104,12 +105,12 @@ onMounted(() => {
         <el-table-column prop="createdAt" label="创建时间" width="160" />
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" link @click="openReplyDialog(row)">
+            <ActionButton @click="openReplyDialog(row)">
               回复
-            </el-button>
-            <el-button size="small" type="success" link @click="closeTicket(row)">
+            </ActionButton>
+            <ActionButton action="danger" @click="closeTicket(row)">
               关闭
-            </el-button>
+            </ActionButton>
           </template>
         </el-table-column>
       </el-table>
@@ -135,15 +136,15 @@ onMounted(() => {
         <el-table-column prop="updatedAt" label="更新时间" width="160" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" link>
+            <ActionButton>
               编辑
-            </el-button>
-            <el-button size="small" type="success" link @click="toggleDocumentStatus(row, 'published')">
+            </ActionButton>
+            <ActionButton action="warning" @click="toggleDocumentStatus(row, 'published')">
               上线
-            </el-button>
-            <el-button size="small" type="danger" link @click="toggleDocumentStatus(row, 'archived')">
+            </ActionButton>
+            <ActionButton action="danger" @click="toggleDocumentStatus(row, 'archived')">
               下线
-            </el-button>
+            </ActionButton>
           </template>
         </el-table-column>
       </el-table>

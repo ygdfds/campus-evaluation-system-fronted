@@ -5,6 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
 import {
   cancelTenantApi,
   changeTenantPlanApi,
@@ -139,11 +140,11 @@ onMounted(() => {
         </el-table-column>
         <el-table-column label="操作" width="340" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" link @click="viewDetail(row)">详情</el-button>
-            <el-button size="small" type="success" link @click="openPlanDialog(row)">套餐调整</el-button>
-            <el-button size="small" type="warning" link @click="resetAdmin(row)">重置管理员</el-button>
-            <el-button size="small" type="danger" link @click="freezeTenant(row)">冻结</el-button>
-            <el-button size="small" type="danger" link @click="cancelTenant(row)">注销</el-button>
+            <ActionButton @click="viewDetail(row)">详情</ActionButton>
+            <ActionButton action="warning" @click="openPlanDialog(row)">套餐调整</ActionButton>
+            <ActionButton action="warning" @click="resetAdmin(row)">重置管理员</ActionButton>
+            <ActionButton action="danger" @click="freezeTenant(row)">冻结</ActionButton>
+            <ActionButton action="danger" @click="cancelTenant(row)">注销</ActionButton>
           </template>
         </el-table-column>
       </el-table>

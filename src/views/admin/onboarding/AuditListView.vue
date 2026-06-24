@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
 import {
   getAdminStatusOptionsApi,
   getOnboardingMaterialsApi,
@@ -180,32 +181,23 @@ onMounted(() => {
         <el-table-column prop="createdAt" label="申请时间" width="160" />
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button 
-              size="small" 
-              type="primary" 
-              link 
-              @click="handleViewMaterials(row)"
-            >
+            <ActionButton @click="handleViewMaterials(row)">
               查看材料
-            </el-button>
-            <el-button 
+            </ActionButton>
+            <ActionButton
               v-if="row.status === 'pending'"
-              size="small" 
-              type="success" 
-              link 
+              action="warning"
               @click="openAuditDialog(row, 'approved')"
             >
               通过
-            </el-button>
-            <el-button 
+            </ActionButton>
+            <ActionButton
               v-if="row.status === 'pending'"
-              size="small" 
-              type="danger" 
-              link 
+              action="danger"
               @click="openAuditDialog(row, 'rejected')"
             >
               驳回
-            </el-button>
+            </ActionButton>
           </template>
         </el-table-column>
       </el-table>
@@ -224,8 +216,8 @@ onMounted(() => {
         <el-table-column prop="uploadedAt" label="上传时间" width="170" />
         <el-table-column label="操作" width="120">
           <template #default>
-            <el-button type="primary" link>预览</el-button>
-            <el-button type="success" link>下载</el-button>
+            <ActionButton>预览</ActionButton>
+            <ActionButton>下载</ActionButton>
           </template>
         </el-table-column>
       </el-table>

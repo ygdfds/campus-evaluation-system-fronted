@@ -5,6 +5,7 @@ import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
 import { getTenantDetailApi, SYSTEM_STATUS_MAP } from '@/api/system'
 
 defineOptions({ name: 'AdminTenantDetailView' })
@@ -72,8 +73,8 @@ onMounted(() => {
         </el-table-column>
         <el-table-column label="操作" width="180">
           <template #default>
-            <el-button type="primary" link>编辑</el-button>
-            <el-button type="danger" link>删除</el-button>
+            <ActionButton>编辑</ActionButton>
+            <ActionButton action="danger">删除</ActionButton>
           </template>
         </el-table-column>
       </el-table>

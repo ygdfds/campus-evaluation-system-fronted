@@ -5,6 +5,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import StatCard from '@/components/common/StatCard.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
 import { getMonitoringAlertsApi, getMonitoringStatsApi, SYSTEM_STATUS_MAP } from '@/api/system'
 
 defineOptions({ name: 'AdminMonitoringDashboardView' })
@@ -71,9 +72,9 @@ onMounted(() => {
         </el-table-column>
         <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" link @click="markAlertHandled(row)">
+            <ActionButton action="warning" @click="markAlertHandled(row)">
               处理
-            </el-button>
+            </ActionButton>
           </template>
         </el-table-column>
       </el-table>

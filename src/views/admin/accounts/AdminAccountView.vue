@@ -4,6 +4,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
 import {
   createSystemAdminApi,
   deleteSystemAdminApi,
@@ -164,12 +165,12 @@ onMounted(() => {
         </el-table-column>
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" link @click="openEditDialog(row)">编辑</el-button>
-            <el-button size="small" :type="row.status === 'active' ? 'danger' : 'success'" link @click="handleToggleStatus(row)">
+            <ActionButton @click="openEditDialog(row)">编辑</ActionButton>
+            <ActionButton :action="row.status === 'active' ? 'danger' : 'primary'" @click="handleToggleStatus(row)">
               {{ row.status === 'active' ? '禁用' : '启用' }}
-            </el-button>
-            <el-button size="small" type="warning" link @click="handleResetPassword(row)">重置密码</el-button>
-            <el-button size="small" type="danger" link @click="handleDelete(row)">删除</el-button>
+            </ActionButton>
+            <ActionButton action="warning" @click="handleResetPassword(row)">重置密码</ActionButton>
+            <ActionButton action="danger" @click="handleDelete(row)">删除</ActionButton>
           </template>
         </el-table-column>
       </el-table>
