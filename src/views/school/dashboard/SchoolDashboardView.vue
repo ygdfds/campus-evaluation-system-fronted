@@ -81,7 +81,7 @@ const quickEntries = [
   { title: '组织架构', desc: '管理院系与部门', path: '/school/org/departments', icon: OfficeBuilding },
   { title: '教职工管理', desc: '管理教职工账号', path: '/school/users/staff', icon: User },
   { title: '学生管理', desc: '管理学生账号', path: '/school/users/student', icon: User },
-  { title: '表单管理', desc: '查看评价表单', path: '/school/form/list', icon: Files },
+  { title: '评价表单', desc: '查看评价表单', path: '/school/form/list', icon: Files },
 ]
 
 function formatTime(dateStr) {
@@ -124,12 +124,6 @@ onMounted(loadData)
         <h1 class="page-title">学校管理端</h1>
         <p class="page-subtitle">统一管理本校组织、账号、评价审核与校园服务质量数据</p>
       </div>
-      <div class="header-meta">
-        <span class="meta-item">{{ userStore.schoolName || '本校' }}</span>
-        <span class="meta-sep">|</span>
-        <span class="meta-item">租户 #{{ userStore.tenantId || '-' }}</span>
-        <el-tag size="small" effect="plain" class="meta-tag">学校管理员</el-tag>
-      </div>
     </section>
 
     <!-- 核心指标卡 -->
@@ -167,7 +161,9 @@ onMounted(loadData)
                 </div>
                 <div class="todo-item-row2">
                   <span>提交人：{{ item.requester_name }}</span>
+                  <span v-if="item.org_name">{{ item.org_name }}</span>
                   <span>{{ formatTime(item.requested_at) }}</span>
+                  <el-button text type="primary" size="small" class="todo-action-btn" @click="router.push('/school/audit/list')">去审核</el-button>
                 </div>
               </div>
             </template>
@@ -200,9 +196,11 @@ onMounted(loadData)
                 <div class="todo-item-row2">
                   <span>申请人：{{ item.applicant_name }}</span>
                   <span>{{ formatTime(item.requested_at) }}</span>
+                  <el-button text type="primary" size="small" class="todo-action-btn" @click="router.push('/school/audit/list')">查看</el-button>
                 </div>
                 <p class="todo-item-reason">{{ item.reason }}</p>
               </div>
+              <div v-if="traceTasks.length < 3" class="empty-more-hint">暂无更多待办</div>
             </template>
             <div v-else class="empty-hint">
               <el-icon :size="24"><CircleCheck /></el-icon>
@@ -329,25 +327,6 @@ onMounted(loadData)
   font-size: var(--font-sm);
   color: var(--color-text-secondary);
   margin: 2px 0 0;
-}
-
-.header-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-sm);
-  color: var(--color-text-body);
-  flex-shrink: 0;
-}
-
-.meta-sep {
-  color: var(--color-text-placeholder);
-}
-
-.meta-tag {
-  background: var(--color-primary-50);
-  color: var(--color-primary);
-  border-color: var(--color-primary-200, #b7e4c7);
 }
 
 /* 核心指标卡 */
@@ -487,6 +466,19 @@ onMounted(loadData)
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.todo-action-btn {
+  margin-left: auto;
+  font-size: var(--font-xs);
+  flex-shrink: 0;
+}
+
+.empty-more-hint {
+  text-align: center;
+  padding: var(--space-3) 0;
+  font-size: var(--font-xs);
+  color: var(--color-text-placeholder);
 }
 
 .empty-hint {

@@ -27,7 +27,7 @@ const menuItems = [
       { index: '/school/users/student', title: '学生管理' },
     ],
   },
-  { index: '/school/form/list', title: '表单管理', icon: Files },
+  { index: '/school/form/list', title: '评价表单', icon: Files },
   { index: '/school/data/overview', title: '数据概览', icon: DataAnalysis },
   { index: '/school/school-info', title: '学校信息', icon: InfoFilled },
 ]
