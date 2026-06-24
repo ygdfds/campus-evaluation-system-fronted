@@ -177,6 +177,18 @@ export async function getSchoolOrgDetailApi(tenantId, type, orgId) {
       .slice(0, 10)
   } catch { /* ignore */ }
 
+  // 解析日志操作人名称
+  if (logs.length > 0) {
+    try {
+      const profilesRes3 = await request.get('/personProfiles', { params: { deleted: false } })
+      const allProfiles = (profilesRes3.data || []).filter(p => !p.deleted)
+      logs = logs.map(l => ({
+        ...l,
+        operator_name: l.user_id ? (allProfiles.find(p => p.user_id === l.user_id)?.real_name || '系统') : '系统',
+      }))
+    } catch { /* ignore */ }
+  }
+
   const parentOrg = orgs.find(o => o.id === org.parent_id)
 
   // 解析负责人名称

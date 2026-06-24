@@ -5,7 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Refresh, Search, Plus, OfficeBuilding,
   FolderOpened, Folder, Edit,
-  CircleClose, Delete, CircleCheck,
+  CircleClose, CircleCheck,
 } from '@element-plus/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyPlaceholder from '@/components/common/EmptyPlaceholder.vue'
@@ -405,6 +405,31 @@ watch(activeType, () => { loadData() })
       <!-- 右侧组织详情 -->
       <div class="org-detail-panel" v-loading="detailLoading">
         <template v-if="detailData">
+          <!-- 详情头部：名称 + 操作按钮 -->
+          <div class="detail-header">
+            <div class="detail-header-info">
+              <h2 class="detail-header-name">{{ detailData.name || '' }}</h2>
+              <el-tag :type="detailData.status === 'active' ? 'success' : 'info'" size="small" effect="light">
+                {{ detailData.status_label || (detailData.status === 'active' ? '启用' : '停用') }}
+              </el-tag>
+            </div>
+            <div class="detail-header-actions">
+              <el-button size="small" plain :icon="Edit" @click="openEditDrawer(detailData)">编辑</el-button>
+              <el-button v-if="detailData.status === 'active'" size="small" type="warning" plain :icon="CircleClose" @click="handleDisable(detailData)">停用</el-button>
+              <el-button v-else size="small" type="success" plain :icon="CircleCheck" @click="handleEnable(detailData)">启用</el-button>
+              <el-dropdown v-if="detailData.status !== 'active'" trigger="click" @command="(cmd) => cmd === 'delete' && handleDelete(detailData)" class="detail-more">
+                <el-button size="small" text>更多</el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="delete">
+                      <span style="color:var(--color-danger)">删除</span>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
+          </div>
+
           <!-- 基础信息 -->
           <div class="detail-section">
             <h3 class="detail-section-title">基础信息</h3>
@@ -461,18 +486,11 @@ watch(activeType, () => { loadData() })
               <div v-for="log in detailData.logs.slice(0, 5)" :key="log.id" class="log-item">
                 <span class="log-dot" :class="'tone-' + (log.action === 'create' ? 'success' : log.action === 'disable' || log.action === 'delete' ? 'danger' : log.action === 'enable' ? 'success' : 'info')"></span>
                 <span class="log-text">{{ logActionMap[log.action] || log.action }}</span>
-                <span class="log-time">{{ log.created_at ? new Date(log.created_at).toLocaleDateString('zh-CN') : '' }}</span>
+                <span class="log-operator">{{ log.operator_name || '系统' }}</span>
+                <span class="log-time">{{ log.created_at ? new Date(log.created_at).toLocaleString('zh-CN', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '' }}</span>
               </div>
             </div>
             <p v-else class="detail-desc detail-desc-empty">暂无操作记录</p>
-          </div>
-
-          <!-- 操作按钮 -->
-          <div class="detail-actions">
-            <el-button type="primary" plain :icon="Edit" @click="openEditDrawer(detailData)">编辑</el-button>
-            <el-button v-if="detailData.status === 'active'" type="warning" plain :icon="CircleClose" @click="handleDisable(detailData)">停用</el-button>
-            <el-button v-else type="success" plain :icon="CircleCheck" @click="handleEnable(detailData)">启用</el-button>
-            <el-button v-if="detailData.status !== 'active'" class="btn-delete-weak" text :icon="Delete" @click="handleDelete(detailData)">删除</el-button>
           </div>
         </template>
         <div v-else class="detail-empty">
@@ -614,7 +632,7 @@ export default { components: { OrgTreeNode } }
 .page-container {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
 /* 类型切换 Segmented Control */
@@ -749,10 +767,31 @@ export default { components: { OrgTreeNode } }
   background: var(--color-bg-card);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  padding: var(--space-6);
+  padding: var(--space-5) var(--space-6);
   overflow-y: auto;
 }
 .detail-empty { display: flex; align-items: center; justify-content: center; min-height: 400px; }
+
+/* 详情头部 */
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border-lighter, #ebeef5);
+}
+.detail-header-info { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.detail-header-name {
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-title);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.detail-header-actions { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
 
 .detail-section { margin-bottom: var(--space-6); }
 .detail-section-title {
@@ -795,16 +834,8 @@ export default { components: { OrgTreeNode } }
 .log-dot.tone-danger { background: var(--color-danger); }
 .log-dot.tone-info { background: var(--color-primary); }
 .log-text { font-size: var(--font-sm); color: var(--color-text-body); }
+.log-operator { font-size: var(--font-xs); color: var(--color-text-secondary); }
 .log-time { font-size: var(--font-xs); color: var(--color-text-placeholder); margin-left: auto; }
-
-/* 操作按钮 */
-.detail-actions { display: flex; gap: var(--space-3); margin-top: var(--space-6); padding-top: var(--space-4); border-top: 1px solid var(--color-border-lighter, #ebeef5); }
-.btn-delete-weak {
-  color: var(--color-text-placeholder) !important;
-  font-size: var(--font-xs);
-  margin-left: auto;
-}
-.btn-delete-weak:hover { color: var(--color-danger) !important; }
 
 /* 表单提示 */
 .form-hint {
@@ -812,6 +843,14 @@ export default { components: { OrgTreeNode } }
   color: var(--color-warning);
   margin-top: 4px;
   line-height: 1.4;
+}
+
+/* 抽屉表单底部间距 */
+:deep(.el-drawer__body) {
+  padding-bottom: var(--space-4) !important;
+}
+:deep(.el-drawer__body .el-form) {
+  padding-bottom: var(--space-6);
 }
 
 /* 响应式 */

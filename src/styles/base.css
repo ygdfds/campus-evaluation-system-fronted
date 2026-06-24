@@ -39,6 +39,18 @@ ol {
   list-style: none;
 }
 
+/* ========== Element Plus 主色按钮覆盖 ========== */
+.el-button--primary {
+  --el-button-bg-color: var(--color-primary);
+  --el-button-border-color: var(--color-primary);
+  --el-button-hover-bg-color: var(--color-primary-hover);
+  --el-button-hover-border-color: var(--color-primary-hover);
+  --el-button-active-bg-color: var(--color-primary-active);
+  --el-button-active-border-color: var(--color-primary-active);
+  --el-button-disabled-bg-color: var(--color-primary-200);
+  --el-button-disabled-border-color: var(--color-primary-200);
+}
+
 /* ========== 滚动条样式 ========== */
 ::-webkit-scrollbar {
   width: 6px;
