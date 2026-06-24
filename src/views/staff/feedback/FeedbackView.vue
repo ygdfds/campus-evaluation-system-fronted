@@ -353,7 +353,7 @@ onMounted(async () => {
           v-model:current-page="currentPage"
           :page-size="pageSize"
           :total="total"
-          layout="total, prev, pager, next"
+          layout="prev, pager, next"
           @current-change="handlePageChange"
         />
       </div>

@@ -447,7 +447,7 @@ onMounted(() => { loadComplaints() })
     <!-- 分页 -->
     <div v-if="filteredList.length > pageSize" class="pagination-wrap">
       <el-pagination v-model:current-page="currentPage" :page-size="pageSize"
-        :total="filteredList.length" layout="total, prev, pager, next" small />
+        :total="filteredList.length" layout="prev, pager, next" small />
     </div>
 
     <!-- ==================== 新建投诉建议抽屉 ==================== -->

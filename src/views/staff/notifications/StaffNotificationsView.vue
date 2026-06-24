@@ -342,7 +342,7 @@ onMounted(() => { loadData() })
           v-model:current-page="currentPage"
           :page-size="pageSize"
           :total="filteredNotifications.length"
-          layout="total, prev, pager, next"
+          layout="prev, pager, next"
         />
       </div>
     </template>

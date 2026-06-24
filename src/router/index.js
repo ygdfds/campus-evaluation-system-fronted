@@ -82,6 +82,7 @@ const router = createRouter({
         { path: 'org/departments', name: 'SchoolDeptList', component: () => import('@/views/school/org/DepartmentListView.vue'), meta: { title: '组织架构' } },
         { path: 'users/staff', name: 'SchoolStaffList', component: () => import('@/views/school/users/StaffListView.vue'), meta: { title: '教职工管理' } },
         { path: 'users/student', name: 'SchoolStudentList', component: () => import('@/views/school/users/StudentListView.vue'), meta: { title: '学生管理' } },
+        { path: 'admins', name: 'SchoolAdminList', component: () => import('@/views/school/admins/AdminListView.vue'), meta: { title: '管理员管理' } },
         { path: 'form/list', name: 'SchoolFormList', component: () => import('@/views/school/form/FormListView.vue'), meta: { title: '表单列表' } },
         { path: 'audit/list', name: 'SchoolAuditList', component: () => import('@/views/school/audit/AuditListView.vue'), meta: { title: '审核列表' } },
         { path: 'data/overview', name: 'SchoolDataOverview', component: () => import('@/views/school/data/DataOverviewView.vue'), meta: { title: '数据概览' } },

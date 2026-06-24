@@ -28,15 +28,18 @@ export const accountStatusMap = {
  * 获取教职工列表（合并 personProfiles + userAccounts）
  */
 export async function getSchoolStaffListApi(tenantId, filters = {}) {
-  const [profilesRes, accountsRes] = await Promise.all([
+  const [profilesRes, accountsRes, filesRes] = await Promise.all([
     request.get('/personProfiles', { params: { deleted: false } }),
     request.get('/userAccounts', { params: { deleted: false } }),
+    request.get('/fileResources', { params: { deleted: false } }),
   ])
 
   const profiles = (profilesRes.data || []).filter(p => !p.deleted)
   const accounts = (accountsRes.data || []).filter(a => !a.deleted)
+  const files = (filesRes.data || []).filter(f => !f.deleted)
   const accountMap = {}
   accounts.forEach(a => { accountMap[a.user_id] = a })
+  const fileMap = Object.fromEntries(files.map(f => [f.id, f]))
 
   // 过滤教职工（排除 student 和 school_admin）
   let staffList = profiles
@@ -52,6 +55,7 @@ export async function getSchoolStaffListApi(tenantId, filters = {}) {
       phone: accountMap[p.user_id]?.phone || p.office_phone || '-',
       email: accountMap[p.user_id]?.email || '-',
       last_login_at: accountMap[p.user_id]?.last_login_at || '-',
+      avatar_url: p.avatar_file_id ? (fileMap[p.avatar_file_id]?.url || '') : '',
     }))
 
   // 搜索过滤
@@ -80,13 +84,16 @@ export async function getSchoolStaffListApi(tenantId, filters = {}) {
  * 获取教职工详情
  */
 export async function getSchoolStaffDetailApi(tenantId, profileId) {
-  const [profilesRes, accountsRes] = await Promise.all([
+  const [profilesRes, accountsRes, filesRes] = await Promise.all([
     request.get('/personProfiles', { params: { deleted: false } }),
     request.get('/userAccounts', { params: { deleted: false } }),
+    request.get('/fileResources', { params: { deleted: false } }),
   ])
 
   const profiles = (profilesRes.data || []).filter(p => !p.deleted)
   const accounts = (accountsRes.data || []).filter(a => !a.deleted)
+  const files = (filesRes.data || []).filter(f => !f.deleted)
+  const fileMap = Object.fromEntries(files.map(f => [f.id, f]))
 
   const profile = profiles.find(p => p.id === Number(profileId) && p.tenant_id === Number(tenantId))
   if (!profile) return null
@@ -103,6 +110,7 @@ export async function getSchoolStaffDetailApi(tenantId, profileId) {
     phone: account?.phone || profile.office_phone || '-',
     email: account?.email || '-',
     last_login_at: account?.last_login_at || '-',
+    avatar_url: profile.avatar_file_id ? (fileMap[profile.avatar_file_id]?.url || '') : '',
   }
 }
 
@@ -310,15 +318,18 @@ export async function deleteSchoolStaffApi(tenantId, profileId) {
  * 获取学生列表
  */
 export async function getSchoolStudentListApi(tenantId, filters = {}) {
-  const [profilesRes, accountsRes] = await Promise.all([
+  const [profilesRes, accountsRes, filesRes] = await Promise.all([
     request.get('/personProfiles', { params: { deleted: false } }),
     request.get('/userAccounts', { params: { deleted: false } }),
+    request.get('/fileResources', { params: { deleted: false } }),
   ])
 
   const profiles = (profilesRes.data || []).filter(p => !p.deleted)
   const accounts = (accountsRes.data || []).filter(a => !a.deleted)
+  const files = (filesRes.data || []).filter(f => !f.deleted)
   const accountMap = {}
   accounts.forEach(a => { accountMap[a.user_id] = a })
+  const fileMap = Object.fromEntries(files.map(f => [f.id, f]))
 
   let studentList = profiles
     .filter(p => p.tenant_id === Number(tenantId))
@@ -331,6 +342,7 @@ export async function getSchoolStudentListApi(tenantId, filters = {}) {
       account_status_label: accountStatusMap[accountMap[p.user_id]?.account_status] || '启用',
       phone: accountMap[p.user_id]?.phone || '-',
       email: accountMap[p.user_id]?.email || '-',
+      avatar_url: p.avatar_file_id ? (fileMap[p.avatar_file_id]?.url || '') : '',
     }))
 
   // 搜索过滤
@@ -364,13 +376,16 @@ export async function getSchoolStudentListApi(tenantId, filters = {}) {
  * 获取学生详情
  */
 export async function getSchoolStudentDetailApi(tenantId, profileId) {
-  const [profilesRes, accountsRes] = await Promise.all([
+  const [profilesRes, accountsRes, filesRes] = await Promise.all([
     request.get('/personProfiles', { params: { deleted: false } }),
     request.get('/userAccounts', { params: { deleted: false } }),
+    request.get('/fileResources', { params: { deleted: false } }),
   ])
 
   const profiles = (profilesRes.data || []).filter(p => !p.deleted)
   const accounts = (accountsRes.data || []).filter(a => !a.deleted)
+  const files = (filesRes.data || []).filter(f => !f.deleted)
+  const fileMap = Object.fromEntries(files.map(f => [f.id, f]))
 
   const profile = profiles.find(p => p.id === Number(profileId) && p.tenant_id === Number(tenantId))
   if (!profile) return null
@@ -385,6 +400,7 @@ export async function getSchoolStudentDetailApi(tenantId, profileId) {
     account_status_label: accountStatusMap[account?.account_status] || '启用',
     phone: account?.phone || '-',
     email: account?.email || '-',
+    avatar_url: profile.avatar_file_id ? (fileMap[profile.avatar_file_id]?.url || '') : '',
   }
 }
 

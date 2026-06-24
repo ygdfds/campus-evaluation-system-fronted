@@ -97,3 +97,77 @@ ol {
     transform: translateX(0);
   }
 }
+
+/* ========== 分页组件全局样式 ========== */
+.pagination-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: var(--space-5);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border-lighter);
+}
+
+.el-pagination {
+  --el-pagination-font-size: var(--font-sm);
+  --el-pagination-bg-color: transparent;
+  --el-pagination-text-color: var(--color-text-regular);
+  --el-pagination-button-color: var(--color-text-regular);
+  --el-pagination-hover-color: var(--color-primary-500);
+  --el-pagination-button-bg-color: transparent;
+  --el-pagination-button-hover-bg-color: var(--color-primary-50);
+  --el-pagination-disabled-color: var(--color-text-disabled);
+}
+
+/* 页码按钮 */
+.el-pagination .el-pager li {
+  min-width: 30px;
+  height: 30px;
+  line-height: 30px;
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-normal);
+  transition: all 0.2s ease;
+}
+
+.el-pagination .el-pager li:hover {
+  color: var(--color-primary-500);
+  background-color: var(--color-primary-50);
+}
+
+.el-pagination .el-pager li.is-active {
+  background-color: var(--color-primary-500);
+  color: var(--color-text-white);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: 0 2px 4px rgba(45, 106, 46, 0.2);
+}
+
+.el-pagination .el-pager li.is-active:hover {
+  background-color: var(--color-primary-600);
+  color: var(--color-text-white);
+}
+
+/* 上一页/下一页箭头按钮 */
+.el-pagination .btn-prev,
+.el-pagination .btn-next {
+  height: 30px;
+  line-height: 30px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  transition: all 0.2s ease;
+}
+
+/* 箭头与页码间距 */
+.el-pagination .btn-prev {
+  margin-right: var(--space-2);
+}
+
+.el-pagination .btn-next {
+  margin-left: var(--space-2);
+}
+
+.el-pagination .btn-prev:hover,
+.el-pagination .btn-next:hover {
+  color: var(--color-primary-500);
+  background-color: var(--color-primary-50);
+}

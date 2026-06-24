@@ -146,4 +146,22 @@
   /* ========== 首页日历 Token ========== */
   --calendar-date-min-width: 44px;
   --calendar-info-gap: var(--space-1); /* 2px → 4px 统一 Token */
+
+  /* ========== 分页 Token ========== */
+  --pagination-height: 32px;
+  --pagination-font-size: var(--font-sm);
+  --pagination-border-radius: var(--radius-md);
+  --pagination-gap: var(--space-1);
+  --pagination-padding-x: var(--space-2);
+  --pagination-bg: var(--color-bg-card);
+  --pagination-hover-bg: var(--color-primary-50);
+  --pagination-hover-color: var(--color-primary-500);
+  --pagination-active-bg: var(--color-primary-500);
+  --pagination-active-color: var(--color-text-white);
+  --pagination-disabled-color: var(--color-text-placeholder);
+  --pagination-text-color: var(--color-text-regular);
+  --pagination-total-color: var(--color-text-secondary);
+  --pagination-total-font-size: var(--font-sm);
+  --pagination-jumper-font-size: var(--font-sm);
+  --pagination-select-width: 100px;
 }

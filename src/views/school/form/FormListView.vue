@@ -1,10 +1,11 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Refresh, Search, Plus,
-  View, Clock,
+  Clock,
 } from '@element-plus/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyPlaceholder from '@/components/common/EmptyPlaceholder.vue'
@@ -14,8 +15,6 @@ import {
   getSchoolFormStatsApi,
   getSchoolFormDetailApi,
   getSchoolFormWindowsApi,
-  approveFormPublishApi,
-  rejectFormPublishApi,
   closeFormApi,
   deleteSchoolFormApi,
   createSchoolFormWindowApi,
@@ -28,6 +27,7 @@ import {
 defineOptions({ name: 'SchoolFormListView' })
 
 const userStore = useUserStore()
+const router = useRouter()
 const tenantId = computed(() => userStore.userInfo?.tenant_id || userStore.userInfo?.school_id || 2)
 
 // ==================== 状态 ====================
@@ -66,13 +66,6 @@ const windowStatusTagMap = {
 const detailVisible = ref(false)
 const detailData = ref(null)
 const detailLoading = ref(false)
-
-// ==================== 审核弹窗 ====================
-const auditVisible = ref(false)
-const auditForm = ref(null)
-const auditLoading = ref(false)
-const auditComment = ref('')
-const auditRejectReason = ref('')
 
 // ==================== 窗口管理弹窗 ====================
 const windowVisible = ref(false)
@@ -134,12 +127,6 @@ function handlePageChange(page) {
   loadData()
 }
 
-function handleSizeChange(size) {
-  pageSize.value = size
-  currentPage.value = 1
-  loadData()
-}
-
 // ==================== 详情 ====================
 async function handleViewDetail(row) {
   detailVisible.value = true
@@ -155,53 +142,8 @@ async function handleViewDetail(row) {
 }
 
 // ==================== 审核操作 ====================
-function handleAudit(row) {
-  auditForm.value = row
-  auditComment.value = ''
-  auditRejectReason.value = ''
-  auditVisible.value = true
-}
-
-async function handleApprove() {
-  auditLoading.value = true
-  try {
-    await approveFormPublishApi(
-      { tenantId: tenantId.value, userId: userStore.userInfo?.id || 1 },
-      auditForm.value.id,
-      auditComment.value,
-    )
-    ElMessage.success('审核通过，表单已发布')
-    auditVisible.value = false
-    await loadData()
-    await loadStats()
-  } catch (err) {
-    ElMessage.error(err.message || '审核操作失败')
-  } finally {
-    auditLoading.value = false
-  }
-}
-
-async function handleReject() {
-  if (!auditRejectReason.value.trim()) {
-    ElMessage.warning('请填写拒绝原因')
-    return
-  }
-  auditLoading.value = true
-  try {
-    await rejectFormPublishApi(
-      { tenantId: tenantId.value, userId: userStore.userInfo?.id || 1 },
-      auditForm.value.id,
-      auditRejectReason.value,
-    )
-    ElMessage.success('已拒绝该表单发布申请')
-    auditVisible.value = false
-    await loadData()
-    await loadStats()
-  } catch (err) {
-    ElMessage.error(err.message || '审核操作失败')
-  } finally {
-    auditLoading.value = false
-  }
+function handleAudit() {
+  router.push('/school/audit/list')
 }
 
 // ==================== 状态管理 ====================
@@ -445,27 +387,21 @@ onMounted(() => {
             </template>
             <template v-else-if="row.status === 'pending_review'">
               <el-button link type="primary" size="small" @click="handleAudit(row)">审核</el-button>
-              <el-button link type="info" size="small" @click="handleViewDetail(row)">
-                <el-icon><View /></el-icon>
-              </el-button>
+              <el-button link type="info" size="small" @click="handleViewDetail(row)">查看详情</el-button>
             </template>
             <template v-else-if="row.status === 'published'">
               <el-button link type="warning" size="small" @click="handleManageWindow(row)">
                 <el-icon><Clock /></el-icon> 窗口
               </el-button>
               <el-button link type="warning" size="small" @click="handleCloseForm(row)">关闭</el-button>
-              <el-button link type="info" size="small" @click="handleViewDetail(row)">
-                <el-icon><View /></el-icon>
-              </el-button>
+              <el-button link type="info" size="small" @click="handleViewDetail(row)">查看详情</el-button>
             </template>
             <template v-else-if="row.status === 'rejected'">
               <el-button link type="primary" size="small" @click="handleViewDetail(row)">编辑</el-button>
               <el-button link type="warning" size="small">重新提交</el-button>
             </template>
             <template v-else-if="row.status === 'closed'">
-              <el-button link type="info" size="small" @click="handleViewDetail(row)">
-                <el-icon><View /></el-icon> 详情
-              </el-button>
+              <el-button link type="info" size="small" @click="handleViewDetail(row)">查看详情</el-button>
             </template>
           </template>
         </el-table-column>
@@ -478,12 +414,10 @@ onMounted(() => {
       <div v-if="total > 0" class="pagination-bar">
         <el-pagination
           v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50]"
+          :page-size="pageSize"
           :total="total"
-          layout="total, sizes, prev, pager, next, jumper"
+          layout="prev, pager, next"
           @current-change="handlePageChange"
-          @size-change="handleSizeChange"
         />
       </div>
     </el-card>
@@ -590,75 +524,6 @@ onMounted(() => {
         </template>
       </div>
     </el-drawer>
-
-    <!-- ==================== 审核弹窗 ==================== -->
-    <el-dialog v-model="auditVisible" title="表单审核" width="520px" :close-on-click-modal="false">
-      <div v-if="auditForm" class="audit-content">
-        <!-- 表单信息 -->
-        <div class="audit-form-info">
-          <el-descriptions :column="1" border size="small">
-            <el-descriptions-item label="表单名称">{{ auditForm.title }}</el-descriptions-item>
-            <el-descriptions-item label="表单类型">
-              {{ formTypeMap[auditForm.type] || auditForm.type }}
-            </el-descriptions-item>
-            <el-descriptions-item label="评价对象">{{ auditForm._target_name }}</el-descriptions-item>
-            <el-descriptions-item label="提交人">{{ auditForm.publisher_id }}</el-descriptions-item>
-          </el-descriptions>
-        </div>
-
-        <!-- 提交理由 -->
-        <div v-if="auditForm._audit?.submit_reason" class="audit-reason-section">
-          <label class="audit-label">提交理由</label>
-          <p class="audit-reason-text">{{ auditForm._audit.submit_reason }}</p>
-        </div>
-
-        <!-- 审核操作 -->
-        <div class="audit-actions-section">
-          <el-form label-width="80px">
-            <el-form-item label="审核意见">
-              <el-input
-                v-model="auditComment"
-                type="textarea"
-                :rows="3"
-                placeholder="选填，通过时可添加审核意见"
-              />
-            </el-form-item>
-          </el-form>
-
-          <div class="audit-buttons">
-            <el-button
-              type="success"
-              :loading="auditLoading"
-              @click="handleApprove"
-            >
-              通过并发布
-            </el-button>
-            <el-divider direction="vertical" />
-            <el-button
-              type="danger"
-              :loading="auditLoading"
-              @click="handleReject"
-            >
-              拒绝
-            </el-button>
-          </div>
-
-          <!-- 拒绝原因（拒绝时必填） -->
-          <div v-if="auditRejectReason || false" class="reject-reason-section">
-            <el-form label-width="80px">
-              <el-form-item label="拒绝原因" required>
-                <el-input
-                  v-model="auditRejectReason"
-                  type="textarea"
-                  :rows="3"
-                  placeholder="请填写拒绝原因（必填）"
-                />
-              </el-form-item>
-            </el-form>
-          </div>
-        </div>
-      </div>
-    </el-dialog>
 
     <!-- ==================== 窗口管理弹窗 ==================== -->
     <el-dialog v-model="windowVisible" title="评价窗口管理" width="480px" :close-on-click-modal="false">
@@ -819,12 +684,6 @@ onMounted(() => {
   color: var(--color-text-secondary);
 }
 
-.pagination-bar {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: var(--space-5);
-}
-
 /* ==================== 详情抽屉 ==================== */
 .detail-content {
   padding: var(--space-2);
@@ -969,55 +828,6 @@ onMounted(() => {
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
   border: var(--border-lighter);
-}
-
-/* ==================== 审核弹窗 ==================== */
-.audit-content {
-  padding: var(--space-2) 0;
-}
-
-.audit-form-info {
-  margin-bottom: var(--space-5);
-}
-
-.audit-reason-section {
-  margin-bottom: var(--space-5);
-}
-
-.audit-label {
-  display: block;
-  font-size: var(--font-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-2);
-}
-
-.audit-reason-text {
-  font-size: var(--font-sm);
-  color: var(--color-text-body);
-  background: var(--color-bg-subtle);
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  margin: 0;
-}
-
-.audit-actions-section {
-  border-top: var(--border-lighter);
-  padding-top: var(--space-5);
-}
-
-.audit-buttons {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-  margin-top: var(--space-4);
-}
-
-.reject-reason-section {
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: var(--border-lighter);
 }
 
 /* ==================== 窗口管理弹窗 ==================== */

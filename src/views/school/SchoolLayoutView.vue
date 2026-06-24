@@ -25,6 +25,7 @@ const menuItems = [
     children: [
       { index: '/school/users/staff', title: '教职工管理' },
       { index: '/school/users/student', title: '学生管理' },
+      { index: '/school/admins', title: '管理员管理' },
     ],
   },
   { index: '/school/form/list', title: '评价表单', icon: Files },
@@ -53,6 +54,7 @@ const breadcrumbs = computed(() => {
     '/school/org/departments': '组织架构',
     '/school/users/staff': '教职工管理',
     '/school/users/student': '学生管理',
+    '/school/admins': '管理员管理',
     '/school/form/list': '表单管理',
   }
   if (pathMap[route.path]) {
@@ -167,7 +169,7 @@ function handleLogout() {
             <span class="user-trigger">
               <span class="user-avatar">{{ userStore.realName?.charAt(0) || 'U' }}</span>
               <span class="user-name">{{ userStore.realName }}</span>
-              <el-tag size="small" effect="plain" class="role-tag">学校管理员</el-tag>
+              <el-tag size="small" effect="plain" class="role-tag">{{ userStore.roleName }}</el-tag>
               <el-icon :size="14"><ArrowDown /></el-icon>
             </span>
             <template #dropdown>

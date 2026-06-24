@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Refresh, Search, Plus,
+  Refresh, Search, Plus, User,
 } from '@element-plus/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyPlaceholder from '@/components/common/EmptyPlaceholder.vue'
@@ -347,6 +347,11 @@ onMounted(() => {
         <el-table-column prop="no_work" label="工号" width="130">
           <template #default="{ row }">{{ row.no_work || '-' }}</template>
         </el-table-column>
+        <el-table-column label="头像" width="70" align="center">
+          <template #default="{ row }">
+            <el-avatar :size="36" :src="row.avatar_url || undefined" :icon="User" />
+          </template>
+        </el-table-column>
         <el-table-column prop="real_name" label="姓名" width="120" />
         <el-table-column prop="role_label" label="角色" width="130" />
         <el-table-column label="所属组织" min-width="150">
@@ -383,11 +388,9 @@ onMounted(() => {
       <div class="pagination-bar" v-if="total > 0">
         <el-pagination
           v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50]"
+          :page-size="pageSize"
           :total="total"
-          layout="total, sizes, prev, pager, next"
-          background
+          layout="prev, pager, next"
         />
       </div>
 
@@ -504,6 +507,13 @@ onMounted(() => {
     >
       <div v-loading="detailLoading" class="detail-content">
         <template v-if="detailData">
+          <div class="detail-header">
+            <el-avatar :size="64" :src="detailData.avatar_url || undefined" :icon="User" />
+            <div class="detail-header-info">
+              <h4 class="detail-header-name">{{ detailData.real_name }}</h4>
+              <span class="detail-header-sub">{{ detailData.role_label || '' }}</span>
+            </div>
+          </div>
           <div class="detail-section">
             <h4 class="detail-section-title">基础信息</h4>
             <el-descriptions :column="1" border>
@@ -602,12 +612,6 @@ onMounted(() => {
   border-radius: var(--radius-lg);
 }
 
-.pagination-bar {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: var(--space-4);
-}
-
 /* 抽屉底部 */
 .drawer-footer {
   display: flex;
@@ -618,6 +622,27 @@ onMounted(() => {
 /* 详情 */
 .detail-content {
   padding: var(--space-2) 0;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  margin-bottom: var(--space-4);
+  border-bottom: var(--border-lighter);
+}
+
+.detail-header-name {
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.detail-header-sub {
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
 }
 
 .detail-section {
