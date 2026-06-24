@@ -36,9 +36,10 @@ const stats = [
 </template>
 <style scoped>
 .page-container { display: flex; flex-direction: column; gap: var(--space-5); }
-.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); }
 .section-card { border-radius: var(--radius-lg); }
 .card-title { font-size: var(--font-lg); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
-.chart-placeholder { height: 200px; display: flex; align-items: center; justify-content: center; color: var(--color-text-placeholder); background: var(--color-bg-light); border-radius: var(--radius-md); }
-@media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+.chart-placeholder { height: var(--chart-height); display: flex; align-items: center; justify-content: center; color: var(--color-text-placeholder); background: var(--color-bg-light); border-radius: var(--radius-md); }
+@media (max-width: 1366px) { .stats-grid { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .chart-placeholder { height: 200px; } }
 </style>

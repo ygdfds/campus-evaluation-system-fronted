@@ -302,7 +302,9 @@ onMounted(loadData)
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
-  max-width: 1280px;
+  max-width: var(--page-max-width);
+  margin-inline: auto;
+  padding: 0 var(--space-4);
 }
 
 /* 页面标题区 */
@@ -318,7 +320,7 @@ onMounted(loadData)
   font-weight: var(--font-weight-bold);
   color: var(--color-text-title);
   margin: 0;
-  line-height: 1.3;
+  line-height: var(--line-height-tight);
 }
 
 .page-subtitle {
@@ -330,7 +332,7 @@ onMounted(loadData)
 /* 核心指标卡 */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-3);
 }
 
@@ -342,7 +344,7 @@ onMounted(loadData)
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  transition: border-color 0.2s;
+  transition: border-color var(--transition-fast, 0.2s);
 }
 
 .metric-card:hover {
@@ -372,7 +374,7 @@ onMounted(loadData)
   font-size: var(--font-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-title);
-  line-height: 1;
+  line-height: var(--line-height-tight);
 }
 
 .metric-title {
@@ -458,7 +460,7 @@ onMounted(loadData)
   font-size: var(--font-xs);
   color: var(--color-text-body);
   margin: var(--space-1) 0 0;
-  line-height: 1.5;
+  line-height: var(--line-height-normal);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -544,7 +546,7 @@ onMounted(loadData)
 }
 
 .status-bar-label {
-  width: 48px;
+  width: var(--space-12);
   font-size: var(--font-xs);
   color: var(--color-text-body);
   flex-shrink: 0;
@@ -562,12 +564,12 @@ onMounted(loadData)
 .status-bar-fill {
   height: 100%;
   border-radius: var(--radius-sm);
-  transition: width 0.4s ease;
+  transition: width var(--transition-normal, 0.4s) ease;
   min-width: 0;
 }
 
 .status-bar-value {
-  width: 28px;
+  width: var(--space-7);
   font-size: var(--font-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-title);
@@ -602,7 +604,7 @@ onMounted(loadData)
 /* 快捷管理入口 */
 .quick-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-3);
 }
 
@@ -615,7 +617,7 @@ onMounted(loadData)
   border-radius: var(--radius-card);
   border: var(--border-light);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: border-color var(--transition-fast, 0.15s), background var(--transition-fast, 0.15s);
 }
 
 .quick-card:hover {
@@ -703,18 +705,9 @@ onMounted(loadData)
 }
 
 /* 响应式 */
-@media (max-width: 1440px) {
-  .metrics-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .quick-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
 @media (max-width: 1366px) {
   .metrics-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
   .todo-grid {
     grid-template-columns: 1fr;
@@ -724,6 +717,25 @@ onMounted(loadData)
   }
   .quick-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .school-dashboard {
+    padding: 0 var(--space-3);
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>

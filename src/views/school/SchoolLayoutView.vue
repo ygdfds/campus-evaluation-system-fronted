@@ -5,6 +5,7 @@ import { useUserStore } from '@/stores/user'
 import {
   HomeFilled, OfficeBuilding, User, Files, DocumentChecked,
   School, ArrowDown, SwitchButton, DataAnalysis, InfoFilled,
+  ChatDotRound,
 } from '@element-plus/icons-vue'
 import NotificationDropdown from '@/components/NotificationDropdown.vue'
 
@@ -30,6 +31,7 @@ const menuItems = [
   },
   { index: '/school/form/list', title: '评价表单', icon: Files },
   { index: '/school/data/overview', title: '数据概览', icon: DataAnalysis },
+  { index: '/school/complaint/stats', title: '投诉建议', icon: ChatDotRound },
   { index: '/school/school-info', title: '学校信息', icon: InfoFilled },
 ]
 
@@ -204,7 +206,7 @@ function handleLogout() {
 
 /* ========== 左侧侧边栏 ========== */
 .sidebar {
-  width: 230px;
+  width: var(--sidebar-width);
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -212,6 +214,7 @@ function handleLogout() {
   border-right: var(--border-light);
   flex-shrink: 0;
   overflow: hidden;
+  transition: width var(--transition-fast, 0.2s);
 }
 
 .sidebar-header {
@@ -219,14 +222,14 @@ function handleLogout() {
   align-items: center;
   gap: var(--space-3);
   padding: 0 var(--space-4);
-  height: 60px;
+  height: var(--nav-height);
   flex-shrink: 0;
   border-bottom: var(--border-light);
 }
 
 .logo-icon {
-  width: 34px;
-  height: 34px;
+  width: var(--space-8);
+  height: var(--space-8);
   background: var(--color-primary);
   color: var(--color-text-white);
   border-radius: var(--radius-md);
@@ -249,14 +252,14 @@ function handleLogout() {
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-title);
   white-space: nowrap;
-  line-height: 1.3;
+  line-height: var(--line-height-tight);
 }
 
 .logo-subtitle {
   font-size: var(--font-xs);
   color: var(--color-text-secondary);
   white-space: nowrap;
-  line-height: 1.3;
+  line-height: var(--line-height-tight);
 }
 
 /* 菜单 */
@@ -275,7 +278,7 @@ function handleLogout() {
   cursor: pointer;
   color: var(--color-text-body);
   font-size: var(--font-sm);
-  transition: all 0.15s;
+  transition: background var(--transition-fast, 0.15s), color var(--transition-fast, 0.15s);
   position: relative;
   user-select: none;
 }
@@ -295,11 +298,11 @@ function handleLogout() {
   content: '';
   position: absolute;
   left: 0;
-  top: 8px;
-  bottom: 8px;
-  width: 3px;
+  top: var(--space-2);
+  bottom: var(--space-2);
+  width: var(--radius-sm);
   background: var(--color-primary);
-  border-radius: 0 3px 3px 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 .menu-parent {
@@ -308,7 +311,7 @@ function handleLogout() {
 
 .menu-arrow {
   margin-left: auto;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform var(--transition-normal, 0.3s) cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--color-text-placeholder);
 }
 
@@ -319,16 +322,16 @@ function handleLogout() {
 .menu-children {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: max-height var(--transition-normal, 0.3s) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .menu-children--expanded {
-  max-height: 200px;
+  max-height: calc(var(--space-10) * 4);
 }
 
 .menu-child {
-  padding-left: calc(var(--space-4) + 22px);
-  height: 40px;
+  padding-left: calc(var(--space-4) + var(--space-5));
+  height: var(--space-10);
   font-size: var(--font-sm);
 }
 
@@ -365,7 +368,7 @@ function handleLogout() {
 
 /* 顶部工具栏 */
 .top-toolbar {
-  height: 56px;
+  height: var(--space-14);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -475,10 +478,22 @@ function handleLogout() {
 /* 响应式 */
 @media (max-width: 1366px) {
   .sidebar {
-    width: 210px;
+    width: var(--sidebar-width-collapsed);
   }
   .content-area {
     padding: var(--space-4) var(--space-5);
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+  .content-area {
+    padding: var(--space-3) var(--space-3);
+  }
+  .top-toolbar {
+    padding: 0 var(--space-4);
   }
 }
 </style>

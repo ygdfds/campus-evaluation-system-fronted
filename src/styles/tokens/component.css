@@ -164,4 +164,19 @@
   --pagination-total-font-size: var(--font-sm);
   --pagination-jumper-font-size: var(--font-sm);
   --pagination-select-width: 100px;
+
+  /* ========== 学校信息页 Token ========== */
+  --banner-cover-height: 160px;
+  --banner-logo-size: 80px;
+  --banner-logo-border-width: var(--border-width-2);
+  --banner-logo-offset-y: calc(var(--banner-logo-size) / -2);
+  --banner-gradient-start: var(--color-accent-school-400);
+  --banner-gradient-end: var(--color-accent-school-600);
+  --banner-placeholder-opacity: 0.15;
+  --info-label-width: 100px;
+
+  /* ========== 数据概览页 Token ========== */
+  --chart-height: 320px;
+  --metrics-grid-cols: 6;
+  --chart-grid-cols: 2;
 }
