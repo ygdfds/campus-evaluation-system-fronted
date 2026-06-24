@@ -59,13 +59,15 @@ function calcWindowStatus(w) {
  * 获取审核列表（聚合数据）
  */
 export async function getSchoolAuditListApi(tenantId, filters = {}) {
-  const [auditsRes, formsRes, profilesRes, teachingOrgsRes, serviceOrgsRes, windowsRes] = await Promise.all([
+  const [auditsRes, formsRes, profilesRes, teachingOrgsRes, serviceOrgsRes, windowsRes, coursesRes, serviceItemsRes] = await Promise.all([
     request.get('/formPublishAudits', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/evaluationForms', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/personProfiles', { params: { deleted: false } }),
     request.get('/teachingOrgUnits', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/serviceOrgUnits', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/evaluationWindows', { params: { tenant_id: tenantId, deleted: false } }),
+    request.get('/courses', { params: { tenant_id: tenantId, deleted: false } }),
+    request.get('/serviceItems', { params: { tenant_id: tenantId, deleted: false } }),
   ])
 
   let audits = (auditsRes.data || []).filter(a => !a.deleted)
@@ -74,6 +76,8 @@ export async function getSchoolAuditListApi(tenantId, filters = {}) {
   const teachingOrgs = (teachingOrgsRes.data || []).filter(o => !o.deleted)
   const serviceOrgs = (serviceOrgsRes.data || []).filter(o => !o.deleted)
   const windows = (windowsRes.data || []).filter(w => !w.deleted)
+  const courses = (coursesRes.data || []).filter(c => !c.deleted)
+  const serviceItems = (serviceItemsRes.data || []).filter(s => !s.deleted)
 
   // 构建映射
   const formMap = {}
@@ -88,6 +92,10 @@ export async function getSchoolAuditListApi(tenantId, filters = {}) {
     if (!windowMap[w.form_id]) windowMap[w.form_id] = []
     windowMap[w.form_id].push(w)
   })
+  const courseMap = {}
+  courses.forEach(c => { courseMap[c.id] = c })
+  const serviceItemMap = {}
+  serviceItems.forEach(s => { serviceItemMap[s.id] = s })
 
   // 状态筛选
   if (filters.status && filters.status !== 'all') {
@@ -152,6 +160,26 @@ export async function getSchoolAuditListApi(tenantId, filters = {}) {
       ...w,
       status_label: windowStatusMap[calcWindowStatus(w)] || calcWindowStatus(w),
     }))
+
+    // 解析评价对象名称
+    let objectName = ''
+    let objectTypeLabel = ''
+    if (form.course_id) {
+      const course = courseMap[form.course_id]
+      objectName = course?.course_name || '对象未匹配'
+      objectTypeLabel = '课程'
+    } else if (form.service_item_id) {
+      const item = serviceItemMap[form.service_item_id]
+      objectName = item?.name || '对象未匹配'
+      objectTypeLabel = '服务项目'
+    }
+
+    // 构建缺失项提示
+    const missingItems = []
+    if (!form.title && !form.name && !form.form_name) missingItems.push('表单名称未配置')
+    if (!form.teaching_org_id && !form.service_org_id && !form.course_id && !form.service_item_id) missingItems.push('对象未配置')
+    if (!formWindows.length) missingItems.push('窗口未配置')
+
     return {
       id: a.id,
       form_id: a.form_id,
@@ -175,7 +203,12 @@ export async function getSchoolAuditListApi(tenantId, filters = {}) {
       windows: formWindows,
       window_summary: formWindows.length
         ? `${formWindows[0].start_at?.slice(0, 10) || '?'} ~ ${formWindows[0].end_at?.slice(0, 10) || '?'}`
-        : '未配置',
+        : '窗口未配置',
+      // 评价对象信息
+      object_name: objectName,
+      object_type_label: objectTypeLabel,
+      // 缺失项提示
+      missing_items: missingItems,
     }
   })
 }
@@ -206,13 +239,16 @@ export async function getSchoolAuditSummaryApi(tenantId) {
  * 获取审核详情（含表单、题目、窗口等完整信息）
  */
 export async function getSchoolAuditDetailApi(tenantId, auditId) {
-  const [auditsRes, formsRes, profilesRes, teachingOrgsRes, serviceOrgsRes, windowsRes] = await Promise.all([
+  const [auditsRes, formsRes, profilesRes, teachingOrgsRes, serviceOrgsRes, windowsRes, coursesRes, serviceItemsRes, questionsRes] = await Promise.all([
     request.get('/formPublishAudits', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/evaluationForms', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/personProfiles', { params: { deleted: false } }),
     request.get('/teachingOrgUnits', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/serviceOrgUnits', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/evaluationWindows', { params: { tenant_id: tenantId, deleted: false } }),
+    request.get('/courses', { params: { tenant_id: tenantId, deleted: false } }),
+    request.get('/serviceItems', { params: { tenant_id: tenantId, deleted: false } }),
+    request.get('/formQuestions', { params: { tenant_id: tenantId, deleted: false } }),
   ])
 
   const audits = (auditsRes.data || []).filter(a => !a.deleted)
@@ -221,6 +257,9 @@ export async function getSchoolAuditDetailApi(tenantId, auditId) {
   const teachingOrgs = (teachingOrgsRes.data || []).filter(o => !o.deleted)
   const serviceOrgs = (serviceOrgsRes.data || []).filter(o => !o.deleted)
   const windows = (windowsRes.data || []).filter(w => !w.deleted)
+  const courses = (coursesRes.data || []).filter(c => !c.deleted)
+  const serviceItems = (serviceItemsRes.data || []).filter(s => !s.deleted)
+  const questions = (questionsRes.data || []).filter(q => !q.deleted)
 
   const audit = audits.find(a => a.id === Number(auditId))
   if (!audit) return null
@@ -231,6 +270,10 @@ export async function getSchoolAuditDetailApi(tenantId, auditId) {
   const orgMap = {}
   teachingOrgs.forEach(o => { orgMap[o.id] = o })
   serviceOrgs.forEach(o => { orgMap[o.id] = o })
+  const courseMap = {}
+  courses.forEach(c => { courseMap[c.id] = c })
+  const serviceItemMap = {}
+  serviceItems.forEach(s => { serviceItemMap[s.id] = s })
 
   const formWindows = windows
     .filter(w => w.form_id === audit.form_id)
@@ -240,15 +283,47 @@ export async function getSchoolAuditDetailApi(tenantId, auditId) {
       status_label: windowStatusMap[calcWindowStatus(w)] || calcWindowStatus(w),
     }))
 
-  // 风险检查
-  const risks = []
-  if (!form.title && !form.name && !form.form_name) risks.push('表单名称未配置')
-  if (!form.teaching_org_id && !form.service_org_id && !form.course_id && !form.service_item_id) risks.push('未配置评价对象')
-  if (!formWindows.length) risks.push('未配置评价窗口')
-  if (formWindows.length) {
+  // 统计题目数量
+  const formQuestionsCount = questions.filter(q => q.form_id === audit.form_id).length
+
+  // 风险检查（区分阻断项和警告项）
+  const blockingRisks = []  // 阻断项：不允许通过
+  const warningRisks = []   // 警告项：提醒但不阻断
+
+  if (!form.title && !form.name && !form.form_name) {
+    blockingRisks.push('表单名称未配置')
+  }
+  if (!form.teaching_org_id && !form.service_org_id && !form.course_id && !form.service_item_id) {
+    blockingRisks.push('评价对象未配置')
+  }
+  if (formQuestionsCount === 0) {
+    blockingRisks.push('至少需要配置1个题目')
+  }
+  if (!formWindows.length) {
+    blockingRisks.push('评价窗口未配置')
+  } else {
     const w = formWindows[0]
-    if (!w.start_at || !w.end_at) risks.push('评价窗口时间不完整')
-    else if (new Date(w.end_at) <= new Date(w.start_at)) risks.push('评价截止时间必须晚于开始时间')
+    if (!w.start_at || !w.end_at) {
+      blockingRisks.push('评价窗口时间不完整')
+    } else if (new Date(w.end_at) <= new Date(w.start_at)) {
+      blockingRisks.push('评价截止时间必须晚于开始时间')
+    }
+  }
+
+  // 合并所有风险（兼容旧代码）
+  const risks = [...blockingRisks, ...warningRisks]
+
+  // 解析评价对象名称
+  let objectName = ''
+  let objectTypeLabel = ''
+  if (form.course_id) {
+    const course = courseMap[form.course_id]
+    objectName = course?.course_name || '对象未匹配'
+    objectTypeLabel = '课程'
+  } else if (form.service_item_id) {
+    const item = serviceItemMap[form.service_item_id]
+    objectName = item?.name || '对象未匹配'
+    objectTypeLabel = '服务项目'
   }
 
   return {
@@ -278,10 +353,16 @@ export async function getSchoolAuditDetailApi(tenantId, auditId) {
     org_id: form.teaching_org_id || form.service_org_id,
     course_id: form.course_id,
     service_item_id: form.service_item_id,
+    object_name: objectName,
+    object_type_label: objectTypeLabel,
+    // 题目数量
+    questions_count: formQuestionsCount,
     // 窗口
     windows: formWindows,
-    // 风险
+    // 风险（分类）
     risks,
+    blocking_risks: blockingRisks,
+    warning_risks: warningRisks,
   }
 }
 
