@@ -1,5 +1,3 @@
-import request from '@/request'
-
 const adminMenuItems = [
   { index: '/admin/dashboard', title: '平台概览', icon: 'HomeFilled' },
   {
@@ -12,15 +10,7 @@ const adminMenuItems = [
     ],
   },
   { index: '/admin/onboarding/audit', title: '入驻审核', icon: 'DocumentChecked' },
-  {
-    index: '/admin/users',
-    title: '用户管理',
-    icon: 'User',
-    children: [
-      { index: '/admin/users/list', title: '用户列表' },
-      { index: '/admin/users/roles', title: '角色管理' },
-    ],
-  },
+  { index: '/admin/users/roles', title: '角色管理', icon: 'User' },
   { index: '/admin/system', title: '系统设置', icon: 'Setting' },
   {
     index: '/admin/ops',
@@ -369,34 +359,127 @@ const monitoringAlerts = [
   { id: 3, alertType: '服务异常', description: '表单配置服务响应时间超过阈值', severity: '高', createdAt: '2026-06-23 10:05:00', status: 'resolved' },
 ]
 
-function clone(data) {
-  return JSON.parse(JSON.stringify(data))
+const adminStats = {
+  activeSchools: 2,
+  pendingApps: 1,
+  activeTenants: 2,
+  totalUsers: 6,
 }
 
-function resolveList(response) {
-  return response.data?.list || []
+const onboardingApplicationRecords = [
+  {
+    id: 1,
+    schoolName: '复旦大学',
+    contactName: '王建国',
+    contactPhone: '13900001111',
+    planName: '专业版',
+    planId: 2,
+    status: 'pending',
+    creditCode: '91310000MA1FL8XX3N',
+    createdAt: '2026-06-20 09:00:00',
+  },
+  {
+    id: 2,
+    schoolName: '浙江大学',
+    contactName: '李明华',
+    contactPhone: '13800002222',
+    planName: '基础版',
+    planId: 1,
+    status: 'approved',
+    creditCode: '91330000MA2H0XX65K',
+    createdAt: '2026-06-15 14:30:00',
+  },
+  {
+    id: 3,
+    schoolName: '南京大学',
+    contactName: '赵文静',
+    contactPhone: '13700003333',
+    planName: '旗舰版',
+    planId: 3,
+    status: 'rejected',
+    creditCode: '91320000MA1WXX908P',
+    createdAt: '2026-06-10 10:15:00',
+  },
+]
+
+const systemAdminRecords = [
+  { id: 1, username: 'admin', realName: '系统管理员', roleName: '系统管理员', email: 'admin@platform.cn', phone: '13800000000', status: 'active', createdAt: '2025-01-01 00:00:00' },
+]
+
+const systemRoleRecords = [
+  { id: 1, roleName: '系统管理员', description: '拥有平台全部管理权限', dataScope: 'all', createdAt: '2025-01-01 00:00:00' },
+]
+
+const menuPermissionRecords = [
+  {
+    id: 'dashboard', label: '平台概览',
+    children: [
+      { id: 'dashboard:view', label: '查看概览' },
+    ],
+  },
+  {
+    id: 'tenant', label: '租户管理',
+    children: [
+      { id: 'tenant:view', label: '查看租户' },
+      { id: 'tenant:lifecycle', label: '生命周期管理' },
+      { id: 'tenant:plan', label: '套餐管理' },
+    ],
+  },
+  {
+    id: 'onboarding', label: '入驻审核',
+    children: [
+      { id: 'onboarding:view', label: '查看申请' },
+      { id: 'onboarding:audit', label: '审核操作' },
+    ],
+  },
+  {
+    id: 'role', label: '角色管理',
+    children: [
+      { id: 'role:view', label: '查看角色' },
+      { id: 'role:edit', label: '编辑角色' },
+      { id: 'role:permission', label: '配置权限' },
+    ],
+  },
+  {
+    id: 'settings', label: '系统设置',
+    children: [
+      { id: 'settings:view', label: '查看配置' },
+      { id: 'settings:edit', label: '编辑配置' },
+    ],
+  },
+  {
+    id: 'ops', label: '平台运维',
+    children: [
+      { id: 'ops:monitoring', label: '监控告警' },
+      { id: 'ops:audit-log', label: '审计日志' },
+      { id: 'ops:reports', label: '统计报表' },
+    ],
+  },
+]
+
+const tenantPlanRecords = [
+  { id: 1, planName: '基础版', description: '满足基本评价需求', maxForms: 30, maxUsers: 500, storageQuota: '100GB', status: 'active', price: '免费' },
+  { id: 2, planName: '专业版', description: '适合中大规模学校', maxForms: 80, maxUsers: 2000, storageQuota: '500GB', status: 'active', price: '¥2,000/年' },
+  { id: 3, planName: '旗舰版', description: '全功能无限制', maxForms: 200, maxUsers: 5000, storageQuota: '1TB', status: 'active', price: '¥5,000/年' },
+]
+
+function clone(data) {
+  return JSON.parse(JSON.stringify(data))
 }
 
 export function getAdminMenuApi() {
   return Promise.resolve({ data: { list: clone(adminMenuItems) } })
 }
 
-export async function getAdminDashboardStatsApi() {
-  const [statsResponse, tenantsResponse] = await Promise.all([
-    request.get('/admin/stats'),
-    request.get('/tenants'),
-  ])
-  const stats = statsResponse.data || {}
-  const activeTenants = resolveList(tenantsResponse).length
-
-  return {
+export function getAdminDashboardStatsApi() {
+  return Promise.resolve({
     data: {
       list: adminDashboardCards.map((card) => ({
         ...card,
-        value: card.key === 'activeTenants' ? activeTenants : stats[card.key] || 0,
+        value: adminStats[card.key] || 0,
       })),
     },
-  }
+  })
 }
 
 export function getAdminStatusOptionsApi(scope) {
@@ -547,8 +630,12 @@ export function resetTenantAdminApi(tenantId) {
   return Promise.resolve({ data: { tenantId, password: 'admin123' } })
 }
 
-export function getTenantsApi(params) {
-  return request.get('/tenants', { params })
+export function getTenantsApi() {
+  const tenants = [
+    { id: 1, tenantId: 'T001', schoolName: '清华大学', status: 'onboarded', planName: '基础版', adminName: '赵主任', createdAt: '2026-01-12 09:00:00' },
+    { id: 2, tenantId: 'T002', schoolName: '北京大学', status: 'onboarded', planName: '专业版', adminName: '钱主任', createdAt: '2026-02-18 10:30:00' },
+  ]
+  return Promise.resolve({ data: { list: tenants } })
 }
 
 export function normalizeTenantStatus(status) {
@@ -556,69 +643,66 @@ export function normalizeTenantStatus(status) {
 }
 
 export function getOnboardingApplicationsApi(params) {
-  return request.get('/onboarding-applications', { params })
+  let list = clone(onboardingApplicationRecords)
+  if (params?.status) list = list.filter(i => i.status === params.status)
+  if (params?.schoolName) list = list.filter(i => i.schoolName.includes(params.schoolName))
+  return Promise.resolve({ data: { list } })
 }
 
 export function auditOnboardingApi(id, action, reason, planId) {
-  return request.post(`/onboarding-applications/${id}/audit`, { action, reason, planId })
+  return Promise.resolve({ data: { id, action, reason, planId } })
 }
 
-export async function getSystemAdminsApi(params) {
-  const response = await request.get('/system-admins', { params })
-  return {
-    ...response,
-    data: {
-      ...response.data,
-      list: (response.data?.list || []).map((item) => ({
-        ...item,
-        createdAt: item.createdAt || '2026-06-01 09:00:00',
-      })),
-    },
-  }
+export function getSystemAdminsApi(params) {
+  let list = clone(systemAdminRecords)
+  if (params?.username) list = list.filter(i => i.username.includes(params.username))
+  if (params?.realName) list = list.filter(i => i.realName.includes(params.realName))
+  if (params?.status) list = list.filter(i => i.status === params.status)
+  return Promise.resolve({ data: { list } })
 }
 
 export function createSystemAdminApi(data) {
-  return request.post('/system-admins', data)
+  return Promise.resolve({ data: { id: Date.now(), ...data, status: 'active' } })
 }
 
 export function updateSystemAdminApi(id, data) {
-  return request.put(`/system-admins/${id}`, data)
+  return Promise.resolve({ data: { id, ...data } })
 }
 
 export function toggleSystemAdminStatusApi(id) {
-  return request.patch(`/system-admins/${id}/status`)
+  return Promise.resolve({ data: { id } })
 }
 
 export function resetSystemAdminPasswordApi(id) {
-  return request.post(`/system-admins/${id}/reset-password`)
+  return Promise.resolve({ data: { id } })
 }
 
 export function deleteSystemAdminApi(id) {
-  return request.delete(`/system-admins/${id}`)
+  return Promise.resolve({ data: { id } })
 }
 
-export function getSystemRolesApi(params) {
-  return request.get('/system-roles', { params })
+export function getSystemRolesApi() {
+  return Promise.resolve({ data: { list: clone(systemRoleRecords) } })
 }
 
 export function getCustomRolesApi() {
-  return request.get('/custom-roles')
+  return Promise.resolve({ data: { list: [] } })
 }
 
 export function createSystemRoleApi(data) {
-  return request.post('/system-roles', data)
+  return Promise.resolve({ data: { id: Date.now(), ...data } })
 }
 
 export function updateSystemRoleApi(id, data) {
-  return request.put(`/system-roles/${id}`, data)
+  return Promise.resolve({ data: { id, ...data } })
 }
 
 export function deleteSystemRoleApi(id) {
-  return request.delete(`/system-roles/${id}`)
+  return Promise.resolve({ data: { id } })
 }
 
 export function getMenuPermissionsApi() {
-  return request.get('/menu-permissions')
+  return Promise.resolve({ data: { list: clone(menuPermissionRecords) } })
 }
 
 export function getRoleDefaultPermissionKeys(roleName, permissions) {
@@ -632,18 +716,18 @@ export function getRoleDefaultPermissionKeys(roleName, permissions) {
   return defaultValue || []
 }
 
-export function getTenantPlansApi(params) {
-  return request.get('/tenant-plans', { params })
+export function getTenantPlansApi() {
+  return Promise.resolve({ data: { list: clone(tenantPlanRecords) } })
 }
 
 export function createTenantPlanApi(data) {
-  return request.post('/tenant-plans', data)
+  return Promise.resolve({ data: { id: Date.now(), ...data } })
 }
 
 export function updateTenantPlanApi(id, data) {
-  return request.put(`/tenant-plans/${id}`, data)
+  return Promise.resolve({ data: { id, ...data } })
 }
 
 export function deleteTenantPlanApi(id) {
-  return request.delete(`/tenant-plans/${id}`)
+  return Promise.resolve({ data: { id } })
 }

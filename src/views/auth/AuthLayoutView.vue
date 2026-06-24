@@ -1,12 +1,15 @@
 <script setup>
 import { computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
-import { inject } from 'vue'
+import { testAccountTrigger, testAccountData } from '@/utils/testAccountFill'
 
 const route = useRoute()
 
-// 注入子组件提供的测试账号填充方法
-const fillTestAccount = inject('fillTestAccount', () => {})
+// 点击测试账号标签时，写入共享响应式状态
+function fillTestAccount(username, password) {
+  testAccountData.value = { username, password }
+  testAccountTrigger.value++
+}
 
 // 根据路由动态设置辅色（覆盖 Element Plus CSS 变量，子组件自动跟随）
 const authAccentStyle = computed(() => {
@@ -45,8 +48,9 @@ const testAccounts = computed(() => {
     ]
   }
   if (path === '/login/sys') {
-    // 系统管理员登录页不显示测试账号区
-    return []
+    return [
+      { label: '系统管理员', username: 'admin', password: 'admin123' },
+    ]
   }
   // 默认（/login）：用户登录
   return [

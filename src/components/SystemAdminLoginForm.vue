@@ -1,10 +1,11 @@
 <script setup>
-import { ref, reactive, provide } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock, ArrowRight, View, Hide, Setting } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { loginApi } from '@/api/auth'
+import { testAccountTrigger, testAccountData } from '@/utils/testAccountFill'
 
 defineOptions({ name: 'SystemAdminLoginForm' })
 
@@ -47,9 +48,12 @@ function generateCaptcha() {
 
 generateCaptcha()
 
-provide('fillTestAccount', (username, password) => {
-  loginForm.username = username
-  loginForm.password = password
+// 监听共享状态，填充测试账号
+watch(testAccountTrigger, () => {
+  if (testAccountTrigger.value > 0) {
+    loginForm.username = testAccountData.value.username
+    loginForm.password = testAccountData.value.password
+  }
 })
 
 async function handleLogin() {

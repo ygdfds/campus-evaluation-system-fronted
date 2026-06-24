@@ -71,7 +71,6 @@ const router = createRouter({
         { path: 'tenants/:tenantId', name: 'AdminTenantDetail', component: () => import('@/views/admin/tenants/TenantDetailView.vue'), meta: { title: '租户详情' } },
         { path: 'plans', name: 'AdminPlanList', component: () => import('@/views/admin/plans/PlanManagementView.vue'), meta: { title: '套餐管理' } },
         { path: 'onboarding/audit', name: 'AdminOnboardingAudit', component: () => import('@/views/admin/onboarding/AuditListView.vue'), meta: { title: '入驻审核' } },
-        { path: 'users/list', name: 'AdminUserList', component: () => import('@/views/admin/accounts/AdminAccountView.vue'), meta: { title: '用户管理' } },
         { path: 'users/roles', name: 'AdminRoleManagement', component: () => import('@/views/admin/roles/RolePermissionView.vue'), meta: { title: '角色管理' } },
         { path: 'system', name: 'AdminSystemSettings', component: () => import('@/views/admin/settings/SystemSettingsView.vue'), meta: { title: '系统设置' } },
         { path: 'monitoring', name: 'AdminMonitoring', component: () => import('@/views/admin/monitoring/MonitoringDashboardView.vue'), meta: { title: '监控告警' } },
