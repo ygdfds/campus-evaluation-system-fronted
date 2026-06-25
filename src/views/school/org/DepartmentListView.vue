@@ -4,7 +4,7 @@ import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Refresh, Search, Plus, OfficeBuilding,
-  FolderOpened, Folder, Edit,
+  FolderOpened, Edit,
   CircleClose, CircleCheck,
 } from '@element-plus/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -311,24 +311,6 @@ function handleNodeCommand(command, node) {
   }
 }
 
-// ==================== 统计卡 ====================
-const summaryCards = computed(() => {
-  if (activeType.value === 'teaching') {
-    return [
-      { title: '教学组织数', value: summary.value.orgCount || 0, icon: OfficeBuilding, color: 'primary' },
-      { title: '课程数', value: summary.value.courseCount || 0, icon: FolderOpened, color: 'info' },
-      { title: '教职工数', value: summary.value.staffCount || 0, icon: Folder, color: 'warning' },
-      { title: '启用组织数', value: summary.value.activeCount || 0, icon: FolderOpened, color: 'success' },
-    ]
-  }
-  return [
-    { title: '服务部门数', value: summary.value.orgCount || 0, icon: OfficeBuilding, color: 'primary' },
-    { title: '服务项目数', value: summary.value.itemCount || 0, icon: FolderOpened, color: 'info' },
-    { title: '负责人员数', value: summary.value.staffCount || 0, icon: Folder, color: 'warning' },
-    { title: '启用组织数', value: summary.value.activeCount || 0, icon: FolderOpened, color: 'success' },
-  ]
-})
-
 // ==================== 日志动作映射 ====================
 const logActionMap = {
   create: '新增组织',
@@ -366,16 +348,23 @@ watch(activeType, () => { loadData() })
       </div>
     </div>
 
-    <!-- 统计卡 -->
-    <div class="summary-cards">
-      <div v-for="card in summaryCards" :key="card.title" class="summary-card">
-        <div class="summary-icon" :class="'tone-' + card.color">
-          <el-icon :size="22"><component :is="card.icon" /></el-icon>
-        </div>
-        <div class="summary-body">
-          <div class="summary-value">{{ card.value }}</div>
-          <div class="summary-title">{{ card.title }}</div>
-        </div>
+    <!-- 统计摘要 -->
+    <div class="stats-strip">
+      <div class="strip-item">
+        <span class="strip-value tone-primary">{{ summary.orgCount || 0 }}</span>
+        <span class="strip-label">{{ activeType === 'teaching' ? '教学组织' : '服务部门' }}</span>
+      </div>
+      <div class="strip-item">
+        <span class="strip-value tone-info">{{ activeType === 'teaching' ? (summary.courseCount || 0) : (summary.itemCount || 0) }}</span>
+        <span class="strip-label">{{ activeType === 'teaching' ? '课程数' : '服务项目' }}</span>
+      </div>
+      <div class="strip-item">
+        <span class="strip-value tone-warning">{{ summary.staffCount || 0 }}</span>
+        <span class="strip-label">{{ activeType === 'teaching' ? '教职工' : '负责人' }}</span>
+      </div>
+      <div class="strip-item">
+        <span class="strip-value tone-success">{{ summary.activeCount || 0 }}</span>
+        <span class="strip-label">已启用</span>
       </div>
     </div>
 
@@ -656,7 +645,7 @@ export default { components: { OrgTreeNode } }
   font-weight: 500;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   user-select: none;
   white-space: nowrap;
   height: 100%;
@@ -668,34 +657,42 @@ export default { components: { OrgTreeNode } }
   font-weight: 600;
 }
 
-/* 统计卡 */
-.summary-cards {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-4);
-}
-.summary-card {
+/* 统计摘要条 */
+.stats-strip {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-5);
+  gap: var(--space-6);
+  padding: var(--space-3) var(--space-5);
   background: var(--color-bg-card);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
+  margin-bottom: var(--space-4);
 }
-.summary-icon {
-  width: var(--space-11); height: var(--space-11);
-  border-radius: var(--radius-md);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
+.strip-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
 }
-.tone-primary { background: var(--color-primary-50); color: var(--color-primary); }
-.tone-info { background: var(--color-info-light); color: var(--color-info); }
-.tone-warning { background: var(--color-warning-light); color: var(--color-warning); }
-.tone-success { background: var(--color-success-light); color: var(--color-success); }
-.tone-danger { background: var(--color-danger-light); color: var(--color-danger); }
-.summary-value { font-size: var(--font-3xl); font-weight: var(--font-weight-bold); color: var(--color-text-primary); line-height: 1.2; }
-.summary-title { font-size: var(--font-sm); color: var(--color-text-secondary); margin-top: var(--space-0); }
+.strip-value {
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-display);
+  color: var(--color-text-heading);
+}
+.strip-label {
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
+}
+.strip-item + .strip-item {
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--color-border-lighter);
+}
+.tone-primary { color: var(--color-primary) !important; }
+.tone-info { color: var(--color-info) !important; }
+.tone-warning { color: var(--color-warning) !important; }
+.tone-success { color: var(--color-success) !important; }
+.tone-danger { color: var(--color-danger) !important; }
 
 /* 主体布局 */
 .org-main {
@@ -749,7 +746,7 @@ export default { components: { OrgTreeNode } }
 .tree-node-expand:not(.is-collapsed) { transform: rotate(90deg); }
 .tree-node-expand-placeholder { width: 18px; flex-shrink: 0; }
 .tree-node-icon { color: var(--color-text-placeholder); flex-shrink: 0; }
-.tree-node-name { font-size: var(--font-sm); color: var(--color-text-title); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-node-name { font-size: var(--font-sm); color: var(--color-text-heading); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree-node-type { flex-shrink: 0; }
 .tree-node-status { flex-shrink: 0; }
 .tree-node-more {
@@ -759,7 +756,7 @@ export default { components: { OrgTreeNode } }
   transition: opacity 0.15s, background 0.15s, color 0.15s;
 }
 .tree-node:hover .tree-node-more { opacity: 1; }
-.tree-node-more:hover { background: var(--color-border-lighter); color: var(--color-text-title); }
+.tree-node-more:hover { background: var(--color-border-lighter); color: var(--color-text-heading); }
 
 /* 右侧详情 */
 .org-detail-panel {
@@ -783,24 +780,27 @@ export default { components: { OrgTreeNode } }
 }
 .detail-header-info { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
 .detail-header-name {
-  font-size: var(--font-lg);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-title);
+  font-size: 20px;
+  font-weight: var(--font-weight-display);
+  font-family: var(--font-family-display);
+  color: var(--color-text-heading);
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  letter-spacing: var(--letter-spacing-tight);
 }
 .detail-header-actions { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
 
 .detail-section { margin-bottom: var(--space-6); }
 .detail-section-title {
   font-size: var(--font-base);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-title);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-display);
+  color: var(--color-text-heading);
   margin: 0 0 var(--space-4);
   padding-bottom: var(--space-2);
-  border-bottom: var(--border-lighter);
+  border-bottom: 1px solid var(--color-border-lighter);
 }
 .detail-grid {
   display: grid;
@@ -809,7 +809,7 @@ export default { components: { OrgTreeNode } }
 }
 .detail-item { display: flex; flex-direction: column; gap: var(--space-0); }
 .detail-label { font-size: var(--font-xs); color: var(--color-text-placeholder); }
-.detail-value { font-size: var(--font-sm); color: var(--color-text-title); }
+.detail-value { font-size: var(--font-sm); color: var(--color-text-heading); }
 .detail-value.code { font-family: 'Courier New', monospace; background: var(--color-bg-page); padding: var(--space-0) var(--space-1); border-radius: var(--radius-sm); font-size: var(--font-xs); }
 .detail-desc { font-size: var(--font-sm); color: var(--color-text-body); line-height: 1.6; margin: 0; }
 .detail-desc-empty { color: var(--color-text-placeholder); font-style: italic; }
@@ -823,7 +823,7 @@ export default { components: { OrgTreeNode } }
   border-radius: var(--radius-md);
   min-width: 100px;
 }
-.related-num { font-size: var(--font-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary); }
+.related-num { font-size: var(--font-2xl); font-weight: var(--font-weight-display); color: var(--color-primary); font-family: var(--font-family-display); }
 .related-label { font-size: var(--font-xs); color: var(--color-text-secondary); margin-top: var(--space-0); }
 
 /* 操作日志 */
@@ -862,4 +862,136 @@ export default { components: { OrgTreeNode } }
   .org-tree-panel { width: 100%; }
   .detail-grid { grid-template-columns: 1fr; }
 }
+/* SaaS refactor overrides */
+.page-container {
+  max-width: 1480px;
+  margin-inline: auto;
+  gap: var(--space-4);
+}
+
+.org-type-seg {
+  border: 1px solid var(--color-border-lighter);
+  box-shadow: var(--shadow-card);
+}
+
+.stats-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  padding: 0;
+  background: var(--color-border-lighter);
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 0;
+}
+
+.strip-item {
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-bg-card);
+  position: relative;
+}
+
+.strip-item + .strip-item {
+  padding-left: var(--space-4);
+  border-left: 0;
+}
+
+.strip-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  width: 3px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-light);
+}
+
+.strip-value {
+  font-family: var(--font-family-data);
+  font-size: 24px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.org-main {
+  gap: var(--space-4);
+}
+
+.org-tree-panel,
+.org-detail-panel {
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.org-tree-panel {
+  width: 380px;
+}
+
+.tree-search {
+  padding: var(--space-4);
+  background: linear-gradient(180deg, #fff, var(--color-bg-subtle));
+}
+
+.tree-node {
+  margin: 2px var(--space-2);
+  border-left: 0;
+  border-radius: var(--radius-lg);
+}
+
+.tree-node:hover {
+  background: var(--color-bg-subtle);
+}
+
+.tree-node.is-selected {
+  background: var(--color-primary-50);
+  box-shadow: inset 3px 0 0 var(--color-primary-500);
+}
+
+.org-detail-panel {
+  padding: var(--space-5);
+}
+
+.detail-header {
+  border-bottom: 1px solid var(--color-border-lighter);
+}
+
+.detail-section-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 14px;
+  margin-right: var(--space-2);
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, var(--color-primary-500), var(--color-accent-school-500));
+  vertical-align: -2px;
+}
+
+.related-card {
+  min-width: 116px;
+  border: 1px solid var(--color-border-lighter);
+  background: #FBFCFF;
+}
+
+.related-num {
+  font-family: var(--font-family-data);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .stats-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 </style>
+

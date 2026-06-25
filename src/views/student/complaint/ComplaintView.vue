@@ -366,6 +366,7 @@ onMounted(() => { loadComplaints() })
 
 <template>
   <div class="page-container">
+    <div class="complaint-workspace">
     <!-- 页面标题区 -->
     <div class="page-header">
       <div class="page-header-left">
@@ -445,9 +446,11 @@ onMounted(() => { loadComplaints() })
     </div>
 
     <!-- 分页 -->
-    <div v-if="filteredList.length > pageSize" class="pagination-wrap">
+    <div v-if="filteredList.length" class="pagination-wrap">
       <el-pagination v-model:current-page="currentPage" :page-size="pageSize"
         :total="filteredList.length" layout="prev, pager, next" small />
+    </div>
+
     </div>
 
     <!-- ==================== 新建投诉建议抽屉 ==================== -->
@@ -595,7 +598,7 @@ onMounted(() => { loadComplaints() })
 <style scoped>
 .page-container {
   display: flex; flex-direction: column; gap: var(--space-5);
-  max-width: 1200px; margin: 0 auto; width: 100%; padding-bottom: var(--space-8);
+  max-width: 1040px; margin: 0 auto; width: 100%; padding-bottom: var(--space-8);
 }
 .page-header {
   display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4);
@@ -740,4 +743,54 @@ onMounted(() => { loadComplaints() })
 .tl-content { font-size: var(--font-sm); color: var(--color-text-body); line-height: var(--line-height-normal); }
 .timeline-loading { padding: var(--space-3); }
 .timeline-empty { font-size: var(--font-sm); color: var(--color-text-muted); padding: var(--space-3); }
+
+.complaint-workspace {
+  padding: var(--space-4);
+  background: #fff;
+  border: 1px solid var(--color-border-lighter);
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.complaint-workspace .filter-card,
+.complaint-workspace .loading-skeleton,
+.complaint-workspace .empty-state {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.complaint-workspace .filter-card {
+  padding: 0 0 var(--space-3);
+  margin-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border-lighter);
+}
+
+.complaint-workspace .complaint-card {
+  background: #fbfcff;
+}
+
+.complaint-workspace .pagination-wrap {
+  justify-content: flex-end;
+  padding-top: var(--space-3);
+  margin-top: var(--space-3);
+  border-top: 1px solid var(--color-border-lighter);
+}
+/* student complaint unified paper */
+.complaint-workspace .page-header {
+  padding: 0 0 var(--space-4);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border-lighter);
+}
+.complaint-workspace .filter-card {
+  padding-top: 0;
+}
+/* student-list-width-pass */
+.complaint-workspace {
+  padding: var(--space-5);
+}
+@media (max-width: 768px) {
+  .complaint-workspace { padding: var(--space-4); }
+}
 </style>

@@ -100,7 +100,7 @@ function goToLogin() {
       <div class="header-inner">
         <div class="header-logo">
           <div class="logo-icon">评</div>
-          <span class="logo-text">校园服务质量评测系统</span>
+          <span class="logo-text">校园服务质量在线评测系统</span>
         </div>
         <el-link type="default" underline="never" @click="goToLogin" class="header-link">
           已有账号？返回登录

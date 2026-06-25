@@ -3,9 +3,10 @@ import { computed, onMounted, ref } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Plus, Refresh, Search, View, Edit, Promotion, SwitchButton, Delete, Document,
+  Plus, Refresh, Search, View, Edit, Promotion, SwitchButton, Delete,
 } from '@element-plus/icons-vue'
 import CoverImage from '@/components/common/CoverImage.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import {
   announcementRoleOptions,
   announcementStatusMap,
@@ -69,10 +70,10 @@ const rules = {
 }
 
 const statCards = computed(() => [
-  { key: 'total', label: '全部公告', value: stats.value.total, icon: Document, tone: 'default' },
-  { key: 'draft', label: '草稿', value: stats.value.draft, icon: Edit, tone: 'info' },
-  { key: 'published', label: '已发布', value: stats.value.published, icon: Promotion, tone: 'success' },
-  { key: 'offline', label: '已下线', value: stats.value.offline, icon: SwitchButton, tone: 'warning' },
+  { key: 'total', label: '全部公告', value: stats.value.total, tone: 'default' },
+  { key: 'draft', label: '草稿', value: stats.value.draft, tone: 'info' },
+  { key: 'published', label: '已发布', value: stats.value.published, tone: 'success' },
+  { key: 'offline', label: '已下线', value: stats.value.offline, tone: 'warning' },
 ])
 
 function createEmptyForm() {
@@ -243,60 +244,45 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="announcement-page">
-    <section class="page-head">
-      <div>
-        <h1>公告管理</h1>
-        <p>发布和维护学校正式公告，学生端公告页与首页轮播仅展示已发布公告。</p>
-      </div>
-      <div class="head-actions">
+  <div class="page">
+    <PageHeader title="公告管理" description="发布和维护学校正式公告，学生端公告页与首页轮播仅展示已发布公告。">
+      <template #actions>
         <el-button :icon="Refresh" @click="loadData">刷新</el-button>
         <el-button type="primary" :icon="Plus" @click="openCreate">新建公告</el-button>
+      </template>
+    </PageHeader>
+
+    <div class="toolbar">
+      <div class="toolbar-stats">
+        <span v-for="(card, i) in statCards" :key="card.key" class="stat">
+          <em :class="`c-${card.tone}`">{{ card.value }}</em>{{ card.label }}<span v-if="i < statCards.length - 1" class="divider" />
+        </span>
       </div>
-    </section>
-
-    <section class="stats-grid">
-      <div v-for="card in statCards" :key="card.key" class="stat-card" :class="`tone-${card.tone}`">
-        <el-icon><component :is="card.icon" /></el-icon>
-        <div>
-          <strong>{{ card.value }}</strong>
-          <span>{{ card.label }}</span>
-        </div>
+      <div class="toolbar-filters">
+        <el-input v-model="filters.keyword" placeholder="搜索标题、摘要或正文" clearable :prefix-icon="Search" @keyup.enter="handleSearch" @clear="handleSearch" />
+        <el-select v-model="filters.tag" @change="handleSearch">
+          <el-option label="全部分类" value="all" />
+          <el-option v-for="tag in announcementTagOptions" :key="tag" :label="tag" :value="tag" />
+        </el-select>
+        <el-select v-model="filters.status" @change="handleSearch">
+          <el-option label="全部状态" value="all" />
+          <el-option v-for="(label, key) in announcementStatusMap" :key="key" :label="label" :value="key" />
+        </el-select>
+        <el-button type="primary" @click="handleSearch">查询</el-button>
+        <el-button @click="handleReset">重置</el-button>
       </div>
-    </section>
+    </div>
 
-    <section class="filter-card">
-      <el-input
-        v-model="filters.keyword"
-        class="filter-keyword"
-        placeholder="搜索标题、摘要或正文"
-        clearable
-        :prefix-icon="Search"
-        @keyup.enter="handleSearch"
-        @clear="handleSearch"
-      />
-      <el-select v-model="filters.tag" placeholder="公告分类" @change="handleSearch">
-        <el-option label="全部分类" value="all" />
-        <el-option v-for="tag in announcementTagOptions" :key="tag" :label="tag" :value="tag" />
-      </el-select>
-      <el-select v-model="filters.status" placeholder="发布状态" @change="handleSearch">
-        <el-option label="全部状态" value="all" />
-        <el-option v-for="(label, key) in announcementStatusMap" :key="key" :label="label" :value="key" />
-      </el-select>
-      <el-button type="primary" @click="handleSearch">查询</el-button>
-      <el-button @click="handleReset">重置</el-button>
-    </section>
-
-    <section class="table-card">
+    <div class="table-wrap">
       <el-table v-loading="loading" :data="list" row-key="id">
         <el-table-column label="公告内容" min-width="360">
           <template #default="{ row }">
-            <div class="announcement-cell">
-              <CoverImage :src="row._cover_url" :alt="row.title" width="112px" height="72px" radius="8px" class="cover" />
-              <div class="cell-main">
+            <div class="cell">
+              <CoverImage :src="row._cover_url" :alt="row.title" width="112px" height="72px" radius="8px" class="cell-cover" />
+              <div class="cell-body">
                 <div class="cell-title">{{ row.title }}</div>
-                <div class="cell-summary">{{ row.summary || row.content }}</div>
-                <div class="cell-meta">
+                <div class="cell-desc">{{ row.summary || row.content }}</div>
+                <div class="cell-tags">
                   <el-tag size="small" effect="plain">{{ row.tag }}</el-tag>
                   <span>{{ row.target_role_text }}</span>
                 </div>
@@ -317,7 +303,7 @@ onMounted(async () => {
         </el-table-column>
         <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
-            <div class="row-actions">
+            <div class="actions">
               <el-button size="small" :icon="View" @click="openDetail(row)">查看</el-button>
               <el-button v-if="row.status !== 'published'" size="small" :icon="Edit" @click="openEdit(row)">编辑</el-button>
               <el-button v-if="row.status !== 'published'" size="small" type="success" :icon="Promotion" @click="handlePublish(row)">发布</el-button>
@@ -327,56 +313,24 @@ onMounted(async () => {
           </template>
         </el-table-column>
       </el-table>
-
       <div class="pager">
-        <el-pagination
-          v-model:current-page="filters.page"
-          v-model:page-size="filters.pageSize"
-          layout="total, sizes, prev, pager, next, jumper"
-          :page-sizes="[10, 20, 50]"
-          :total="total"
-          @current-change="loadData"
-          @size-change="handleSearch"
-        />
+        <el-pagination v-model:current-page="filters.page" layout="prev, pager, next" :page-size="filters.pageSize" :total="total" @current-change="loadData" />
       </div>
-    </section>
+    </div>
 
     <el-drawer v-model="editorVisible" :title="editorMode === 'create' ? '新建公告' : '编辑公告'" size="560px">
-      <el-form ref="editorFormRef" :model="editorForm" :rules="rules" label-position="top" class="editor-form">
-        <el-form-item label="公告标题" prop="title">
-          <el-input v-model="editorForm.title" maxlength="60" show-word-limit />
-        </el-form-item>
-        <el-form-item label="公告摘要" prop="summary">
-          <el-input v-model="editorForm.summary" type="textarea" :rows="3" maxlength="160" show-word-limit />
-        </el-form-item>
-        <el-form-item label="公告分类" prop="tag">
-          <el-select v-model="editorForm.tag" class="full-width">
-            <el-option v-for="tag in announcementTagOptions" :key="tag" :label="tag" :value="tag" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="可见对象" prop="target_roles">
-          <el-checkbox-group v-model="editorForm.target_roles">
-            <el-checkbox v-for="role in announcementRoleOptions" :key="role.value" :label="role.value">{{ role.label }}</el-checkbox>
-          </el-checkbox-group>
-        </el-form-item>
-        <el-form-item label="封面图片">
-          <el-select v-model="editorForm.cover_file_id" class="full-width" clearable placeholder="选择已有封面资源">
-            <el-option v-for="file in coverOptions" :key="file.id" :label="file.label" :value="file.id">
-              <span>{{ file.label }}</span>
-              <span class="option-url">{{ file.url }}</span>
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="公告正文" prop="content">
-          <el-input v-model="editorForm.content" type="textarea" :rows="10" maxlength="3000" show-word-limit />
-        </el-form-item>
+      <el-form ref="editorFormRef" :model="editorForm" :rules="rules" label-position="top">
+        <el-form-item label="公告标题" prop="title"><el-input v-model="editorForm.title" maxlength="60" show-word-limit /></el-form-item>
+        <el-form-item label="公告摘要" prop="summary"><el-input v-model="editorForm.summary" type="textarea" :rows="3" maxlength="160" show-word-limit /></el-form-item>
+        <el-form-item label="公告分类" prop="tag"><el-select v-model="editorForm.tag" style="width:100%"><el-option v-for="tag in announcementTagOptions" :key="tag" :label="tag" :value="tag" /></el-select></el-form-item>
+        <el-form-item label="可见对象" prop="target_roles"><el-checkbox-group v-model="editorForm.target_roles"><el-checkbox v-for="role in announcementRoleOptions" :key="role.value" :label="role.value">{{ role.label }}</el-checkbox></el-checkbox-group></el-form-item>
+        <el-form-item label="封面图片"><el-select v-model="editorForm.cover_file_id" style="width:100%" clearable placeholder="选择已有封面资源"><el-option v-for="file in coverOptions" :key="file.id" :label="file.label" :value="file.id"><span>{{ file.label }}</span><span class="opt-url">{{ file.url }}</span></el-option></el-select></el-form-item>
+        <el-form-item label="公告正文" prop="content"><el-input v-model="editorForm.content" type="textarea" :rows="10" maxlength="3000" show-word-limit /></el-form-item>
       </el-form>
       <template #footer>
-        <div class="drawer-footer">
+        <div class="drawer-ft">
           <el-button @click="editorVisible = false">取消</el-button>
-          <el-button :loading="editorLoading" @click="submitEditor(editorMode === 'create' ? 'draft' : null)">
-            {{ editorMode === 'create' ? '保存草稿' : '保存修改' }}
-          </el-button>
+          <el-button :loading="editorLoading" @click="submitEditor(editorMode === 'create' ? 'draft' : null)">{{ editorMode === 'create' ? '保存草稿' : '保存修改' }}</el-button>
           <el-button type="primary" :loading="editorLoading" @click="submitEditor('published')">保存并发布</el-button>
         </div>
       </template>
@@ -386,7 +340,7 @@ onMounted(async () => {
       <div v-loading="detailLoading" class="detail-body">
         <template v-if="detail">
           <CoverImage :src="detail._cover_url" :alt="detail.title" width="100%" height="260px" radius="12px" class="detail-cover" />
-          <div class="detail-meta">
+          <div class="detail-tags">
             <el-tag :type="announcementStatusTagMap[detail.status]" effect="plain">{{ detail.status_text }}</el-tag>
             <el-tag effect="plain">{{ detail.tag }}</el-tag>
             <span>{{ formatDate(detail.publish_time || detail.created_at) }}</span>
@@ -394,7 +348,7 @@ onMounted(async () => {
           <h2>{{ detail.title }}</h2>
           <p class="detail-summary">{{ detail.summary }}</p>
           <article class="detail-content">{{ detail.content }}</article>
-          <div class="detail-info">
+          <div class="detail-foot">
             <span>可见对象：{{ detail.target_role_text }}</span>
             <span>公告 ID：{{ detail.id }}</span>
           </div>
@@ -405,133 +359,110 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.announcement-page {
+.page {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
 
-.page-head {
+/* 工具栏：统计 + 筛选 合并为一行 */
+.toolbar {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  align-items: flex-start;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-card);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-card);
 }
 
-.page-head h1 {
-  margin: 0;
-  font-size: var(--font-2xl);
-  color: var(--color-text-title);
+.toolbar-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-shrink: 0;
 }
 
-.page-head p {
-  margin: var(--space-1) 0 0;
-  color: var(--color-text-secondary);
+.stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
   font-size: var(--font-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
-.head-actions,
-.row-actions,
-.drawer-footer {
+.stat em {
+  font-style: normal;
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-heading);
+}
+
+.stat .divider {
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  background: var(--color-border-lighter);
+  margin-left: var(--space-4);
+}
+
+.c-default em { color: var(--color-primary); }
+.c-info em { color: var(--color-info); }
+.c-success em { color: var(--color-success); }
+.c-warning em { color: var(--color-warning); }
+
+.toolbar-filters {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-3);
-}
+.toolbar-filters .el-input { width: 220px; }
+.toolbar-filters .el-select { width: 130px; }
 
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
+/* 表格区 */
+.table-wrap {
   background: var(--color-bg-card);
-  border: var(--border-light);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
-}
-
-.stat-card .el-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  color: var(--color-primary);
-  background: var(--color-primary-50);
-}
-
-.stat-card strong {
-  display: block;
-  font-size: var(--font-2xl);
-  color: var(--color-text-title);
-}
-
-.stat-card span {
-  color: var(--color-text-secondary);
-  font-size: var(--font-sm);
-}
-
-.filter-card,
-.table-card {
-  background: var(--color-bg-card);
-  border: var(--border-light);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
-}
-
-.filter-card {
-  display: flex;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.filter-keyword {
-  width: 320px;
-}
-
-.table-card {
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   padding: var(--space-3);
 }
 
-.announcement-cell {
+.cell {
   display: flex;
   gap: var(--space-3);
   align-items: center;
 }
 
-.cover {
-  width: 112px;
-  height: 72px;
+.cell-cover {
   flex-shrink: 0;
   border-radius: var(--radius-md);
 }
 
-.cell-main {
-  min-width: 0;
-}
+.cell-body { min-width: 0; }
 
 .cell-title {
+  font-family: var(--font-family-display);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-title);
-  margin-bottom: var(--space-1);
+  color: var(--color-text-heading);
+  margin-bottom: 4px;
 }
 
-.cell-summary {
-  max-width: 520px;
+.cell-desc {
   color: var(--color-text-secondary);
   font-size: var(--font-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 520px;
 }
 
-.cell-meta {
+.cell-tags {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -540,21 +471,28 @@ onMounted(async () => {
   color: var(--color-text-muted);
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
 .pager {
   display: flex;
   justify-content: flex-end;
   padding: var(--space-4) var(--space-1) var(--space-1);
 }
 
-.editor-form {
-  padding-right: var(--space-2);
+/* 抽屉 */
+.drawer-ft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
-.full-width {
-  width: 100%;
-}
-
-.option-url {
+.opt-url {
   float: right;
   max-width: 260px;
   margin-left: var(--space-4);
@@ -564,18 +502,16 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
-.detail-body {
-  min-height: 360px;
-}
+.detail-body { min-height: 360px; }
 
 .detail-cover {
   width: 100%;
   height: 260px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   margin-bottom: var(--space-4);
 }
 
-.detail-meta {
+.detail-tags {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -586,7 +522,8 @@ onMounted(async () => {
 
 .detail-body h2 {
   margin: var(--space-3) 0 var(--space-2);
-  color: var(--color-text-title);
+  font-family: var(--font-family-display);
+  color: var(--color-text-heading);
   line-height: 1.35;
 }
 
@@ -603,35 +540,20 @@ onMounted(async () => {
   font-size: var(--font-base);
 }
 
-.detail-info {
+.detail-foot {
   display: flex;
   justify-content: space-between;
   gap: var(--space-3);
   margin-top: var(--space-5);
   padding-top: var(--space-3);
-  border-top: var(--border-light);
+  border-top: 1px solid var(--color-border-light);
   color: var(--color-text-muted);
   font-size: var(--font-sm);
 }
 
-@media (max-width: 1024px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 768px) {
-  .page-head {
-    flex-direction: column;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .filter-keyword,
-  .filter-card .el-select {
-    width: 100%;
-  }
+@media (max-width: 1100px) {
+  .toolbar { flex-direction: column; align-items: flex-start; }
+  .toolbar-filters { width: 100%; }
+  .toolbar-filters .el-input { width: 100%; }
 }
 </style>

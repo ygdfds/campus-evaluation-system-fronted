@@ -172,4 +172,31 @@ const isUrgent = computed(() => {
 .eval-action-btn {
   width: 100%;
 }
+
+
+/* SaaS evaluation task card pass */
+.eval-card {
+  gap: var(--space-4);
+  padding: var(--space-3);
+  border-color: var(--color-border-lighter);
+  border-radius: var(--radius-card);
+  background: #FBFCFF;
+  box-shadow: none;
+  min-height: 116px;
+}
+.eval-card:hover {
+  transform: none;
+  box-shadow: var(--shadow-card-hover);
+  background: var(--color-primary-50);
+  border-color: var(--color-primary-100);
+}
+.eval-cover { border-radius: var(--radius-lg); overflow: hidden; }
+.eval-title { font-family: var(--font-family-display); }
+.eval-action { width: 132px; }
+.eval-action-btn { box-shadow: none; }
+@media (max-width: 760px) {
+  .eval-card { align-items: flex-start; flex-direction: column; }
+  .eval-action { width: 100%; flex-direction: row; align-items: center; }
+  .eval-action-btn { width: auto; margin-left: auto; }
+}
 </style>

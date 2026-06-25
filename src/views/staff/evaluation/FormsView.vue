@@ -40,7 +40,7 @@ const formList = ref([])
 const stats = ref({ draft: 0, pending_review: 0, published: 0, rejected: 0, closed: 0, total: 0 })
 const total = ref(0)
 const currentPage = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(6)
 
 // 筛选
 const filters = reactive({
@@ -298,44 +298,47 @@ onMounted(() => {
         @status-change="handleStatusChange"
       />
 
-      <!-- 筛选工具栏 -->
-      <StaffFormFilterBar
-        :filters="filters"
-        @update:filters="handleFilterUpdate"
-        @reset="handleReset"
-      />
-
-      <!-- 表单列表 -->
-      <div v-loading="loading" class="form-list">
-        <template v-if="formList.length > 0">
-          <StaffEvalFormCard
-            v-for="item in formList"
-            :key="item.id"
-            :item="item"
-            @view="handleView"
-            @edit="handleEdit"
-            @delete="handleDelete"
-            @submit-audit="handleSubmitAudit"
-            @view-data="handleViewData"
-            @withdraw-audit="handleWithdrawAudit"
-            @view-reject-reason="handleViewRejectReason"
-            @limited-edit="handleLimitedEdit"
-            @close-window="handleCloseWindow"
-          />
-        </template>
-        <EmptyPlaceholder v-else-if="!loading" text="暂无评价表单" description="点击「新建表单」开始创建" />
-      </div>
-
-      <!-- 分页 -->
-      <div v-if="total > pageSize" class="pagination-wrap">
-        <el-pagination
-          v-model:current-page="currentPage"
-          :page-size="pageSize"
-          :total="total"
-          layout="prev, pager, next"
-          @current-change="handlePageChange"
+      <!-- 筛选 + 列表 + 分页（合并到大盒子） -->
+      <el-card shadow="never" class="section-card list-card">
+        <!-- 筛选工具栏 -->
+        <StaffFormFilterBar
+          :filters="filters"
+          @update:filters="handleFilterUpdate"
+          @reset="handleReset"
         />
-      </div>
+
+        <!-- 表单列表 -->
+        <div v-loading="loading" class="form-list">
+          <template v-if="formList.length > 0">
+            <StaffEvalFormCard
+              v-for="item in formList"
+              :key="item.id"
+              :item="item"
+              @view="handleView"
+              @edit="handleEdit"
+              @delete="handleDelete"
+              @submit-audit="handleSubmitAudit"
+              @view-data="handleViewData"
+              @withdraw-audit="handleWithdrawAudit"
+              @view-reject-reason="handleViewRejectReason"
+              @limited-edit="handleLimitedEdit"
+              @close-window="handleCloseWindow"
+            />
+          </template>
+          <EmptyPlaceholder v-else-if="!loading" text="暂无评价表单" description="点击「新建表单」开始创建" />
+        </div>
+
+        <!-- 分页 -->
+        <div v-if="total > 0" class="pagination-bar">
+          <el-pagination
+            v-model:current-page="currentPage"
+            :page-size="pageSize"
+            :total="total"
+            layout="prev, pager, next"
+            @current-change="handlePageChange"
+          />
+        </div>
+      </el-card>
 
       <!-- 新建/编辑抽屉 -->
       <StaffEvalFormDrawer
@@ -376,6 +379,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  max-width: 1480px;
+  margin-inline: auto;
 }
 
 .no-permission {
@@ -393,16 +398,41 @@ onMounted(() => {
   font-weight: var(--font-weight-medium);
 }
 
+/* 大盒子 */
+.section-card {
+  border: 1px solid var(--color-border-lighter) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card) !important;
+  overflow: hidden;
+}
+
+.list-card :deep(.el-card__body) {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* 筛选栏嵌入大盒子内时去掉自身背景/阴影 */
+.list-card :deep(.filter-bar) {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  border-bottom: 1px solid var(--color-border-lighter);
+  padding-bottom: var(--space-4);
+}
+
 .form-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
 
-.pagination-wrap {
+.pagination-bar {
   display: flex;
   justify-content: center;
-  padding: var(--space-4) 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-lighter);
 }
 
 .btn-primary-green {

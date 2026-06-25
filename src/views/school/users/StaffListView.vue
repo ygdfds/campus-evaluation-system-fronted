@@ -282,24 +282,23 @@ onMounted(() => {
       </template>
     </PageHeader>
 
-    <!-- 统计卡片 -->
-    <div class="stats-row">
-      <div class="stat-card stat-total">
-        <div class="stat-value">{{ stats.total }}</div>
-        <div class="stat-label">总人数</div>
+    <div class="stats-strip">
+      <div class="strip-item">
+        <span class="strip-value tone-primary">{{ stats.total }}</span>
+        <span class="strip-label">总人数</span>
       </div>
-      <div class="stat-card stat-active">
-        <div class="stat-value">{{ stats.active }}</div>
-        <div class="stat-label">在岗</div>
+      <div class="strip-item">
+        <span class="strip-value tone-success">{{ stats.active }}</span>
+        <span class="strip-label">在岗</span>
       </div>
-      <div class="stat-card stat-disabled">
-        <div class="stat-value">{{ stats.disabled }}</div>
-        <div class="stat-label">停用</div>
+      <div class="strip-item">
+        <span class="strip-value tone-danger">{{ stats.disabled }}</span>
+        <span class="strip-label">停用</span>
       </div>
     </div>
 
     <!-- 筛选工具栏 -->
-    <el-card shadow="hover" class="section-card filter-card">
+    <el-card shadow="never" class="section-card filter-card">
       <div class="filter-bar">
         <el-input
           v-model="searchKeyword"
@@ -342,7 +341,7 @@ onMounted(() => {
     </el-card>
 
     <!-- 数据表格 -->
-    <el-card shadow="hover" class="section-card table-card">
+    <el-card shadow="never" class="section-card table-card">
       <el-table :data="pagedData" v-loading="loading" stripe style="width: 100%">
         <el-table-column prop="no_work" label="工号" width="130">
           <template #default="{ row }">{{ row.no_work || '-' }}</template>
@@ -553,43 +552,46 @@ onMounted(() => {
 }
 
 /* 统计卡片 */
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-4);
+.stats-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-bg-light);
+  border-radius: var(--radius-md);
 }
 
-.stat-card {
-  padding: var(--space-5) var(--space-6);
-  border-radius: var(--radius-lg);
-  border: var(--border-light);
-  background: var(--color-bg-card);
+.strip-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
 }
 
-.stat-card:hover {
-  box-shadow: var(--shadow-sm);
+.strip-item + .strip-item {
+  padding-left: var(--space-5);
+  border-left: 1px solid var(--color-border-lighter);
 }
 
-.stat-value {
-  font-size: var(--font-3xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  line-height: var(--line-height-tight);
+.strip-value {
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-heading);
+  line-height: 1;
 }
 
-.stat-label {
-  font-size: var(--font-sm);
-  color: var(--color-text-secondary);
-  margin-top: var(--space-1);
+.strip-label {
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
 }
 
-.stat-total .stat-value { color: var(--color-primary); }
-.stat-active .stat-value { color: var(--color-success); }
-.stat-disabled .stat-value { color: var(--color-danger); }
+.tone-primary { color: var(--color-primary); }
+.tone-success { color: var(--color-success); }
+.tone-danger { color: var(--color-danger); }
 
 /* 筛选栏 */
 .filter-card {
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border-lighter);
 }
 
 .filter-bar {
@@ -609,7 +611,14 @@ onMounted(() => {
 
 /* 表格 */
 .table-card {
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border-lighter);
+}
+
+/* 去除固定列阴影 */
+.table-card :deep(th.el-table-fixed-column--right.is-first-column::before),
+.table-card :deep(td.el-table-fixed-column--right.is-first-column::before) {
+  box-shadow: none !important;
 }
 
 /* 抽屉底部 */
@@ -630,13 +639,14 @@ onMounted(() => {
   gap: var(--space-4);
   padding: var(--space-4) 0;
   margin-bottom: var(--space-4);
-  border-bottom: var(--border-lighter);
+  border-bottom: 1px solid var(--color-border-lighter);
 }
 
 .detail-header-name {
   font-size: var(--font-lg);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
+  font-family: var(--font-family-display);
+  color: var(--color-text-heading);
   margin: 0;
 }
 
@@ -652,10 +662,11 @@ onMounted(() => {
 .detail-section-title {
   font-size: var(--font-base);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
+  font-family: var(--font-family-display);
+  color: var(--color-text-heading);
   margin: 0 0 var(--space-3);
   padding-bottom: var(--space-2);
-  border-bottom: var(--border-lighter);
+  border-bottom: 1px solid var(--color-border-lighter);
 }
 
 /* 响应式 */
@@ -672,4 +683,122 @@ onMounted(() => {
     width: 100%;
   }
 }
+/* SaaS refactor overrides */
+.page-container {
+  max-width: 1480px;
+  margin-inline: auto;
+  gap: var(--space-4);
+}
+
+.stats-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  padding: 0;
+  background: var(--color-border-lighter);
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.strip-item {
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-bg-card);
+  position: relative;
+}
+
+.strip-item + .strip-item {
+  padding-left: var(--space-4);
+  border-left: 0;
+}
+
+.strip-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  width: 3px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-light);
+}
+
+.strip-value {
+  font-family: var(--font-family-data);
+  font-size: 24px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.strip-label {
+  color: var(--color-text-secondary);
+  font-size: var(--font-xs);
+}
+
+.section-card {
+  border: 1px solid var(--color-border-lighter) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card) !important;
+  overflow: hidden;
+}
+
+.filter-card :deep(.el-card__body),
+.section-card :deep(.el-card__body) {
+  padding: var(--space-4) var(--space-5);
+}
+
+.filter-bar {
+  gap: var(--space-2);
+}
+
+.table-card :deep(.el-card__body) {
+  padding: var(--space-3);
+}
+
+.table-card :deep(.el-table) {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.table-card :deep(.el-button.is-link) {
+  padding: 0 var(--space-1);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.table-card :deep(.el-button.is-link:hover) {
+  color: var(--color-primary-600);
+}
+
+.detail-section-title,
+.section-title {
+  letter-spacing: 0;
+}
+
+.detail-section-title::before,
+.section-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 14px;
+  margin-right: var(--space-2);
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, var(--color-primary-500), var(--color-accent-school-500));
+  vertical-align: -2px;
+}
+
+@media (max-width: 900px) {
+  .stats-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 </style>
+

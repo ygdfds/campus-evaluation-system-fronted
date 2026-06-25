@@ -50,6 +50,7 @@ onMounted(loadData)
 <template>
   <div v-loading="loading" class="page-container">
     <div class="page-header">
+      <span class="page-kicker">Evaluation console</span>
       <h2>学校信息</h2>
       <p class="page-desc">本校基本信息与租户配置概览</p>
     </div>
@@ -82,7 +83,7 @@ onMounted(loadData)
         <!-- 基本信息 -->
         <div class="info-card">
           <div class="info-card-header">
-            <el-icon class="info-card-icon" color="#409eff"><Document /></el-icon>
+            <el-icon class="info-card-icon" color="var(--color-primary)"><Document /></el-icon>
             <h3 class="info-card-title">基本信息</h3>
           </div>
           <div class="info-card-body">
@@ -115,7 +116,7 @@ onMounted(loadData)
         <!-- 学校简介 -->
         <div class="info-card">
           <div class="info-card-header">
-            <el-icon class="info-card-icon" color="#67c23a"><Document /></el-icon>
+            <el-icon class="info-card-icon" color="var(--color-success)"><Document /></el-icon>
             <h3 class="info-card-title">学校简介</h3>
           </div>
           <div class="info-card-body">
@@ -126,7 +127,7 @@ onMounted(loadData)
         <!-- 系统信息 -->
         <div class="info-card">
           <div class="info-card-header">
-            <el-icon class="info-card-icon" color="#e6a23c"><Calendar /></el-icon>
+            <el-icon class="info-card-icon" color="var(--color-warning)"><Calendar /></el-icon>
             <h3 class="info-card-title">系统信息</h3>
           </div>
           <div class="info-card-body">
@@ -160,14 +161,16 @@ onMounted(loadData)
 }
 
 .page-header {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
 }
 
 .page-header h2 {
-  font-size: var(--font-2xl);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
+  font-size: 24px;
+  font-weight: var(--font-weight-display);
+  font-family: var(--font-family-display);
+  color: var(--color-text-heading);
   margin: 0 0 var(--space-1);
+  letter-spacing: var(--letter-spacing-tight);
 }
 
 .page-desc {
@@ -180,9 +183,10 @@ onMounted(loadData)
 .banner-section {
   background: var(--color-bg-card);
   border-radius: var(--radius-card);
-  border: var(--border-light);
+  border: 1px solid var(--color-border-lighter);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 .banner-cover {
@@ -234,9 +238,10 @@ onMounted(loadData)
 }
 
 .school-name {
+  font-family: var(--font-family-display);
   font-size: var(--font-xl);
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-title);
+  color: var(--color-text-heading);
   margin: 0;
 }
 
@@ -250,7 +255,8 @@ onMounted(loadData)
 .info-card {
   background: var(--color-bg-card);
   border-radius: var(--radius-card);
-  border: var(--border-light);
+  border: 1px solid var(--color-border-lighter);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
@@ -259,7 +265,8 @@ onMounted(loadData)
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
-  border-bottom: var(--border-lighter);
+  background: var(--color-bg-light);
+  border-bottom: 1px solid var(--color-border-lighter);
 }
 
 .info-card-icon {
@@ -267,9 +274,10 @@ onMounted(loadData)
 }
 
 .info-card-title {
+  font-family: var(--font-family-display);
   font-size: var(--font-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-title);
+  color: var(--color-text-heading);
   margin: 0;
 }
 
@@ -280,8 +288,8 @@ onMounted(loadData)
 .info-row {
   display: flex;
   align-items: center;
-  padding: var(--space-3) 0;
-  border-bottom: var(--border-lighter);
+  padding: var(--space-3) var(--space-1);
+  border-bottom: 1px solid var(--color-border-lighter);
   gap: var(--space-2);
 }
 
@@ -306,7 +314,7 @@ onMounted(loadData)
 
 .info-value {
   font-size: var(--font-sm);
-  color: var(--color-text-title);
+  color: var(--color-text-heading);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -317,7 +325,7 @@ onMounted(loadData)
 .website-link {
   color: var(--color-primary);
   text-decoration: none;
-  transition: opacity var(--transition-fast, 0.2s);
+  transition: opacity 0.2s ease;
 }
 
 .website-link:hover {

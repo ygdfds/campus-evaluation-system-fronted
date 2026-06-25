@@ -617,4 +617,50 @@ onMounted(() => { loadData() })
   .side-menu { flex: 1; min-width: 260px; flex-direction: row; flex-wrap: wrap; }
   .info-grid { grid-template-columns: 1fr; }
 }
+
+/* profile-stability-pass */
+:global(html) {
+  scrollbar-gutter: stable;
+}
+
+.profile-page {
+  overflow-x: clip;
+}
+
+.profile-layout {
+  width: 100%;
+  min-width: 0;
+}
+
+.content {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.content-card {
+  box-sizing: border-box;
+  min-height: 620px;
+}
+
+.info-grid {
+  align-items: stretch;
+}
+
+.info-item {
+  min-height: 58px;
+  box-sizing: border-box;
+}
+
+.inline-input {
+  width: 100%;
+  max-width: 280px;
+}
+
+.inline-input :deep(.el-input__wrapper) {
+  min-height: 32px;
+}
+
+@media (max-width: 1024px) {
+  .content-card { min-height: auto; }
+}
 </style>

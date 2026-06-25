@@ -301,23 +301,22 @@ onMounted(() => {
       </template>
     </PageHeader>
 
-    <!-- 统计卡片 -->
-    <div class="stats-row">
-      <div class="stat-card stat-total">
-        <div class="stat-label">总表单数</div>
-        <div class="stat-value">{{ stats.total }}</div>
+    <div class="stats-strip">
+      <div class="strip-item">
+        <span class="strip-value">{{ stats.total }}</span>
+        <span class="strip-label">总表单数</span>
       </div>
-      <div class="stat-card stat-published">
-        <div class="stat-label">已发布</div>
-        <div class="stat-value">{{ stats.published }}</div>
+      <div class="strip-item">
+        <span class="strip-value tone-success">{{ stats.published }}</span>
+        <span class="strip-label">已发布</span>
       </div>
-      <div class="stat-card stat-pending">
-        <div class="stat-label">待审核</div>
-        <div class="stat-value">{{ stats.pending_review }}</div>
+      <div class="strip-item">
+        <span class="strip-value tone-warning">{{ stats.pending_review }}</span>
+        <span class="strip-label">待审核</span>
       </div>
-      <div class="stat-card stat-closed">
-        <div class="stat-label">已关闭</div>
-        <div class="stat-value">{{ stats.closed }}</div>
+      <div class="strip-item">
+        <span class="strip-value tone-info">{{ stats.closed }}</span>
+        <span class="strip-label">已关闭</span>
       </div>
     </div>
 
@@ -612,41 +611,41 @@ onMounted(() => {
 }
 
 /* ==================== 统计卡片 ==================== */
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-4);
+.stats-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-bg-light);
+  border-radius: var(--radius-md);
 }
 
-.stat-card {
-  background: var(--color-bg-card);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5) var(--space-6);
-  box-shadow: var(--shadow-sm);
-  border: var(--border-lighter);
-  transition: box-shadow 0.2s ease;
+.strip-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
 }
 
-.stat-card:hover {
-  box-shadow: var(--shadow-md);
+.strip-item + .strip-item {
+  padding-left: var(--space-5);
+  border-left: 1px solid var(--color-border-lighter);
 }
 
-.stat-label {
-  font-size: var(--font-sm);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-2);
+.strip-value {
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-heading);
+  line-height: 1;
 }
 
-.stat-value {
-  font-size: var(--font-3xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+.strip-label {
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
 }
 
-.stat-total .stat-value { color: var(--color-text-primary); }
-.stat-published .stat-value { color: var(--color-success); }
-.stat-pending .stat-value { color: var(--color-warning); }
-.stat-closed .stat-value { color: var(--color-info); }
+.tone-success { color: var(--color-success); }
+.tone-warning { color: var(--color-warning); }
+.tone-info { color: var(--color-info); }
 
 /* ==================== 筛选栏 ==================== */
 .filter-bar {
@@ -710,10 +709,11 @@ onMounted(() => {
 .section-title {
   font-size: var(--font-lg);
   font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-display);
   color: var(--color-text-heading);
   margin: 0 0 var(--space-4);
   padding-bottom: var(--space-2);
-  border-bottom: var(--border-lighter);
+  border-bottom: 1px solid var(--color-border-lighter);
 }
 
 .window-card {
@@ -827,7 +827,7 @@ onMounted(() => {
   background: var(--color-bg-card);
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
-  border: var(--border-lighter);
+  border: 1px solid var(--color-border-lighter);
 }
 
 /* ==================== 窗口管理弹窗 ==================== */
@@ -895,4 +895,122 @@ onMounted(() => {
     width: 100%;
   }
 }
+/* SaaS refactor overrides */
+.page-container {
+  max-width: 1480px;
+  margin-inline: auto;
+  gap: var(--space-4);
+}
+
+.stats-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  padding: 0;
+  background: var(--color-border-lighter);
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.strip-item {
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-bg-card);
+  position: relative;
+}
+
+.strip-item + .strip-item {
+  padding-left: var(--space-4);
+  border-left: 0;
+}
+
+.strip-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  width: 3px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-light);
+}
+
+.strip-value {
+  font-family: var(--font-family-data);
+  font-size: 24px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.strip-label {
+  color: var(--color-text-secondary);
+  font-size: var(--font-xs);
+}
+
+.section-card {
+  border: 1px solid var(--color-border-lighter) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card) !important;
+  overflow: hidden;
+}
+
+.filter-card :deep(.el-card__body),
+.section-card :deep(.el-card__body) {
+  padding: var(--space-4) var(--space-5);
+}
+
+.filter-bar {
+  gap: var(--space-2);
+}
+
+.table-card :deep(.el-card__body) {
+  padding: var(--space-3);
+}
+
+.table-card :deep(.el-table) {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.table-card :deep(.el-button.is-link) {
+  padding: 0 var(--space-1);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.table-card :deep(.el-button.is-link:hover) {
+  color: var(--color-primary-600);
+}
+
+.detail-section-title,
+.section-title {
+  letter-spacing: 0;
+}
+
+.detail-section-title::before,
+.section-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 14px;
+  margin-right: var(--space-2);
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, var(--color-primary-500), var(--color-accent-school-500));
+  vertical-align: -2px;
+}
+
+@media (max-width: 900px) {
+  .stats-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 </style>
+

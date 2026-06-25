@@ -360,10 +360,12 @@ onMounted(loadDetail)
 }
 
 .detail-title {
-  font-size: var(--font-2xl);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
+  font-family: var(--font-family-display);
+  font-size: 24px;
+  font-weight: var(--font-weight-display);
+  color: var(--color-text-heading);
   margin: 0;
+  letter-spacing: var(--letter-spacing-tight);
 }
 
 .detail-tags {
@@ -400,7 +402,8 @@ onMounted(loadDetail)
 .info-card {
   background: var(--color-bg-card);
   border-radius: var(--radius-card);
-  border: var(--border-light);
+  border: 1px solid var(--color-border-lighter);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
@@ -409,15 +412,17 @@ onMounted(loadDetail)
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
-  border-bottom: var(--border-lighter);
+  background: var(--color-bg-light);
+  border-bottom: 1px solid var(--color-border-lighter);
 }
 
 .info-card-icon { font-size: var(--font-xl); }
 
 .info-card-title {
+  font-family: var(--font-family-display);
   font-size: var(--font-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-title);
+  color: var(--color-text-heading);
   margin: 0;
 }
 
@@ -450,8 +455,8 @@ onMounted(loadDetail)
 .info-row {
   display: flex;
   align-items: center;
-  padding: var(--space-3) 0;
-  border-bottom: var(--border-lighter);
+  padding: var(--space-3) var(--space-1);
+  border-bottom: 1px solid var(--color-border-lighter);
   gap: var(--space-2);
 }
 
@@ -467,7 +472,7 @@ onMounted(loadDetail)
 
 .info-value {
   font-size: var(--font-sm);
-  color: var(--color-text-title);
+  color: var(--color-text-heading);
   flex: 1;
 }
 
@@ -516,7 +521,7 @@ onMounted(loadDetail)
 
 .sidebar-value {
   font-size: var(--font-sm);
-  color: var(--color-text-title);
+  color: var(--color-text-heading);
 }
 
 .handle-btn {

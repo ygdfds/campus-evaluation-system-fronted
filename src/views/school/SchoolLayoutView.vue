@@ -15,72 +15,75 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-const menuItems = [
-  { index: '/school/dashboard', title: '首页', icon: HomeFilled },
-  { index: '/school/audit/list', title: '审核中心', icon: DocumentChecked },
-  { index: '/school/org/departments', title: '组织架构', icon: OfficeBuilding },
+const menuGroups = [
   {
-    index: '/school/users',
-    title: '用户管理',
-    icon: User,
-    children: [
-      { index: '/school/users/staff', title: '教职工管理' },
-      { index: '/school/users/student', title: '学生管理' },
-      { index: '/school/admins', title: '管理员管理' },
+    title: '工作台',
+    items: [
+      { index: '/school/dashboard', title: '首页概览', icon: HomeFilled },
+      { index: '/school/audit/list', title: '审核中心', icon: DocumentChecked },
     ],
   },
-  { index: '/school/form/list', title: '评价表单', icon: Files },
-  { index: '/school/announcements', title: '公告管理', icon: Bell },
-  { index: '/school/data/overview', title: '数据概览', icon: DataAnalysis },
-  { index: '/school/complaint/stats', title: '投诉建议', icon: ChatDotRound },
-  { index: '/school/school-info', title: '学校信息', icon: InfoFilled },
+  {
+    title: '评价治理',
+    items: [
+      { index: '/school/form/list', title: '评价表单', icon: Files },
+      { index: '/school/announcements', title: '公告管理', icon: Bell },
+      { index: '/school/data/overview', title: '数据概览', icon: DataAnalysis },
+      { index: '/school/complaint/stats', title: '投诉建议', icon: ChatDotRound },
+    ],
+  },
+  {
+    title: '组织账号',
+    items: [
+      { index: '/school/org/departments', title: '组织架构', icon: OfficeBuilding },
+      {
+        index: '/school/users',
+        title: '用户管理',
+        icon: User,
+        children: [
+          { index: '/school/users/staff', title: '教职工管理' },
+          { index: '/school/users/student', title: '学生管理' },
+          { index: '/school/admins', title: '管理员管理' },
+        ],
+      },
+      { index: '/school/school-info', title: '学校信息', icon: InfoFilled },
+    ],
+  },
 ]
 
-// 当前激活的菜单项（前缀匹配）
+const flatItems = computed(() => menuGroups.flatMap(group => group.items.flatMap(item => item.children || item)))
+
 function isMenuActive(path) {
   return route.path === path || route.path.startsWith(path + '/')
 }
 
-// 面包屑
+const currentTitle = computed(() => {
+  const current = flatItems.value.find(item => route.path === item.index || route.path.startsWith(item.index + '/'))
+  return current?.title || route.meta?.title || '学校管理端'
+})
+
 const breadcrumbs = computed(() => {
   const crumbs = [{ title: '学校管理端', path: '/school/dashboard' }]
-  const matched = route.matched
-  if (matched.length > 1) {
-    const current = matched[matched.length - 1]
-    if (current.meta?.title && current.path !== '/school/dashboard') {
-      crumbs.push({ title: current.meta.title, path: '' })
-    }
-  }
-  // 额外处理子路由的中文名
-  const pathMap = {
-    '/school/audit/list': '审核中心',
-    '/school/org/departments': '组织架构',
-    '/school/users/staff': '教职工管理',
-    '/school/users/student': '学生管理',
-    '/school/admins': '管理员管理',
-    '/school/form/list': '表单管理',
-    '/school/announcements': '公告管理',
-  }
-  if (pathMap[route.path]) {
-    crumbs[crumbs.length - 1] = { title: pathMap[route.path], path: '' }
+  if (route.path !== '/school/dashboard') {
+    crumbs.push({ title: currentTitle.value, path: '' })
   }
   return crumbs
 })
 
-// 展开的子菜单
 const expandedMenus = ref(['/school/users'])
 
 function toggleMenu(index) {
   const idx = expandedMenus.value.indexOf(index)
-  if (idx >= 0) {
-    expandedMenus.value.splice(idx, 1)
-  } else {
-    expandedMenus.value.push(index)
-  }
+  if (idx >= 0) expandedMenus.value.splice(idx, 1)
+  else expandedMenus.value.push(index)
 }
 
 function isExpanded(index) {
   return expandedMenus.value.includes(index)
+}
+
+function go(path) {
+  router.push(path)
 }
 
 function handleLogout() {
@@ -91,94 +94,83 @@ function handleLogout() {
 
 <template>
   <div class="school-layout">
-    <!-- 左侧侧边栏 -->
     <aside class="sidebar">
-      <!-- Logo 区 -->
       <div class="sidebar-header">
-        <div class="logo-icon">评</div>
+        <div class="logo-mark">评</div>
         <div class="logo-text">
-          <span class="logo-title">校园服务质量评测</span>
-          <span class="logo-subtitle">学校管理端</span>
+          <span class="logo-title">校园服务质量在线评测系统</span>
+          <span class="logo-subtitle">School Console</span>
         </div>
       </div>
 
-      <!-- 菜单 -->
-      <nav class="sidebar-menu">
-        <template v-for="item in menuItems" :key="item.index">
-          <!-- 有子菜单 -->
-          <div v-if="item.children" class="menu-group">
-            <div
-              class="menu-item menu-parent"
-              @click="toggleMenu(item.index)"
-            >
-              <el-icon :size="18"><component :is="item.icon" /></el-icon>
-              <span class="menu-text">{{ item.title }}</span>
-              <el-icon :size="14" class="menu-arrow" :class="{ expanded: isExpanded(item.index) }">
-                <ArrowDown />
-              </el-icon>
-            </div>
-            <div :class="['menu-children', { 'menu-children--expanded': isExpanded(item.index) }]">
-              <div
-                v-for="child in item.children"
-                :key="child.index"
-                class="menu-item menu-child"
-                :class="{ active: route.path === child.index }"
-                @click="router.push(child.index)"
-              >
-                <span class="menu-text">{{ child.title }}</span>
+      <nav class="sidebar-menu" aria-label="学校管理导航">
+        <section v-for="group in menuGroups" :key="group.title" class="menu-section">
+          <div class="menu-section-title">{{ group.title }}</div>
+          <template v-for="item in group.items" :key="item.index">
+            <div v-if="item.children" class="menu-group">
+              <button class="menu-item menu-parent" type="button" :class="{ expanded: isExpanded(item.index) }" @click="toggleMenu(item.index)">
+                <el-icon :size="17"><component :is="item.icon" /></el-icon>
+                <span class="menu-text">{{ item.title }}</span>
+                <el-icon :size="13" class="menu-arrow" :class="{ expanded: isExpanded(item.index) }"><ArrowDown /></el-icon>
+              </button>
+              <div :class="['menu-children', { 'menu-children--expanded': isExpanded(item.index) }]">
+                <button
+                  v-for="child in item.children"
+                  :key="child.index"
+                  class="menu-item menu-child"
+                  type="button"
+                  :class="{ active: route.path === child.index }"
+                  @click="go(child.index)"
+                >
+                  <span class="child-dot" />
+                  <span class="menu-text">{{ child.title }}</span>
+                </button>
               </div>
             </div>
-          </div>
 
-          <!-- 无子菜单 -->
-          <div
-            v-else
-            class="menu-item"
-            :class="{ active: isMenuActive(item.index) }"
-            @click="router.push(item.index)"
-          >
-            <el-icon :size="18"><component :is="item.icon" /></el-icon>
-            <span class="menu-text">{{ item.title }}</span>
-          </div>
-        </template>
+            <button v-else class="menu-item" type="button" :class="{ active: isMenuActive(item.index) }" @click="go(item.index)">
+              <el-icon :size="17"><component :is="item.icon" /></el-icon>
+              <span class="menu-text">{{ item.title }}</span>
+            </button>
+          </template>
+        </section>
       </nav>
 
-      <!-- 底部学校信息 -->
       <div class="sidebar-footer">
-        <el-icon :size="16"><School /></el-icon>
-        <span>{{ userStore.schoolName || '本校' }}</span>
+        <div class="school-chip">
+          <el-icon :size="15"><School /></el-icon>
+          <span>{{ userStore.schoolName || '本校' }}</span>
+        </div>
       </div>
     </aside>
 
-    <!-- 右侧主区域 -->
     <div class="main-area">
-      <!-- 顶部工具栏 -->
       <header class="top-toolbar">
         <div class="toolbar-left">
           <div class="breadcrumbs">
             <template v-for="(crumb, i) in breadcrumbs" :key="i">
-              <span
-                class="crumb"
-                :class="{ clickable: crumb.path }"
-                @click="crumb.path && router.push(crumb.path)"
-              >{{ crumb.title }}</span>
+              <span class="crumb" :class="{ clickable: crumb.path }" @click="crumb.path && go(crumb.path)">{{ crumb.title }}</span>
               <span v-if="i < breadcrumbs.length - 1" class="crumb-sep">/</span>
             </template>
           </div>
+          <h1 class="toolbar-title">{{ currentTitle }}</h1>
         </div>
+
         <div class="toolbar-right">
           <span class="toolbar-school">{{ userStore.schoolName || '本校' }}</span>
           <NotificationDropdown />
           <el-dropdown trigger="click">
             <span class="user-trigger">
-              <span class="user-avatar">{{ userStore.realName?.charAt(0) || 'U' }}</span>
-              <span class="user-name">{{ userStore.realName }}</span>
-              <el-tag size="small" effect="plain" class="role-tag">{{ userStore.roleName }}</el-tag>
+              <span class="user-avatar">{{ userStore.realName?.charAt(0) || '管' }}</span>
+              <span class="user-meta">
+                <span class="user-name">{{ userStore.realName || '管理员' }}</span>
+                <span class="user-role">{{ userStore.roleName || '学校管理员' }}</span>
+              </span>
               <el-icon :size="14"><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item @click="router.push('/school/dashboard')">
+                <el-dropdown-item @click="go('/school/dashboard')">
                   <el-icon><HomeFilled /></el-icon>管理首页
                 </el-dropdown-item>
                 <el-dropdown-item divided @click="handleLogout">
@@ -190,7 +182,6 @@ function handleLogout() {
         </div>
       </header>
 
-      <!-- 主内容区 -->
       <main class="content-area">
         <router-view />
       </main>
@@ -201,98 +192,115 @@ function handleLogout() {
 <style scoped>
 .school-layout {
   display: flex;
+  width: 100%;
   height: 100vh;
   overflow: hidden;
-  background: var(--color-bg-page);
+  background:
+    linear-gradient(180deg, rgba(79, 111, 234, 0.04), rgba(255, 255, 255, 0) 260px),
+    var(--color-bg-page);
 }
 
-/* ========== 左侧侧边栏 ========== */
 .sidebar {
   width: var(--sidebar-width);
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-page-alt);
-  border-right: var(--border-light);
   flex-shrink: 0;
   overflow: hidden;
-  transition: width var(--transition-fast, 0.2s);
+  background: var(--color-sidebar-bg);
+  border-right: 1px solid var(--color-sidebar-border);
 }
 
 .sidebar-header {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: 0 var(--space-4);
-  height: var(--nav-height);
-  flex-shrink: 0;
-  border-bottom: var(--border-light);
+  height: 68px;
+  padding: 0 var(--space-5);
+  border-bottom: 1px solid var(--color-sidebar-border);
 }
 
-.logo-icon {
-  width: var(--space-8);
-  height: var(--space-8);
-  background: var(--color-primary);
+.logo-mark {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 10px;
   color: var(--color-text-white);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: linear-gradient(135deg, #1D2433, var(--color-primary-500));
   font-size: var(--font-lg);
   font-weight: var(--font-weight-bold);
-  flex-shrink: 0;
+  box-shadow: 0 10px 22px rgba(79, 111, 234, 0.22);
 }
 
 .logo-text {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  min-width: 0;
 }
 
 .logo-title {
+  color: var(--color-text-heading);
   font-size: var(--font-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-title);
-  white-space: nowrap;
+  font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
+  white-space: nowrap;
 }
 
 .logo-subtitle {
-  font-size: var(--font-xs);
-  color: var(--color-text-secondary);
-  white-space: nowrap;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-family: var(--font-family-data);
+  font-size: var(--font-2xs);
   line-height: var(--line-height-tight);
+  white-space: nowrap;
 }
 
-/* 菜单 */
 .sidebar-menu {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-2) 0;
+  padding: var(--space-4) var(--space-3);
+}
+
+.menu-section + .menu-section {
+  margin-top: var(--space-4);
+}
+
+.menu-section-title {
+  padding: 0 var(--space-3) var(--space-2);
+  color: var(--color-text-placeholder);
+  font-size: var(--font-2xs);
+  font-weight: var(--font-weight-bold);
 }
 
 .menu-item {
+  width: 100%;
+  height: 38px;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-4);
-  height: var(--space-11);
+  gap: var(--space-3);
+  margin-bottom: 3px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--color-sidebar-text);
   cursor: pointer;
-  color: var(--color-text-body);
   font-size: var(--font-sm);
-  transition: background var(--transition-fast, 0.15s), color var(--transition-fast, 0.15s);
+  text-align: left;
+  transition: color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
   position: relative;
-  user-select: none;
 }
 
 .menu-item:hover {
-  background: var(--color-primary-50);
-  color: var(--color-text-title);
+  color: var(--color-text-heading);
+  background: var(--color-sidebar-hover-bg);
 }
 
 .menu-item.active {
-  background: var(--color-primary-50);
-  color: var(--color-primary);
+  color: var(--color-primary-600);
+  background: linear-gradient(90deg, var(--color-primary-50), rgba(238, 247, 251, 0.9));
   font-weight: var(--font-weight-semibold);
 }
 
@@ -300,21 +308,24 @@ function handleLogout() {
   content: '';
   position: absolute;
   left: 0;
-  top: var(--space-2);
-  bottom: var(--space-2);
-  width: var(--radius-sm);
-  background: var(--color-primary);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 0 var(--radius-full) var(--radius-full) 0;
+  background: linear-gradient(180deg, var(--color-primary-500), var(--color-accent-school-500));
 }
 
-.menu-parent {
-  font-weight: var(--font-weight-medium);
+.menu-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .menu-arrow {
   margin-left: auto;
-  transition: transform var(--transition-normal, 0.3s) cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--color-text-placeholder);
+  transition: transform 0.18s ease;
 }
 
 .menu-arrow.expanded {
@@ -324,77 +335,95 @@ function handleLogout() {
 .menu-children {
   max-height: 0;
   overflow: hidden;
-  transition: max-height var(--transition-normal, 0.3s) cubic-bezier(0.4, 0, 0.2, 1);
+  transition: max-height 0.2s ease;
 }
 
 .menu-children--expanded {
-  max-height: calc(var(--space-10) * 4);
+  max-height: 132px;
 }
 
 .menu-child {
-  padding-left: calc(var(--space-4) + var(--space-5));
-  height: var(--space-10);
+  height: 34px;
+  padding-left: var(--space-5);
   font-size: var(--font-sm);
 }
 
-.menu-child .menu-text {
-  font-size: var(--font-sm);
+.child-dot {
+  width: 5px;
+  height: 5px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-border-dark);
 }
 
-.menu-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.menu-child.active .child-dot {
+  background: var(--color-primary-500);
 }
 
-/* 底部 */
 .sidebar-footer {
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-sidebar-border);
+}
+
+.school-chip {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border-top: var(--border-light);
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-primary-100);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--color-primary-50), #F8FBFF);
+  color: var(--color-primary-700);
   font-size: var(--font-xs);
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
+  font-weight: var(--font-weight-semibold);
 }
 
-/* ========== 右侧主区域 ========== */
+.school-chip .el-icon {
+  color: var(--color-primary-600);
+}
+
+.school-chip span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .main-area {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  min-width: 0;
   overflow: hidden;
 }
 
-/* 顶部工具栏 */
 .top-toolbar {
-  height: var(--space-14);
+  height: 68px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-6);
-  background: var(--color-bg-card);
-  border-bottom: var(--border-light);
+  gap: var(--space-4);
+  padding: 0 var(--space-7);
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid var(--color-sidebar-border);
+  backdrop-filter: saturate(140%) blur(14px);
   flex-shrink: 0;
 }
 
 .toolbar-left {
+  min-width: 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .breadcrumbs {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: var(--font-sm);
-  color: var(--color-text-secondary);
-}
-
-.crumb {
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
 }
 
 .crumb.clickable {
@@ -406,84 +435,104 @@ function handleLogout() {
 }
 
 .crumb:last-child {
-  color: var(--color-text-title);
-  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
 }
 
 .crumb-sep {
-  color: var(--color-text-placeholder);
-  margin: 0 var(--space-0);
+  color: var(--color-text-disabled);
+}
+
+.toolbar-title {
+  margin: 0;
+  color: var(--color-text-heading);
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
 }
 
 .toolbar-right {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  flex-shrink: 0;
 }
 
 .toolbar-school {
-  font-size: var(--font-sm);
-  color: var(--color-text-body);
-  padding: var(--space-1) var(--space-3);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 5px var(--space-3);
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-full);
   background: var(--color-bg-light);
-  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-xs);
 }
 
 .user-trigger {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  padding: 5px var(--space-2) 5px 5px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-md);
-  transition: background 0.2s;
+  transition: background 0.16s ease, border-color 0.16s ease;
 }
 
 .user-trigger:hover {
-  background: var(--color-bg-hover);
+  border-color: var(--color-border-lighter);
+  background: var(--color-bg-light);
 }
 
 .user-avatar {
-  width: var(--space-8);
-  height: var(--space-8);
-  border-radius: var(--radius-full);
-  background: var(--color-primary-50);
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-sm);
-  font-weight: var(--font-weight-semibold);
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
   flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--color-primary-100), var(--color-accent-school-100));
+  color: var(--color-primary-700);
+  font-size: var(--font-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.user-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .user-name {
+  color: var(--color-text-heading);
   font-size: var(--font-sm);
-  color: var(--color-text-title);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
 }
 
-.role-tag {
-  font-size: var(--font-xs);
-  background: var(--color-primary-50);
-  color: var(--color-primary);
-  border-color: var(--color-primary-200);
+.user-role {
+  color: var(--color-text-muted);
+  font-size: var(--font-2xs);
+  line-height: var(--line-height-tight);
 }
 
-/* 主内容区 */
 .content-area {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-5) var(--space-7) var(--space-7);
 }
 
-/* 响应式 */
-@media (max-width: 1366px) {
+@media (max-width: 1180px) {
   .sidebar {
-    width: var(--sidebar-width-collapsed);
+    width: 220px;
   }
+
+  .top-toolbar,
   .content-area {
-    padding: var(--space-4) var(--space-5);
+    padding-left: var(--space-5);
+    padding-right: var(--space-5);
   }
 }
 
@@ -491,11 +540,27 @@ function handleLogout() {
   .sidebar {
     display: none;
   }
-  .content-area {
-    padding: var(--space-3) var(--space-3);
-  }
+
   .top-toolbar {
-    padding: 0 var(--space-4);
+    height: auto;
+    min-height: 64px;
+    align-items: flex-start;
+    flex-direction: column;
+    padding: var(--space-3);
+  }
+
+  .toolbar-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .toolbar-school,
+  .user-meta {
+    display: none;
+  }
+
+  .content-area {
+    padding: var(--space-4) var(--space-3);
   }
 }
 </style>

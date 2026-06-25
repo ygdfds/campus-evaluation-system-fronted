@@ -23,7 +23,7 @@ const filterStatus = ref('all')
 const filterType = ref('all')
 const sortBy = ref('deadline')
 const currentPage = ref(1)
-const pageSize = 8
+const pageSize = 5
 
 function formatShortDate(dateStr) {
   if (!dateStr) return ''
@@ -201,6 +201,7 @@ onMounted(() => { loadData() })
 
 <template>
   <div class="page-container">
+    <div class="evaluation-workspace">
     <!-- 页面标题区 -->
     <div class="page-header">
       <h1 class="page-title">评价中心</h1>
@@ -259,6 +260,7 @@ onMounted(() => { loadData() })
       </div>
     </div>
 
+    <div class="task-list-shell">
     <!-- 加载状态 -->
     <div v-if="loading" class="loading-skeleton">
       <el-skeleton :rows="5" animated />
@@ -280,7 +282,7 @@ onMounted(() => { loadData() })
     </div>
 
     <!-- 分页 -->
-    <div v-if="filteredList.length > 1" class="pagination-wrap">
+    <div v-if="filteredList.length" class="pagination-wrap">
       <el-pagination
         v-model:current-page="currentPage"
         :page-size="pageSize"
@@ -288,6 +290,8 @@ onMounted(() => { loadData() })
         layout="prev, pager, next"
         small
       />
+    </div>
+    </div>
     </div>
   </div>
 </template>
@@ -473,5 +477,51 @@ onMounted(() => { loadData() })
   .search-input {
     width: 280px;
   }
+}
+
+/* student evaluation unified paper */
+.page-container {
+  max-width: 1040px;
+  margin-inline: auto;
+}
+
+.evaluation-workspace {
+  padding: var(--space-5);
+  background: #fff;
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.evaluation-workspace .page-header {
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border-lighter);
+}
+
+.evaluation-workspace .filter-panel,
+.evaluation-workspace .task-list-shell {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.evaluation-workspace .filter-panel {
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border-lighter);
+}
+
+.evaluation-workspace .pagination-wrap {
+  justify-content: flex-end;
+  padding-top: var(--space-3);
+  margin-top: var(--space-3);
+  border-top: 1px solid var(--color-border-lighter);
+}
+
+@media (max-width: 768px) {
+  .evaluation-workspace { padding: var(--space-4); }
 }
 </style>

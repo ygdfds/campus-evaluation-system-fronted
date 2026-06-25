@@ -120,8 +120,8 @@ const trendLineOption = computed(() => {
         color: {
           type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
           colorStops: [
-            { offset: 0, color: 'rgba(45,106,46,0.25)' },
-            { offset: 1, color: 'rgba(45,106,46,0.02)' },
+            { offset: 0, color: 'rgba(71,95,123,0.25)' },
+            { offset: 1, color: 'rgba(71,95,123,0.02)' },
           ],
         },
       },
@@ -207,6 +207,7 @@ onMounted(loadData)
 <template>
   <div v-loading="loading" class="page-container">
     <div class="page-header">
+      <span class="page-kicker">Evaluation console</span>
       <h2>投诉建议管理</h2>
       <p class="page-desc">本校投诉建议数据统计与处理跟踪</p>
     </div>
@@ -219,16 +220,12 @@ onMounted(loadData)
 
     <!-- 统计概览 -->
     <template v-if="activeTab === 'stats'">
-      <!-- 核心指标卡 -->
-      <section class="metrics-grid">
-        <div v-for="item in statCards" :key="item.title" class="metric-card">
-          <div class="metric-top">
-            <el-icon :size="18" class="metric-icon" :style="{ color: item.color }"><component :is="item.icon" /></el-icon>
-            <span class="metric-value" :style="{ color: item.color }">{{ item.value }}</span>
-          </div>
-          <span class="metric-title">{{ item.title }}</span>
+      <div class="stats-strip">
+        <div v-for="item in statCards" :key="item.title" class="strip-item">
+          <span class="strip-value" :style="{ color: item.color }">{{ item.value }}</span>
+          <span class="strip-label">{{ item.title }}</span>
         </div>
-      </section>
+      </div>
 
       <!-- 图表区 -->
       <div class="chart-grid">
@@ -273,6 +270,7 @@ onMounted(loadData)
 
     <!-- 投诉列表 -->
     <template v-if="activeTab === 'list'">
+      <div class="list-surface">
       <div class="filter-bar">
         <el-select v-model="filterStatus" placeholder="按状态筛选" clearable @change="handleFilterChange" class="filter-select">
           <el-option label="待处理" value="pending" />
@@ -336,10 +334,10 @@ onMounted(loadData)
           v-model:current-page="listPage"
           v-model:page-size="listPageSize"
           :total="listTotal"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next"
+          layout="prev, pager, next"
           @current-change="handlePageChange"
         />
+      </div>
       </div>
     </template>
   </div>
@@ -347,20 +345,22 @@ onMounted(loadData)
 
 <style scoped>
 .page-container {
-  padding: var(--space-6) var(--space-4);
+  padding: var(--space-4) var(--space-4) var(--space-6);
   max-width: var(--page-max-width);
   margin-inline: auto;
 }
 
 .page-header {
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 .page-header h2 {
-  font-size: var(--font-2xl);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
+  font-size: 24px;
+  font-weight: var(--font-weight-display);
+  font-family: var(--font-family-display);
+  color: var(--color-text-heading);
   margin: 0 0 var(--space-1);
+  letter-spacing: var(--letter-spacing-tight);
 }
 
 .page-desc {
@@ -370,44 +370,41 @@ onMounted(loadData)
 }
 
 .main-tabs {
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 /* 指标卡 */
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-3);
-  margin-bottom: var(--space-5);
-}
-
-.metric-card {
-  background: var(--color-bg-card);
-  border-radius: var(--radius-card);
-  border: var(--border-light);
-  padding: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.metric-top {
+.stats-strip {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-bg-light);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
 }
 
-.metric-icon { opacity: 0.8; }
-
-.metric-value {
-  font-size: var(--font-2xl);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-tight);
+.strip-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
 }
 
-.metric-title {
-  font-size: var(--font-sm);
-  color: var(--color-text-secondary);
+.strip-item + .strip-item {
+  padding-left: var(--space-5);
+  border-left: 1px solid var(--color-border-lighter);
+}
+
+.strip-value {
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-heading);
+  line-height: 1;
+}
+
+.strip-label {
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
 }
 
 /* 图表 */
@@ -425,15 +422,19 @@ onMounted(loadData)
 .chart-card {
   background: var(--color-bg-card);
   border-radius: var(--radius-card);
-  border: var(--border-light);
+  border: 1px solid var(--color-border-lighter);
+  box-shadow: var(--shadow-card);
   padding: var(--space-4);
 }
 
 .chart-title {
+  font-family: var(--font-family-display);
   font-size: var(--font-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-title);
+  color: var(--color-text-heading);
   margin: 0 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border-lighter);
 }
 
 .chart-container {
@@ -447,13 +448,14 @@ onMounted(loadData)
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-4);
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 .efficiency-item {
   background: var(--color-bg-card);
   border-radius: var(--radius-card);
-  border: var(--border-light);
+  border: 1px solid var(--color-border-lighter);
+  box-shadow: var(--shadow-card);
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
@@ -467,16 +469,21 @@ onMounted(loadData)
 
 .efficiency-value {
   font-size: var(--font-xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-title);
+  font-weight: var(--font-weight-display);
+  color: var(--color-text-heading);
+  font-family: var(--font-family-display);
 }
 
 /* 筛选栏 */
 .filter-bar {
   display: flex;
   gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
   flex-wrap: wrap;
+  padding: 0;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
 }
 
 .filter-select {
@@ -487,19 +494,20 @@ onMounted(loadData)
 .complaint-table {
   border-radius: var(--radius-card);
   overflow: hidden;
+  border: 1px solid var(--color-border-lighter);
+  box-shadow: none;
 }
 
 .pagination-wrapper {
   display: flex;
   justify-content: flex-end;
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-lighter);
 }
 
 /* 响应式 */
 @media (max-width: 1366px) {
-  .metrics-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
   .chart-grid {
     grid-template-columns: 1fr;
   }
@@ -512,8 +520,9 @@ onMounted(loadData)
   .page-container {
     padding: var(--space-4) var(--space-3);
   }
-  .metrics-grid {
-    grid-template-columns: 1fr;
+  .stats-strip {
+    flex-wrap: wrap;
+    gap: var(--space-3);
   }
   .filter-bar {
     flex-direction: column;

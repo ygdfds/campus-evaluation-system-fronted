@@ -96,4 +96,20 @@ defineEmits(['click'])
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
+
+
+/* SaaS announcement card pass */
+.announce-card {
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  background: #FBFCFF;
+}
+.announce-card:hover {
+  transform: none;
+  border-color: var(--color-primary-100);
+  background: var(--color-primary-50);
+  box-shadow: var(--shadow-card-hover);
+}
+.card-title { font-family: var(--font-family-display); }
 </style>

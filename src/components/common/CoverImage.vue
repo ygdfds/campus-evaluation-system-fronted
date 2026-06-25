@@ -12,11 +12,16 @@ const props = defineProps({
   width: { type: String, default: '100%' },
   /** 高度 */
   height: { type: String, default: '100%' },
+  /** 统一尺寸（同时设置宽高） */
+  size: { type: [Number, String], default: null },
   /** 圆角 */
   radius: { type: String, default: '0' },
   /** object-fit */
   fit: { type: String, default: 'cover' },
 })
+
+const resolvedWidth = computed(() => (props.size != null ? `${props.size}px` : props.width))
+const resolvedHeight = computed(() => (props.size != null ? `${props.size}px` : props.height))
 
 const imageFailed = ref(false)
 const displaySrc = computed(() => (props.src && !imageFailed.value ? props.src : ''))
@@ -34,7 +39,7 @@ function handleImageError() {
 </script>
 
 <template>
-  <div class="cover-image" :style="{ width, height, borderRadius: radius }">
+  <div class="cover-image" :style="{ width: resolvedWidth, height: resolvedHeight, borderRadius: radius }">
     <img
       v-if="displaySrc"
       :src="displaySrc"

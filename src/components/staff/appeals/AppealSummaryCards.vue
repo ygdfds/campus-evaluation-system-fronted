@@ -21,67 +21,78 @@ const statusItems = [
 </script>
 
 <template>
-  <div class="summary-cards">
+  <div class="stats-strip">
     <div
       v-for="item in statusItems"
       :key="item.key"
-      class="summary-card"
+      class="strip-item"
       :class="{ active: activeStatus === item.key }"
       @click="emit('status-change', item.key)"
     >
-      <span class="card-count">{{ item.key === 'all' ? (summary.total ?? 0) : (summary[item.key] ?? 0) }}</span>
-      <span class="card-label">{{ APPEAL_STATUS_MAP[item.key] || item.label }}</span>
+      <span class="strip-value">{{ item.key === 'all' ? (summary.total ?? 0) : (summary[item.key] ?? 0) }}</span>
+      <span class="strip-label">{{ APPEAL_STATUS_MAP[item.key] || item.label }}</span>
     </div>
   </div>
 </template>
 
 <style scoped>
-.summary-cards {
+.stats-strip {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: var(--space-3);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  padding: 0;
+  background: var(--color-border-lighter);
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
-.summary-card {
+.strip-item {
+  min-height: 72px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: var(--space-4) var(--space-3);
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
   background: var(--color-bg-card);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  position: relative;
   cursor: pointer;
-  transition: all 0.2s;
-  border: 2px solid transparent;
+  transition: background 0.16s;
 }
 
-.summary-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
+.strip-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  width: 3px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-light);
 }
 
-.summary-card.active {
-  border-color: var(--color-primary);
-  background: var(--color-primary-50);
-}
+.strip-item:hover { background: var(--color-bg-page); }
 
-.card-count {
-  font-size: var(--font-xl);
+.strip-item.active { background: var(--color-primary-50); }
+.strip-item.active::before { background: var(--color-primary); }
+
+.strip-value {
+  font-family: var(--font-family-data);
+  font-size: 24px;
   font-weight: var(--font-weight-bold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-heading);
 }
 
-.card-label {
+.strip-label {
+  color: var(--color-text-secondary);
   font-size: var(--font-xs);
-  color: var(--color-text-muted);
 }
 
 @media (max-width: 900px) {
-  .summary-cards { grid-template-columns: repeat(3, 1fr); }
-}
-
-@media (max-width: 600px) {
-  .summary-cards { grid-template-columns: repeat(2, 1fr); }
+  .stats-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 </style>

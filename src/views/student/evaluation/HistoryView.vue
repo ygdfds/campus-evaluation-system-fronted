@@ -110,6 +110,7 @@ onMounted(() => { loadData() })
 
 <template>
   <div class="page-container">
+    <div class="history-workspace">
     <div class="page-header-area">
       <h2 class="page-title">我的评价</h2>
       <p class="page-subtitle">查看和管理已提交的评价记录</p>
@@ -209,7 +210,7 @@ onMounted(() => { loadData() })
     </div>
 
     <!-- 分页 -->
-    <div v-if="filteredEvaluations.length > 1" class="pagination-wrap">
+    <div v-if="filteredEvaluations.length" class="pagination-wrap">
       <el-pagination
         v-model:current-page="currentPage"
         :page-size="pageSize"
@@ -217,6 +218,7 @@ onMounted(() => { loadData() })
         layout="prev, pager, next"
         small
       />
+    </div>
     </div>
   </div>
 </template>
@@ -226,7 +228,7 @@ onMounted(() => { loadData() })
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
-  max-width: 960px;
+  max-width: 1040px;
   margin: 0 auto;
   width: 100%;
   padding-bottom: var(--space-8);
@@ -458,5 +460,37 @@ onMounted(() => { loadData() })
     align-items: center;
     justify-content: space-between;
   }
+}
+
+.history-workspace {
+  padding: var(--space-5);
+  background: #fff;
+  border: 1px solid var(--color-border-lighter);
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.history-workspace .filter-bar {
+  margin: var(--space-4) 0;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border-lighter);
+}
+
+.history-workspace .eval-card {
+  background: #fbfcff;
+}
+
+.history-workspace .pagination-wrap {
+  justify-content: flex-end;
+  padding-top: var(--space-3);
+  margin-top: var(--space-3);
+  border-top: 1px solid var(--color-border-lighter);
+}
+/* student-list-width-pass */
+.history-workspace {
+  padding: var(--space-5);
+}
+@media (max-width: 768px) {
+  .history-workspace { padding: var(--space-4); }
 }
 </style>

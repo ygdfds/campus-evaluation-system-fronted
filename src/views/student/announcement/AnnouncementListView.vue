@@ -20,7 +20,7 @@ const filterTag = ref('all')
 const sortOrder = ref('desc')
 const searchText = ref('')
 const currentPage = ref(1)
-const pageSize = 8
+const pageSize = 6
 
 const tagOptions = [
   { label: '全部', value: 'all' },
@@ -123,31 +123,33 @@ onMounted(loadData)
       />
     </div>
 
-    <div v-if="loading" class="loading-skeleton">
-      <el-skeleton :rows="5" animated />
-    </div>
+    <div class="announcement-list-shell">
+      <div v-if="loading" class="loading-skeleton">
+        <el-skeleton :rows="5" animated />
+      </div>
 
-    <div v-else-if="filteredList.length" class="announce-list">
-      <AnnouncementCard
-        v-for="item in pagedList"
-        :key="item.id"
-        :item="item"
-        @click="handleCardClick"
-      />
-    </div>
+      <div v-else-if="filteredList.length" class="announce-list">
+        <AnnouncementCard
+          v-for="item in pagedList"
+          :key="item.id"
+          :item="item"
+          @click="handleCardClick"
+        />
+      </div>
 
-    <el-card v-else shadow="never" class="empty-card">
-      <EmptyPlaceholder text="暂无公告" description="当前没有符合条件的正式校园公告" />
-    </el-card>
+      <el-card v-else shadow="never" class="empty-card">
+        <EmptyPlaceholder text="暂无公告" description="当前没有符合条件的正式校园公告" />
+      </el-card>
 
-    <div v-if="filteredList.length > pageSize" class="pagination-wrap">
-      <el-pagination
-        v-model:current-page="currentPage"
-        :page-size="pageSize"
-        :total="filteredList.length"
-        layout="prev, pager, next"
-        small
-      />
+      <div v-if="filteredList.length" class="pagination-wrap">
+        <el-pagination
+          v-model:current-page="currentPage"
+          :page-size="pageSize"
+          :total="filteredList.length"
+          layout="prev, pager, next"
+          small
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -217,5 +219,48 @@ onMounted(loadData)
   .sort-select {
     width: 100%;
   }
+}
+
+
+.announcement-list-shell {
+  padding: var(--space-4);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.announcement-list-shell .loading-skeleton,
+.announcement-list-shell .empty-card {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+}
+
+.announcement-list-shell .pagination-wrap {
+  justify-content: flex-end;
+  padding-top: var(--space-3);
+  margin-top: var(--space-3);
+  border-top: 1px solid var(--color-border-lighter);
+}
+/* SaaS announcement list pass */
+.page-container {
+  max-width: 1040px;
+  margin-inline: auto;
+  gap: var(--space-4);
+}
+.filter-bar,
+.loading-skeleton,
+.empty-card {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border-lighter);
+  box-shadow: var(--shadow-card);
+}
+.filter-bar { padding: var(--space-3) var(--space-4); }
+.announce-list { gap: var(--space-3); }
+.pagination-wrap {
+  justify-content: flex-end;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-lighter);
 }
 </style>

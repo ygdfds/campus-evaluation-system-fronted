@@ -336,6 +336,8 @@ onMounted(() => { loadData() })
         </el-button>
       </div>
 
+      <div class="evaluation-form-paper">
+
       <!-- 修改模式提示 -->
       <div v-if="isEditMode && !isReadonly" class="edit-mode-hint">
         当前为修改评价模式，可修改至 {{ formatDateTime(existingSubmission?.modifiable_until) }}
@@ -422,6 +424,7 @@ onMounted(() => { loadData() })
             {{ isEditMode ? '提交修改' : '提交评价' }}
           </el-button>
         </div>
+      </div>
       </div>
     </template>
 
@@ -618,5 +621,38 @@ onMounted(() => { loadData() })
 
 .error-state {
   padding: var(--space-10) 0;
+}
+
+.evaluation-form-paper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: #fff;
+  border: 1px solid var(--color-border-lighter);
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.evaluation-form-paper .form-header-card,
+.evaluation-form-paper .rules-card,
+.evaluation-form-paper .question-item {
+  box-shadow: none;
+}
+
+.evaluation-form-paper .form-header-card {
+  padding: 0 0 var(--space-4);
+  border-bottom: 1px solid var(--color-border-lighter);
+  border-radius: 0;
+  background: transparent;
+}
+
+.evaluation-form-paper .rules-card {
+  margin: 0;
+}
+
+.evaluation-form-paper .action-bar {
+  margin-top: var(--space-2);
+  padding-bottom: 0;
 }
 </style>

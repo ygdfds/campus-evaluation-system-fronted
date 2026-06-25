@@ -27,7 +27,7 @@ const displayList = computed(() => props.ranking.slice(0, 10))
   <div class="ranking-card">
     <div class="ranking-header">
       <h4 class="card-title">评价对象排行</h4>
-      <el-select :model-value="sortBy" size="small" @change="v => emit('sort-change', v)">
+      <el-select :model-value="sortBy" size="small" style="max-width: 180px" @change="v => emit('sort-change', v)">
         <el-option v-for="opt in sortOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
       </el-select>
     </div>

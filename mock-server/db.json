@@ -3523,9 +3523,10 @@
       "content": "你提交的申诉 AP20260601001 已被受理，相关部门正在处理中。",
       "type": "appeal",
       "link": "/student/my-evaluations",
-      "read_status": "unread",
+      "read_status": "read",
       "created_at": "2026-06-01T10:00:00.000Z",
-      "deleted": false
+      "deleted": false,
+      "updated_at": "2026-06-25T14:42:28.200Z"
     },
     {
       "id": 23,
@@ -4992,10 +4993,10 @@
   "tokens": [
     {
       "id": 1,
-      "token": "mock_token_201_1782363508191",
-      "userId": 201,
-      "createdAt": "2026-06-25T04:58:28.191Z",
-      "expiresAt": "2026-06-26T04:58:28.191Z"
+      "token": "mock_token_202_1782393527041",
+      "userId": 202,
+      "createdAt": "2026-06-25T13:18:47.041Z",
+      "expiresAt": "2026-06-26T13:18:47.041Z"
     }
   ],
   "evaluationQuestions": [

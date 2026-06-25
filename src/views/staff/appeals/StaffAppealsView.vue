@@ -38,7 +38,7 @@ const appealList = ref([])
 const summary = ref({})
 const total = ref(0)
 const currentPage = ref(1)
-const pageSize = ref(8)
+const pageSize = ref(6)
 
 // 筛选
 const filters = reactive({
@@ -198,39 +198,42 @@ onMounted(() => {
         @status-change="handleStatusChange"
       />
 
-      <!-- 筛选工具栏 -->
-      <AppealFilterBar
-        :filters="filters"
-        @update:filters="handleFilterUpdate"
-        @reset="handleReset"
-      />
+      <!-- 筛选 + 列表 + 分页（合并到大盒子） -->
+      <el-card shadow="never" class="section-card list-card">
+        <!-- 筛选工具栏 -->
+        <AppealFilterBar
+          :filters="filters"
+          @update:filters="handleFilterUpdate"
+          @reset="handleReset"
+        />
 
-      <!-- 申诉列表 -->
-      <div v-loading="loading" class="appeal-list-wrap">
-        <template v-if="appealList.length > 0">
-          <AppealList
-            :list="appealList"
-            @view="handleView"
-            @action="handleAction"
+        <!-- 申诉列表 -->
+        <div v-loading="loading" class="appeal-list-wrap">
+          <template v-if="appealList.length > 0">
+            <AppealList
+              :list="appealList"
+              @view="handleView"
+              @action="handleAction"
+            />
+          </template>
+          <EmptyPlaceholder
+            v-else-if="!loading"
+            text="暂无申诉记录"
+            description="当前筛选范围内暂无需要处理的评价申诉。"
           />
-        </template>
-        <EmptyPlaceholder
-          v-else-if="!loading"
-          text="暂无申诉记录"
-          description="当前筛选范围内暂无需要处理的评价申诉。"
-        />
-      </div>
+        </div>
 
-      <!-- 分页 -->
-      <div v-if="total > pageSize" class="pagination-wrap">
-        <el-pagination
-          v-model:current-page="currentPage"
-          :page-size="pageSize"
-          :total="total"
-          layout="prev, pager, next"
-          @current-change="handlePageChange"
-        />
-      </div>
+        <!-- 分页 -->
+        <div v-if="total > 0" class="pagination-bar">
+          <el-pagination
+            v-model:current-page="currentPage"
+            :page-size="pageSize"
+            :total="total"
+            layout="prev, pager, next"
+            @current-change="handlePageChange"
+          />
+        </div>
+      </el-card>
 
       <!-- 详情抽屉 -->
       <AppealDetailDrawer
@@ -255,6 +258,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  max-width: 1480px;
+  margin-inline: auto;
 }
 
 .no-permission {
@@ -272,13 +277,44 @@ onMounted(() => {
   font-weight: var(--font-weight-medium);
 }
 
+/* 大盒子 */
+.section-card {
+  border: 1px solid var(--color-border-lighter) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card) !important;
+  overflow: hidden;
+}
+
+.list-card :deep(.el-card__body) {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* 筛选栏嵌入时去掉自身背景/阴影 */
+.list-card :deep(.filter-bar) {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  border-bottom: 1px solid var(--color-border-lighter);
+  padding-bottom: var(--space-4);
+}
+
+/* 申诉卡片嵌入时去掉自身阴影 */
+.list-card :deep(.appeal-card) {
+  box-shadow: none;
+  border: 1px solid var(--color-border-lighter);
+}
+
 .appeal-list-wrap {
   min-height: 200px;
 }
 
-.pagination-wrap {
+.pagination-bar {
   display: flex;
   justify-content: center;
-  padding: var(--space-4) 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-lighter);
 }
 </style>

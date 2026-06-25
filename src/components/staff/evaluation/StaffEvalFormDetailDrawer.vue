@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import CoverImage from '@/components/common/CoverImage.vue'
 
 defineOptions({ name: 'StaffEvalFormDetailDrawer' })
 
@@ -53,6 +54,9 @@ function handleClose() {
       <!-- 基本信息 -->
       <div class="detail-section">
         <h3 class="section-title">基本信息</h3>
+        <div v-if="detail._cover_url" class="detail-cover">
+          <CoverImage :src="detail._cover_url" width="100%" height="220px" radius="var(--radius-lg)" />
+        </div>
         <div class="detail-grid">
           <div class="detail-item">
             <span class="detail-label">表单名称</span>
@@ -379,5 +383,11 @@ function handleClose() {
   justify-content: flex-end;
   gap: var(--space-2);
   width: 100%;
+}
+
+.detail-cover {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--space-2);
 }
 </style>

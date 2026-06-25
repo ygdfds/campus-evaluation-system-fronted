@@ -62,6 +62,9 @@ function formatTime(dateStr) {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .warning-header {
@@ -85,9 +88,8 @@ function formatTime(dateStr) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
+  width: 24px;
+  height: 24px;
   background: #fef0f0;
   color: var(--color-danger);
   font-size: 11px;
@@ -121,7 +123,11 @@ function formatTime(dateStr) {
   color: var(--color-text-placeholder);
 }
 
-.warning-list { display: flex; flex-direction: column; }
+.warning-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
 
 .warning-row {
   display: flex;

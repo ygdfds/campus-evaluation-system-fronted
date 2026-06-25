@@ -37,6 +37,7 @@ const traceStatusMap = {
 // 操作日志模块中文映射
 const moduleMap = {
   appeal: '申诉处理',
+  complaint: '投诉建议',
   form: '表单管理',
   feedback: '反馈处理',
   org: '组织管理',

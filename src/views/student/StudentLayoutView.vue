@@ -44,18 +44,33 @@ function toggleSidebar() {
 </template>
 
 <style scoped>
-.student-layout {
+.student-layout,
+.staff-layout {
+  width: 100%;
   height: 100vh;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(79, 111, 234, 0.05), rgba(255, 255, 255, 0) 280px),
+    var(--color-bg-page);
 }
 
 .main-container {
+  min-width: 0;
   flex-direction: column;
   overflow: hidden;
 }
 
 .layout-main {
-  background: var(--color-bg-page);
-  padding: var(--space-5);
   overflow-y: auto;
+  padding: var(--space-5) var(--space-7) var(--space-8);
+  background: transparent;
+}
+
+@media (max-width: 1180px) {
+  .layout-main { padding: var(--space-5); }
+}
+
+@media (max-width: 768px) {
+  .layout-main { padding: var(--space-4) var(--space-3); }
 }
 </style>

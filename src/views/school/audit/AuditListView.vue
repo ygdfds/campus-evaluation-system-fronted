@@ -4,10 +4,11 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Refresh, ArrowLeft, Search, DocumentChecked,
+  Refresh, Search, DocumentChecked,
   Check, Close, View, Warning,
   OfficeBuilding, Timer, User, Lock,
 } from '@element-plus/icons-vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import {
   getSchoolAuditListApi,
   getSchoolAuditSummaryApi,
@@ -61,6 +62,9 @@ const filters = ref({
   sort: 'latest',
 })
 
+const formPage = ref(1)
+const formPageSize = ref(10)
+
 const drawerVisible = ref(false)
 const drawerLoading = ref(false)
 const drawerDetail = ref(null)
@@ -93,6 +97,9 @@ const traceFilters = ref({
   sort: 'latest',
 })
 
+const tracePage = ref(1)
+const tracePageSize = ref(10)
+
 const traceDrawerVisible = ref(false)
 const traceDrawerLoading = ref(false)
 const traceDrawerDetail = ref(null)
@@ -104,6 +111,17 @@ const traceRejectRules = {
   reason: [{ required: true, message: '请填写拒绝原因', trigger: 'blur' }, { min: 10, max: 300, message: '拒绝原因 10-300 字', trigger: 'blur' }],
 }
 const traceRejectFormRef = ref(null)
+
+// ==================== 分页计算 ====================
+const paginatedAuditList = computed(() => {
+  const start = (formPage.value - 1) * formPageSize.value
+  return auditList.value.slice(start, start + formPageSize.value)
+})
+
+const paginatedTraceList = computed(() => {
+  const start = (tracePage.value - 1) * tracePageSize.value
+  return traceList.value.slice(start, start + tracePageSize.value)
+})
 
 // ==================== 计算属性 ====================
 const statusCards = computed(() => {
@@ -355,193 +373,163 @@ function handleRefresh() {
 }
 
 // ==================== 生命周期 ====================
-onMounted(() => {
+onMounted(async () => {
+  // 同时加载两个 Tab 的 summary，确保 badge 显示
+  const tid = userStore.tenantId
+  try {
+    const [fs, ts] = await Promise.all([
+      getSchoolAuditSummaryApi(tid),
+      getTraceAuthSummaryApi(tid),
+    ])
+    formSummary.value = fs
+    traceSummary.value = ts
+  } catch { /* ignore */ }
+  // 加载当前 Tab 的列表数据
   if (activeTab.value === 'trace') loadTraceData()
   else loadFormData()
 })
 </script>
 
 <template>
-  <div class="audit-page">
-    <!-- 页面标题 -->
-    <section class="page-header">
-      <div class="header-info">
-        <h1 class="page-title">审核中心</h1>
-        <p class="page-subtitle">审核本校评价表单发布申请与追溯授权申请</p>
-      </div>
-      <div class="header-actions">
+  <div class="page">
+    <PageHeader title="审核中心" description="审核本校评价表单发布申请与追溯授权申请">
+      <template #actions>
         <el-button :icon="Refresh" @click="handleRefresh" :loading="formLoading || traceLoading">刷新</el-button>
-        <el-button :icon="ArrowLeft" text @click="router.push('/school/dashboard')">返回首页</el-button>
+      </template>
+    </PageHeader>
+
+    <div class="toolbar">
+      <div class="toolbar-tabs">
+        <el-radio-group :model-value="activeTab" @change="switchTab" size="large">
+          <el-radio-button value="form"><el-icon><DocumentChecked /></el-icon>评价表单审核</el-radio-button>
+          <el-radio-button value="trace"><el-icon><Lock /></el-icon>追溯授权审批<el-badge v-if="traceSummary.pending > 0" :value="traceSummary.pending" type="warning" class="badge" /></el-radio-button>
+        </el-radio-group>
       </div>
-    </section>
-
-    <!-- Tab 切换 -->
-    <section class="tab-bar">
-      <el-radio-group :model-value="activeTab" @change="switchTab" size="large">
-        <el-radio-button value="form">
-          <el-icon><DocumentChecked /></el-icon>
-          评价表单审核
-        </el-radio-button>
-        <el-radio-button value="trace">
-          <el-icon><Lock /></el-icon>
-          追溯授权审批
-          <el-badge v-if="traceSummary.pending > 0" :value="traceSummary.pending" type="warning" class="tab-badge" />
-        </el-radio-button>
-      </el-radio-group>
-    </section>
-
-    <!-- 状态统计 -->
-    <section class="status-cards">
-      <div v-for="card in statusCards" :key="card.key" class="status-card" :class="`tone-${card.tone}`">
-        <span class="card-value">{{ card.value }}</span>
-        <span class="card-label">{{ card.label }}</span>
+      <div class="toolbar-stats">
+        <span v-for="(c, i) in statusCards" :key="c.key" class="s">
+          <em :class="`c-${c.tone}`">{{ c.value }}</em>{{ c.label }}<span v-if="i < statusCards.length - 1" class="d" />
+        </span>
       </div>
-    </section>
+    </div>
 
-    <!-- ==================== 评价表单审核 Tab ==================== -->
     <template v-if="activeTab === 'form'">
-      <!-- 筛选工具栏 -->
-      <section class="filter-bar">
-        <el-input v-model="filters.keyword" placeholder="搜索表单名称、提交人、组织…" :prefix-icon="Search" clearable style="width: 320px" @clear="loadFormData" @keyup.enter="loadFormData" />
-        <el-select v-model="filters.status" style="width: 130px" @change="loadFormData">
-          <el-option label="全部状态" value="all" />
-          <el-option label="待审核" value="pending" />
-          <el-option label="已通过" value="approved" />
-          <el-option label="已驳回" value="rejected" />
-        </el-select>
-        <el-select v-model="filters.formType" style="width: 130px" @change="loadFormData">
-          <el-option label="全部类型" value="all" />
-          <el-option label="教学评价" value="teaching" />
-          <el-option label="服务评价" value="service" />
-          <el-option label="即时评价" value="instant" />
-        </el-select>
-        <el-select v-model="filters.timeRange" style="width: 130px" @change="loadFormData">
-          <el-option label="全部时间" value="all" />
-          <el-option label="今日" value="today" />
-          <el-option label="本周" value="week" />
-          <el-option label="本月" value="month" />
-        </el-select>
-        <el-select v-model="filters.sort" style="width: 130px" @change="loadFormData">
-          <el-option label="最新提交" value="latest" />
-          <el-option label="最近审核" value="recent_audit" />
-          <el-option label="状态优先" value="status_first" />
-        </el-select>
+      <div class="filters">
+        <el-input v-model="filters.keyword" placeholder="搜索表单名称、提交人、组织…" :prefix-icon="Search" clearable @clear="loadFormData" @keyup.enter="loadFormData" />
+        <el-select v-model="filters.status" @change="loadFormData"><el-option label="全部状态" value="all" /><el-option label="待审核" value="pending" /><el-option label="已通过" value="approved" /><el-option label="已驳回" value="rejected" /></el-select>
+        <el-select v-model="filters.formType" @change="loadFormData"><el-option label="全部类型" value="all" /><el-option label="教学评价" value="teaching" /><el-option label="服务评价" value="service" /><el-option label="即时评价" value="instant" /></el-select>
+        <el-select v-model="filters.timeRange" @change="loadFormData"><el-option label="全部时间" value="all" /><el-option label="今日" value="today" /><el-option label="本周" value="week" /><el-option label="本月" value="month" /></el-select>
+        <el-select v-model="filters.sort" @change="loadFormData"><el-option label="最新提交" value="latest" /><el-option label="最近审核" value="recent_audit" /><el-option label="状态优先" value="status_first" /></el-select>
         <el-button text type="primary" @click="resetFormFilters">重置</el-button>
-      </section>
+      </div>
 
-      <!-- 审核列表 -->
-      <section class="audit-list" v-loading="formLoading">
+      <div class="list" v-loading="formLoading">
         <template v-if="auditList.length">
-          <div v-for="item in auditList" :key="item.id" class="audit-card">
-            <div class="audit-card-main">
-              <div class="audit-card-row1">
-                <span class="audit-form-title">{{ item.form_title }}</span>
+          <div v-for="item in paginatedAuditList" :key="item.id" class="card">
+            <div class="card-body">
+              <div class="card-hd">
+                <span class="card-title">{{ item.form_title }}</span>
                 <el-tag :type="statusTagType(item.status_code)" size="small" effect="plain">{{ item.status }}</el-tag>
-                <el-tag size="small" effect="plain" class="type-tag">{{ item.form_type }}</el-tag>
+                <el-tag size="small" effect="plain">{{ item.form_type }}</el-tag>
               </div>
-              <div class="audit-card-row2">
-                <span><el-icon><User /></el-icon> {{ item.submitter_name }}</span>
-                <span class="sep">·</span>
-                <span><el-icon><OfficeBuilding /></el-icon> {{ item.org_name }}</span>
-                <span class="sep">·</span>
-                <span><el-icon><Timer /></el-icon> {{ item.window_summary }}</span>
-                <span class="sep">·</span>
+              <div class="card-sub">
+                <span><el-icon><User /></el-icon>{{ item.submitter_name }}</span>
+                <span class="dot">·</span>
+                <span><el-icon><OfficeBuilding /></el-icon>{{ item.org_name }}</span>
+                <span class="dot">·</span>
+                <span><el-icon><Timer /></el-icon>{{ item.window_summary }}</span>
+                <span class="dot">·</span>
                 <span>{{ formatTime(item.requested_at) }}</span>
+                <template v-if="item.target_name">
+                  <span class="dot">·</span>
+                  <span>对象：{{ item.target_name }}</span>
+                </template>
+                <template v-if="item.submit_reason">
+                  <span class="dot">·</span>
+                  <span>说明：{{ item.submit_reason }}</span>
+                </template>
               </div>
-              <div v-if="item.missing_items && item.missing_items.length" class="audit-card-risk">
+              <div v-if="item.missing_items?.length" class="card-risk">
                 <el-icon :size="14" color="var(--color-warning)"><Warning /></el-icon>
-                <span v-if="item.missing_items.length <= 2">风险：{{ item.missing_items.join('、') }}</span>
-                <span v-else>风险：存在 {{ item.missing_items.length }} 项阻断问题</span>
+                <span>{{ item.missing_items.length <= 2 ? '风险：' + item.missing_items.join('、') : '风险：存在 ' + item.missing_items.length + ' 项阻断问题' }}</span>
               </div>
-              <div v-if="item.review_comment" class="audit-card-row3">
-                <span class="review-label">审核意见：</span>{{ item.review_comment }}
-              </div>
+              <div v-if="item.review_comment" class="card-note"><span class="note-label">审核意见：</span>{{ item.review_comment }}</div>
             </div>
-            <div class="audit-card-actions">
-              <el-button text type="primary" size="small" :icon="View" @click="openDetail(item.id)">查看详情</el-button>
+            <div class="card-act">
+              <span class="action-slot action-slot--detail">
+                <el-button text type="primary" size="small" :icon="View" @click="openDetail(item.id)">查看详情</el-button>
+              </span>
               <template v-if="item.status_code === 'pending'">
-                <div class="approve-slot">
-                  <el-tooltip
-                    v-if="item.missing_items && item.missing_items.length"
-                    :content="'请先' + item.missing_items.join('、')"
-                    placement="top"
-                  >
+                <span class="action-slot action-slot--middle">
+                  <el-tooltip v-if="item.missing_items?.length" :content="'请先' + item.missing_items.join('、')" placement="top">
                     <el-button type="warning" size="small" plain :icon="Warning" disabled>存在风险</el-button>
                   </el-tooltip>
                   <el-button v-else type="primary" size="small" plain :icon="Check" @click="handleApprove(item)">通过</el-button>
-                </div>
-                <el-button type="danger" size="small" plain :icon="Close" @click="openReject(item.id)">驳回</el-button>
+                </span>
+                <span class="action-slot action-slot--reject">
+                  <el-button type="danger" size="small" plain :icon="Close" @click="openReject(item.id)">驳回</el-button>
+                </span>
               </template>
             </div>
           </div>
+          <div class="pagination-bar" v-if="auditList.length > 0">
+            <el-pagination
+              v-model:current-page="formPage"
+              :page-size="formPageSize"
+              :total="auditList.length"
+              layout="prev, pager, next"
+            />
+          </div>
         </template>
-        <div v-else-if="!formLoading" class="empty-state">
+        <div v-else-if="!formLoading" class="empty">
           <el-icon :size="48" color="var(--color-text-placeholder)"><DocumentChecked /></el-icon>
-          <p class="empty-title">暂无审核申请</p>
-          <p class="empty-desc">职工提交评价表单审核后，将在这里处理发布申请。</p>
+          <p>暂无审核申请</p>
+          <span>职工提交评价表单审核后，将在这里处理发布申请。</span>
         </div>
-      </section>
+      </div>
     </template>
 
-    <!-- ==================== 追溯授权审批 Tab ==================== -->
     <template v-if="activeTab === 'trace'">
-      <!-- 筛选工具栏 -->
-      <section class="filter-bar">
-        <el-input v-model="traceFilters.keyword" placeholder="搜索申请编号、申诉编号、申请人…" :prefix-icon="Search" clearable style="width: 320px" @clear="loadTraceData" @keyup.enter="loadTraceData" />
-        <el-select v-model="traceFilters.status" style="width: 130px" @change="loadTraceData">
-          <el-option label="全部状态" value="all" />
-          <el-option label="待审批" value="pending" />
-          <el-option label="已授权" value="approved" />
-          <el-option label="已拒绝" value="rejected" />
-        </el-select>
-        <el-select v-model="traceFilters.timeRange" style="width: 130px" @change="loadTraceData">
-          <el-option label="全部时间" value="all" />
-          <el-option label="今日" value="today" />
-          <el-option label="本周" value="week" />
-          <el-option label="本月" value="month" />
-        </el-select>
-        <el-select v-model="traceFilters.sort" style="width: 130px" @change="loadTraceData">
-          <el-option label="最新申请" value="latest" />
-          <el-option label="最近审批" value="recent_audit" />
-          <el-option label="状态优先" value="status_first" />
-        </el-select>
+      <div class="filters">
+        <el-input v-model="traceFilters.keyword" placeholder="搜索申请编号、申诉编号、申请人…" :prefix-icon="Search" clearable @clear="loadTraceData" @keyup.enter="loadTraceData" />
+        <el-select v-model="traceFilters.status" @change="loadTraceData"><el-option label="全部状态" value="all" /><el-option label="待审批" value="pending" /><el-option label="已授权" value="approved" /><el-option label="已拒绝" value="rejected" /></el-select>
+        <el-select v-model="traceFilters.timeRange" @change="loadTraceData"><el-option label="全部时间" value="all" /><el-option label="今日" value="today" /><el-option label="本周" value="week" /><el-option label="本月" value="month" /></el-select>
+        <el-select v-model="traceFilters.sort" @change="loadTraceData"><el-option label="最新申请" value="latest" /><el-option label="最近审批" value="recent_audit" /><el-option label="状态优先" value="status_first" /></el-select>
         <el-button text type="primary" @click="resetTraceFilters">重置</el-button>
-      </section>
+      </div>
 
-      <!-- 隐私安全提示 -->
-      <el-alert
-        type="info"
-        :closable="false"
-        show-icon
-        class="privacy-alert"
-      >
-        <template #title>
-          <span>隐私保护提示：审批页面不展示匿名评价者身份信息，授权通过后申请人方可查看。</span>
-        </template>
+      <el-alert type="info" :closable="false" show-icon class="alert">
+        <template #title><span>隐私保护提示：审批页面不展示匿名评价者身份信息，授权通过后申请人方可查看。</span></template>
       </el-alert>
 
-      <!-- 追溯授权列表 -->
-      <section class="audit-list" v-loading="traceLoading">
+      <div class="list" v-loading="traceLoading">
         <template v-if="traceList.length">
-          <div v-for="item in traceList" :key="item.id" class="audit-card">
-            <div class="audit-card-main">
-              <div class="audit-card-row1">
-                <span class="audit-form-title">追溯授权 #{{ item.id }}</span>
+          <div v-for="item in paginatedTraceList" :key="item.id" class="card">
+            <div class="card-body">
+              <div class="card-hd">
+                <span class="card-title">追溯授权申请</span>
                 <el-tag :type="statusTagType(item.status_code)" size="small" effect="plain">{{ item.status }}</el-tag>
-                <el-tag size="small" effect="plain" class="type-tag">{{ item.appeal_no }}</el-tag>
+                <el-tag size="small" effect="plain">{{ item.appeal_no }}</el-tag>
               </div>
-              <div class="audit-card-row2">
-                <span><el-icon><User /></el-icon> 申请人：{{ item.applicant_name }}</span>
-                <span class="sep">·</span>
+              <div class="card-sub">
+                <span><el-icon><User /></el-icon>申请人：{{ item.applicant_name }}</span>
+                <span class="dot">·</span>
                 <span>关联表单：{{ item.form_name }}</span>
-                <span class="sep">·</span>
+                <span class="dot">·</span>
+                <span>申诉编号：{{ item.appeal_no }}</span>
+                <span class="dot">·</span>
                 <span>{{ formatTime(item.requested_at) }}</span>
+                <template v-if="item.applicant_account">
+                  <span class="dot">·</span>
+                  <span>账号：{{ item.applicant_account }}</span>
+                </template>
+                <template v-if="item.expected_count">
+                  <span class="dot">·</span>
+                  <span>期望：{{ item.expected_count }}条记录</span>
+                </template>
               </div>
-              <div class="trace-reason-preview">
-                <span class="review-label">申请原因：</span>{{ item.reason.length > 60 ? item.reason.slice(0, 60) + '…' : item.reason }}
-              </div>
+              <div class="card-reason"><span class="note-label">申请原因：</span>{{ item.reason.length > 80 ? item.reason.slice(0, 80) + '…' : item.reason }}</div>
             </div>
-            <div class="audit-card-actions">
+            <div class="card-act">
               <el-button text type="primary" size="small" :icon="View" @click="openTraceDetail(item.id)">查看详情</el-button>
               <template v-if="item.status_code === 'pending'">
                 <el-button type="primary" size="small" plain :icon="Check" @click="handleTraceApprove(item)">同意授权</el-button>
@@ -549,226 +537,54 @@ onMounted(() => {
               </template>
             </div>
           </div>
+          <div class="pagination-bar" v-if="traceList.length > 0">
+            <el-pagination
+              v-model:current-page="tracePage"
+              :page-size="tracePageSize"
+              :total="traceList.length"
+              layout="prev, pager, next"
+            />
+          </div>
         </template>
-        <div v-else-if="!traceLoading" class="empty-state">
+        <div v-else-if="!traceLoading" class="empty">
           <el-icon :size="48" color="var(--color-text-placeholder)"><Lock /></el-icon>
-          <p class="empty-title">暂无追溯授权申请</p>
-          <p class="empty-desc">教职工发起追溯授权申请后，将在这里进行审批处理。</p>
+          <p>暂无追溯授权申请</p>
+          <span>教职工发起追溯授权申请后，将在这里进行审批处理。</span>
         </div>
-      </section>
+      </div>
     </template>
 
-    <!-- ==================== 评价表单审核 - 详情抽屉 ==================== -->
     <el-drawer v-model="drawerVisible" title="评价表单审核详情" size="720px" :close-on-click-modal="true">
       <div v-loading="drawerLoading">
         <template v-if="drawerDetail">
-          <div class="detail-section">
-            <h3 class="detail-section-title">审核申请信息</h3>
-            <div class="detail-grid">
-              <div class="detail-item"><span class="label">审核编号</span><span class="value">#{{ drawerDetail.audit_id }}</span></div>
-              <div class="detail-item"><span class="label">当前状态</span><span class="value"><el-tag :type="statusTagType(drawerDetail.audit_status_code)" size="small" effect="plain">{{ drawerDetail.audit_status }}</el-tag></span></div>
-              <div class="detail-item"><span class="label">提交人</span><span class="value">{{ drawerDetail.submitter_name }}</span></div>
-              <div class="detail-item"><span class="label">提交时间</span><span class="value">{{ formatFullTime(drawerDetail.requested_at) }}</span></div>
-              <div class="detail-item"><span class="label">所属组织</span><span class="value">{{ drawerDetail.org_name || '未配置' }}</span></div>
-              <div class="detail-item"><span class="label">更新时间</span><span class="value">{{ formatFullTime(drawerDetail.reviewed_at || drawerDetail.requested_at) }}</span></div>
-            </div>
-            <div v-if="drawerDetail.submit_reason" class="detail-block">
-              <span class="label">申请说明</span>
-              <p class="value">{{ drawerDetail.submit_reason }}</p>
-            </div>
-          </div>
-          <div class="detail-section">
-            <h3 class="detail-section-title">表单基础信息</h3>
-            <div class="detail-grid">
-              <div class="detail-item"><span class="label">表单名称</span><span class="value">{{ drawerDetail.form_title }}</span></div>
-              <div class="detail-item"><span class="label">表单类型</span><span class="value">{{ drawerDetail.form_type }}</span></div>
-              <div class="detail-item"><span class="label">表单状态</span><span class="value">{{ drawerDetail.form_status }}</span></div>
-              <div class="detail-item"><span class="label">创建人</span><span class="value">{{ drawerDetail.form_publisher_name || '未知' }}</span></div>
-              <div class="detail-item"><span class="label">创建时间</span><span class="value">{{ formatFullTime(drawerDetail.form_created_at) }}</span></div>
-              <div class="detail-item"><span class="label">匿名评价</span><span class="value">{{ drawerDetail.form_anonymous ? '是' : '否' }}</span></div>
-            </div>
-            <div v-if="drawerDetail.form_description" class="detail-block">
-              <span class="label">表单说明</span>
-              <p class="value">{{ drawerDetail.form_description }}</p>
-            </div>
-          </div>
-          <div class="detail-section">
-            <h3 class="detail-section-title">评价对象</h3>
-            <div class="detail-grid">
-              <div class="detail-item"><span class="label">所属组织</span><span class="value">{{ drawerDetail.org_name || '组织未匹配' }}</span></div>
-              <div v-if="drawerDetail.course_id" class="detail-item">
-                <span class="label">关联课程</span>
-                <span class="value">{{ drawerDetail.object_type_label }}：{{ drawerDetail.object_name || '对象未匹配' }}</span>
-              </div>
-              <div v-if="drawerDetail.service_item_id" class="detail-item">
-                <span class="label">关联服务项</span>
-                <span class="value">{{ drawerDetail.object_type_label }}：{{ drawerDetail.object_name || '对象未匹配' }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="detail-section">
-            <h3 class="detail-section-title">评价窗口</h3>
-            <template v-if="drawerDetail.windows.length">
-              <div v-for="w in drawerDetail.windows" :key="w.id" class="window-card">
-                <div class="detail-grid">
-                  <div class="detail-item"><span class="label">开始时间</span><span class="value">{{ formatFullTime(w.start_at) }}</span></div>
-                  <div class="detail-item"><span class="label">截止时间</span><span class="value">{{ formatFullTime(w.end_at) }}</span></div>
-                  <div class="detail-item"><span class="label">窗口状态</span><span class="value"><el-tag size="small" :type="w.status_code === 'open' ? 'success' : w.status_code === 'pending' ? 'warning' : 'info'" effect="plain">{{ w.status_label }}</el-tag></span></div>
-                </div>
-              </div>
-            </template>
-            <p v-else class="detail-empty">未配置评价窗口</p>
-          </div>
-          <div class="detail-section">
-            <h3 class="detail-section-title">审核记录</h3>
-            <div class="timeline">
-              <div class="timeline-item">
-                <span class="timeline-dot tone-info"></span>
-                <div class="timeline-content">
-                  <span class="timeline-text">{{ drawerDetail.submitter_name }} 提交审核申请</span>
-                  <span class="timeline-time">{{ formatFullTime(drawerDetail.requested_at) }}</span>
-                </div>
-              </div>
-              <div v-if="drawerDetail.audit_status_code !== 'pending'" class="timeline-item">
-                <span class="timeline-dot" :class="drawerDetail.audit_status_code === 'approved' ? 'tone-success' : 'tone-danger'"></span>
-                <div class="timeline-content">
-                  <span class="timeline-text">{{ drawerDetail.reviewed_by_name || '审核人' }} {{ drawerDetail.audit_status_code === 'approved' ? '审核通过' : '驳回' }}</span>
-                  <span class="timeline-time">{{ formatFullTime(drawerDetail.reviewed_at) }}</span>
-                  <p v-if="drawerDetail.review_comment" class="timeline-comment">{{ drawerDetail.review_comment }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="detail-section">
-            <h3 class="detail-section-title">
-              {{ drawerDetail.audit_status_code === 'pending' ? '风险检查' : '配置记录检查' }}
-            </h3>
-            <template v-if="drawerDetail.audit_status_code === 'pending'">
-              <template v-if="drawerDetail.blocking_risks && drawerDetail.blocking_risks.length">
-                <div v-for="(risk, i) in drawerDetail.blocking_risks" :key="'b'+i" class="risk-item risk-blocking">
-                  <el-icon color="var(--color-danger)"><Warning /></el-icon>
-                  <span>{{ risk }}（阻断项）</span>
-                </div>
-              </template>
-              <template v-if="drawerDetail.warning_risks && drawerDetail.warning_risks.length">
-                <div v-for="(risk, i) in drawerDetail.warning_risks" :key="'w'+i" class="risk-item">
-                  <el-icon color="var(--color-warning)"><Warning /></el-icon>
-                  <span>{{ risk }}</span>
-                </div>
-              </template>
-              <p v-if="(!drawerDetail.blocking_risks || !drawerDetail.blocking_risks.length) && (!drawerDetail.warning_risks || !drawerDetail.warning_risks.length)" class="detail-empty" style="color: var(--color-success)">
-                <el-icon :size="16"><Check /></el-icon> 未发现配置风险
-              </p>
-            </template>
-            <template v-else>
-              <template v-if="drawerDetail.blocking_risks && drawerDetail.blocking_risks.length">
-                <div v-for="(risk, i) in drawerDetail.blocking_risks" :key="'h'+i" class="risk-item risk-history">
-                  <el-icon color="var(--color-text-placeholder)"><Warning /></el-icon>
-                  <span>历史数据缺少{{ risk.replace('未配置', '配置记录').replace('至少需要配置1个题目', '题目配置记录') }}</span>
-                </div>
-              </template>
-              <p v-else class="detail-empty" style="color: var(--color-success)">
-                <el-icon :size="16"><Check /></el-icon> 配置记录完整
-              </p>
-            </template>
-          </div>
+          <div class="ds"><h3 class="ds-title">审核申请信息</h3><div class="dg"><div class="di"><span class="dl">审核编号</span><span class="dv">#{{ drawerDetail.audit_id }}</span></div><div class="di"><span class="dl">当前状态</span><span class="dv"><el-tag :type="statusTagType(drawerDetail.audit_status_code)" size="small" effect="plain">{{ drawerDetail.audit_status }}</el-tag></span></div><div class="di"><span class="dl">提交人</span><span class="dv">{{ drawerDetail.submitter_name }}</span></div><div class="di"><span class="dl">提交时间</span><span class="dv">{{ formatFullTime(drawerDetail.requested_at) }}</span></div><div class="di"><span class="dl">所属组织</span><span class="dv">{{ drawerDetail.org_name || '未配置' }}</span></div><div class="di"><span class="dl">更新时间</span><span class="dv">{{ formatFullTime(drawerDetail.reviewed_at || drawerDetail.requested_at) }}</span></div></div><div v-if="drawerDetail.submit_reason" class="db"><span class="dl">申请说明</span><p class="dv">{{ drawerDetail.submit_reason }}</p></div></div>
+          <div class="ds"><h3 class="ds-title">表单基础信息</h3><div class="dg"><div class="di"><span class="dl">表单名称</span><span class="dv">{{ drawerDetail.form_title }}</span></div><div class="di"><span class="dl">表单类型</span><span class="dv">{{ drawerDetail.form_type }}</span></div><div class="di"><span class="dl">表单状态</span><span class="dv">{{ drawerDetail.form_status }}</span></div><div class="di"><span class="dl">创建人</span><span class="dv">{{ drawerDetail.form_publisher_name || '未知' }}</span></div><div class="di"><span class="dl">创建时间</span><span class="dv">{{ formatFullTime(drawerDetail.form_created_at) }}</span></div><div class="di"><span class="dl">匿名评价</span><span class="dv">{{ drawerDetail.form_anonymous ? '是' : '否' }}</span></div></div><div v-if="drawerDetail.form_description" class="db"><span class="dl">表单说明</span><p class="dv">{{ drawerDetail.form_description }}</p></div></div>
+          <div class="ds"><h3 class="ds-title">评价对象</h3><div class="dg"><div class="di"><span class="dl">所属组织</span><span class="dv">{{ drawerDetail.org_name || '组织未匹配' }}</span></div><div v-if="drawerDetail.course_id" class="di"><span class="dl">关联课程</span><span class="dv">{{ drawerDetail.object_type_label }}：{{ drawerDetail.object_name || '对象未匹配' }}</span></div><div v-if="drawerDetail.service_item_id" class="di"><span class="dl">关联服务项</span><span class="dv">{{ drawerDetail.object_type_label }}：{{ drawerDetail.object_name || '对象未匹配' }}</span></div></div></div>
+          <div class="ds"><h3 class="ds-title">评价窗口</h3><template v-if="drawerDetail.windows.length"><div v-for="w in drawerDetail.windows" :key="w.id" class="wc"><div class="dg"><div class="di"><span class="dl">开始时间</span><span class="dv">{{ formatFullTime(w.start_at) }}</span></div><div class="di"><span class="dl">截止时间</span><span class="dv">{{ formatFullTime(w.end_at) }}</span></div><div class="di"><span class="dl">窗口状态</span><span class="dv"><el-tag size="small" :type="w.status_code === 'open' ? 'success' : w.status_code === 'pending' ? 'warning' : 'info'" effect="plain">{{ w.status_label }}</el-tag></span></div></div></div></template><p v-else class="de">未配置评价窗口</p></div>
+          <div class="ds"><h3 class="ds-title">审核记录</h3><div class="tl"><div class="ti"><span class="td ti-info"></span><div class="tc"><span class="tt">{{ drawerDetail.submitter_name }} 提交审核申请</span><span class="tm">{{ formatFullTime(drawerDetail.requested_at) }}</span></div></div><div v-if="drawerDetail.audit_status_code !== 'pending'" class="ti"><span class="td" :class="drawerDetail.audit_status_code === 'approved' ? 'ti-ok' : 'ti-no'"></span><div class="tc"><span class="tt">{{ drawerDetail.reviewed_by_name || '审核人' }} {{ drawerDetail.audit_status_code === 'approved' ? '审核通过' : '驳回' }}</span><span class="tm">{{ formatFullTime(drawerDetail.reviewed_at) }}</span><p v-if="drawerDetail.review_comment" class="tcm">{{ drawerDetail.review_comment }}</p></div></div></div></div>
+          <div class="ds"><h3 class="ds-title">{{ drawerDetail.audit_status_code === 'pending' ? '风险检查' : '配置记录检查' }}</h3><template v-if="drawerDetail.audit_status_code === 'pending'"><template v-if="drawerDetail.blocking_risks?.length"><div v-for="(r, i) in drawerDetail.blocking_risks" :key="'b'+i" class="ri ri-b"><el-icon color="var(--color-danger)"><Warning /></el-icon><span>{{ r }}（阻断项）</span></div></template><template v-if="drawerDetail.warning_risks?.length"><div v-for="(r, i) in drawerDetail.warning_risks" :key="'w'+i" class="ri"><el-icon color="var(--color-warning)"><Warning /></el-icon><span>{{ r }}</span></div></template><p v-if="!drawerDetail.blocking_risks?.length && !drawerDetail.warning_risks?.length" class="de" style="color:var(--color-success)"><el-icon :size="16"><Check /></el-icon> 未发现配置风险</p></template><template v-else><template v-if="drawerDetail.blocking_risks?.length"><div v-for="(r, i) in drawerDetail.blocking_risks" :key="'h'+i" class="ri ri-h"><el-icon color="var(--color-text-placeholder)"><Warning /></el-icon><span>历史数据缺少{{ r.replace('未配置', '配置记录').replace('至少需要配置1个题目', '题目配置记录') }}</span></div></template><p v-else class="de" style="color:var(--color-success)"><el-icon :size="16"><Check /></el-icon> 配置记录完整</p></template></div>
         </template>
-        <div v-else-if="!drawerLoading" class="empty-state">
-          <p class="empty-title">表单信息未完整配置</p>
-        </div>
+        <div v-else-if="!drawerLoading" class="empty"><p>表单信息未完整配置</p></div>
       </div>
       <template #footer>
         <template v-if="drawerDetail?.audit_status_code === 'pending'">
           <el-button type="danger" plain @click="openReject(drawerDetail.audit_id)">驳回</el-button>
-          <el-tooltip
-            v-if="drawerDetail.blocking_risks && drawerDetail.blocking_risks.length > 0"
-            content="请修复风险项后再审核通过"
-            placement="top"
-          >
-            <el-button class="btn-disabled-hint" disabled>存在阻断风险</el-button>
-          </el-tooltip>
-          <el-button v-else type="primary" @click="handleApprove({ ...drawerDetail, id: drawerDetail.audit_id, form_title: drawerDetail.form_title, status_code: 'pending' })">
-            审核通过
-          </el-button>
+          <el-tooltip v-if="drawerDetail.blocking_risks?.length" content="请修复风险项后再审核通过" placement="top"><el-button class="btn-dis" disabled>存在阻断风险</el-button></el-tooltip>
+          <el-button v-else type="primary" @click="handleApprove({ ...drawerDetail, id: drawerDetail.audit_id, form_title: drawerDetail.form_title, status_code: 'pending' })">审核通过</el-button>
         </template>
         <el-button v-else @click="drawerVisible = false">关闭</el-button>
       </template>
     </el-drawer>
 
-    <!-- ==================== 追溯授权审批 - 详情抽屉 ==================== -->
     <el-drawer v-model="traceDrawerVisible" title="追溯授权审批详情" size="720px" :close-on-click-modal="true">
       <div v-loading="traceDrawerLoading">
         <template v-if="traceDrawerDetail">
-          <!-- 隐私安全提示 -->
-          <el-alert type="warning" :closable="false" show-icon class="detail-privacy-alert">
-            <template #title>匿名安全提示</template>
-            追溯授权审批过程中，不展示匿名评价者的真实身份。授权通过后，申请人方可查看评价者信息。
-          </el-alert>
-
-          <!-- 授权申请信息 -->
-          <div class="detail-section">
-            <h3 class="detail-section-title">授权申请信息</h3>
-            <div class="detail-grid">
-              <div class="detail-item"><span class="label">申请编号</span><span class="value">#{{ traceDrawerDetail.trace_id }}</span></div>
-              <div class="detail-item"><span class="label">当前状态</span><span class="value"><el-tag :type="statusTagType(traceDrawerDetail.status_code)" size="small" effect="plain">{{ traceDrawerDetail.status }}</el-tag></span></div>
-              <div class="detail-item"><span class="label">申请人</span><span class="value">{{ traceDrawerDetail.applicant_name }}</span></div>
-              <div class="detail-item"><span class="label">申请时间</span><span class="value">{{ formatFullTime(traceDrawerDetail.requested_at) }}</span></div>
-              <div v-if="traceDrawerDetail.approved_at" class="detail-item"><span class="label">授权时间</span><span class="value">{{ formatFullTime(traceDrawerDetail.approved_at) }}</span></div>
-              <div v-if="traceDrawerDetail.rejected_at" class="detail-item"><span class="label">拒绝时间</span><span class="value">{{ formatFullTime(traceDrawerDetail.rejected_at) }}</span></div>
-            </div>
-            <div class="detail-block">
-              <span class="label">申请原因</span>
-              <p class="value">{{ traceDrawerDetail.reason || '无' }}</p>
-            </div>
-          </div>
-
-          <!-- 关联申诉信息 -->
-          <div class="detail-section">
-            <h3 class="detail-section-title">关联申诉信息</h3>
-            <div class="detail-grid">
-              <div class="detail-item"><span class="label">申诉编号</span><span class="value">{{ traceDrawerDetail.appeal_no }}</span></div>
-              <div class="detail-item"><span class="label">申诉状态</span><span class="value">{{ traceDrawerDetail.appeal_status }}</span></div>
-              <div class="detail-item"><span class="label">申诉人</span><span class="value">{{ traceDrawerDetail.appeal_appellant_name }}</span></div>
-              <div class="detail-item"><span class="label">关联表单</span><span class="value">{{ traceDrawerDetail.form_name }}</span></div>
-            </div>
-            <div class="detail-block">
-              <span class="label">申诉原因</span>
-              <p class="value">{{ traceDrawerDetail.appeal_reason || '无' }}</p>
-            </div>
-          </div>
-
-          <!-- 审批记录 -->
-          <div class="detail-section">
-            <h3 class="detail-section-title">审批记录</h3>
-            <div class="timeline">
-              <div class="timeline-item">
-                <span class="timeline-dot tone-info"></span>
-                <div class="timeline-content">
-                  <span class="timeline-text">{{ traceDrawerDetail.applicant_name }} 发起追溯授权申请</span>
-                  <span class="timeline-time">{{ formatFullTime(traceDrawerDetail.requested_at) }}</span>
-                </div>
-              </div>
-              <div v-if="traceDrawerDetail.status_code !== 'pending'" class="timeline-item">
-                <span class="timeline-dot" :class="traceDrawerDetail.status_code === 'approved' ? 'tone-success' : 'tone-danger'"></span>
-                <div class="timeline-content">
-                  <span class="timeline-text">{{ traceDrawerDetail.approver_name || '审核人' }} {{ traceDrawerDetail.status_code === 'approved' ? '同意授权' : '拒绝授权' }}</span>
-                  <span class="timeline-time">{{ formatFullTime(traceDrawerDetail.approved_at || traceDrawerDetail.rejected_at) }}</span>
-                  <p v-if="traceDrawerDetail.reject_reason" class="timeline-comment">拒绝原因：{{ traceDrawerDetail.reject_reason }}</p>
-                </div>
-              </div>
-              <div v-for="log in traceDrawerDetail.logs" :key="log.id" class="timeline-item">
-                <span class="timeline-dot tone-info"></span>
-                <div class="timeline-content">
-                  <span class="timeline-text">{{ log.content }}</span>
-                  <span class="timeline-time">{{ formatFullTime(log.created_at) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <el-alert type="warning" :closable="false" show-icon class="dpa"><template #title>匿名安全提示</template>追溯授权审批过程中，不展示匿名评价者的真实身份。授权通过后，申请人方可查看评价者信息。</el-alert>
+          <div class="ds"><h3 class="ds-title">授权申请信息</h3><div class="dg"><div class="di"><span class="dl">申请编号</span><span class="dv">#{{ traceDrawerDetail.trace_id }}</span></div><div class="di"><span class="dl">当前状态</span><span class="dv"><el-tag :type="statusTagType(traceDrawerDetail.status_code)" size="small" effect="plain">{{ traceDrawerDetail.status }}</el-tag></span></div><div class="di"><span class="dl">申请人</span><span class="dv">{{ traceDrawerDetail.applicant_name }}</span></div><div class="di"><span class="dl">申请时间</span><span class="dv">{{ formatFullTime(traceDrawerDetail.requested_at) }}</span></div><div v-if="traceDrawerDetail.approved_at" class="di"><span class="dl">授权时间</span><span class="dv">{{ formatFullTime(traceDrawerDetail.approved_at) }}</span></div><div v-if="traceDrawerDetail.rejected_at" class="di"><span class="dl">拒绝时间</span><span class="dv">{{ formatFullTime(traceDrawerDetail.rejected_at) }}</span></div></div><div class="db"><span class="dl">申请原因</span><p class="dv">{{ traceDrawerDetail.reason || '无' }}</p></div></div>
+          <div class="ds"><h3 class="ds-title">关联申诉信息</h3><div class="dg"><div class="di"><span class="dl">申诉编号</span><span class="dv">{{ traceDrawerDetail.appeal_no }}</span></div><div class="di"><span class="dl">申诉状态</span><span class="dv">{{ traceDrawerDetail.appeal_status }}</span></div><div class="di"><span class="dl">申诉人</span><span class="dv">{{ traceDrawerDetail.appeal_appellant_name }}</span></div><div class="di"><span class="dl">关联表单</span><span class="dv">{{ traceDrawerDetail.form_name }}</span></div></div><div class="db"><span class="dl">申诉原因</span><p class="dv">{{ traceDrawerDetail.appeal_reason || '无' }}</p></div></div>
+          <div class="ds"><h3 class="ds-title">审批记录</h3><div class="tl"><div class="ti"><span class="td ti-info"></span><div class="tc"><span class="tt">{{ traceDrawerDetail.applicant_name }} 发起追溯授权申请</span><span class="tm">{{ formatFullTime(traceDrawerDetail.requested_at) }}</span></div></div><div v-if="traceDrawerDetail.status_code !== 'pending'" class="ti"><span class="td" :class="traceDrawerDetail.status_code === 'approved' ? 'ti-ok' : 'ti-no'"></span><div class="tc"><span class="tt">{{ traceDrawerDetail.approver_name || '审核人' }} {{ traceDrawerDetail.status_code === 'approved' ? '同意授权' : '拒绝授权' }}</span><span class="tm">{{ formatFullTime(traceDrawerDetail.approved_at || traceDrawerDetail.rejected_at) }}</span><p v-if="traceDrawerDetail.reject_reason" class="tcm">拒绝原因：{{ traceDrawerDetail.reject_reason }}</p></div></div><div v-for="log in traceDrawerDetail.logs" :key="log.id" class="ti"><span class="td ti-info"></span><div class="tc"><span class="tt">{{ log.content }}</span><span class="tm">{{ formatFullTime(log.created_at) }}</span></div></div></div></div>
         </template>
-        <div v-else-if="!traceDrawerLoading" class="empty-state">
-          <p class="empty-title">追溯授权信息未找到</p>
-        </div>
+        <div v-else-if="!traceDrawerLoading" class="empty"><p>追溯授权信息未找到</p></div>
       </div>
       <template #footer>
         <template v-if="traceDrawerDetail?.status_code === 'pending'">
@@ -779,211 +595,217 @@ onMounted(() => {
       </template>
     </el-drawer>
 
-    <!-- ==================== 评价表单审核 - 驳回弹窗 ==================== -->
     <el-dialog v-model="rejectVisible" title="驳回评价表单审核申请" width="520px" :close-on-click-modal="false">
-      <p class="reject-desc">请填写驳回原因，提交人可根据原因修改后重新提交审核。</p>
-      <div class="quick-reasons">
-        <el-tag v-for="r in quickReasons" :key="r" size="small" effect="plain" class="quick-tag" :class="{ active: rejectForm.quickReason === r }" @click="selectQuickReason(r)">{{ r }}</el-tag>
-      </div>
-      <el-form ref="rejectFormRef" :model="rejectForm" :rules="rejectRules" label-position="top">
-        <el-form-item label="驳回原因" prop="reason">
-          <el-input v-model="rejectForm.reason" type="textarea" :rows="4" maxlength="300" show-word-limit placeholder="请填写驳回原因（10-300字）" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="rejectVisible = false">取消</el-button>
-        <el-button type="danger" @click="submitReject">确认驳回</el-button>
-      </template>
+      <p class="rd">请填写驳回原因，提交人可根据原因修改后重新提交审核。</p>
+      <div class="qr"><el-tag v-for="r in quickReasons" :key="r" size="small" effect="plain" class="qt" :class="{ on: rejectForm.quickReason === r }" @click="selectQuickReason(r)">{{ r }}</el-tag></div>
+      <el-form ref="rejectFormRef" :model="rejectForm" :rules="rejectRules" label-position="top"><el-form-item label="驳回原因" prop="reason"><el-input v-model="rejectForm.reason" type="textarea" :rows="4" maxlength="300" show-word-limit placeholder="请填写驳回原因（10-300字）" /></el-form-item></el-form>
+      <template #footer><el-button @click="rejectVisible = false">取消</el-button><el-button type="danger" @click="submitReject">确认驳回</el-button></template>
     </el-dialog>
 
-    <!-- ==================== 追溯授权审批 - 拒绝弹窗 ==================== -->
     <el-dialog v-model="traceRejectVisible" title="拒绝追溯授权申请" width="520px" :close-on-click-modal="false">
-      <p class="reject-desc">请填写拒绝原因，申请人将根据原因了解拒绝理由。</p>
-      <el-form ref="traceRejectFormRef" :model="traceRejectForm" :rules="traceRejectRules" label-position="top">
-        <el-form-item label="拒绝原因" prop="reason">
-          <el-input v-model="traceRejectForm.reason" type="textarea" :rows="4" maxlength="300" show-word-limit placeholder="请填写拒绝原因（10-300字）" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="traceRejectVisible = false">取消</el-button>
-        <el-button type="danger" @click="submitTraceReject">确认拒绝</el-button>
-      </template>
+      <p class="rd">请填写拒绝原因，申请人将根据原因了解拒绝理由。</p>
+      <el-form ref="traceRejectFormRef" :model="traceRejectForm" :rules="traceRejectRules" label-position="top"><el-form-item label="拒绝原因" prop="reason"><el-input v-model="traceRejectForm.reason" type="textarea" :rows="4" maxlength="300" show-word-limit placeholder="请填写拒绝原因（10-300字）" /></el-form-item></el-form>
+      <template #footer><el-button @click="traceRejectVisible = false">取消</el-button><el-button type="danger" @click="submitTraceReject">确认拒绝</el-button></template>
     </el-dialog>
   </div>
 </template>
 
 <style scoped>
-.audit-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
+.page { display: flex; flex-direction: column; gap: var(--space-4); }
 
-/* 页面标题 */
-.page-header {
+/* 工具栏：Tab + 统计 合并 */
+.toolbar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
+  gap: var(--space-4);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-card);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-card);
 }
-.page-title {
-  font-size: var(--font-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  margin: 0;
-}
-.page-subtitle {
-  font-size: var(--font-sm);
-  color: var(--color-text-secondary);
-  margin: var(--space-1) 0 0;
-}
-.header-actions {
+.toolbar-tabs :deep(.el-radio-group) {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  background: var(--color-bg-light);
+  border-radius: var(--radius-md);
+  padding: 3px;
 }
-
-/* Tab 切换 */
-.tab-bar {
-  display: flex;
-  align-items: center;
-}
-.tab-bar :deep(.el-radio-group) {
-  display: flex;
-  gap: 0;
-}
-.tab-bar :deep(.el-radio-button__inner) {
+.toolbar-tabs :deep(.el-radio-button__inner) {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
+  border: none !important;
+  background: transparent !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 6px var(--space-4);
+  font-weight: var(--font-weight-medium);
+  box-shadow: none !important;
 }
-.tab-badge {
-  margin-left: var(--space-1);
+.toolbar-tabs :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background: var(--color-bg-card) !important;
+  box-shadow: var(--shadow-sm) !important;
+  color: var(--color-primary);
 }
-.tab-badge :deep(.el-badge__content) {
-  font-size: 10px;
-}
+.badge { margin-left: var(--space-1); }
+.badge :deep(.el-badge__content) { font-size: 10px; }
 
-/* 状态统计卡片 */
-.status-cards {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: var(--space-3);
+.toolbar-stats { display: flex; align-items: center; gap: var(--space-4); flex-shrink: 0; }
+.s {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: var(--font-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
 }
-.status-card {
-  background: var(--color-bg-card);
-  border-radius: var(--radius-card);
-  border: var(--border-lighter);
-  padding: var(--space-4) var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  transition: box-shadow 0.2s;
+.s em {
+  font-style: normal;
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-heading);
 }
-.status-card:hover { box-shadow: var(--shadow-card); }
-.card-value {
-  font-size: var(--font-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+.s .d {
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  background: var(--color-border-lighter);
+  margin-left: var(--space-4);
 }
-.card-label {
-  font-size: var(--font-xs);
-  color: var(--color-text-secondary);
-}
-.tone-warning .card-value { color: var(--color-warning); }
-.tone-success .card-value { color: var(--color-success); }
-.tone-danger .card-value { color: var(--color-danger); }
-.tone-info .card-value { color: var(--color-primary); }
+.c-default em { color: var(--color-primary); }
+.c-warning em { color: var(--color-warning); }
+.c-success em { color: var(--color-success); }
+.c-danger em { color: var(--color-danger); }
+.c-info em { color: var(--color-primary); }
 
-/* 筛选工具栏 */
-.filter-bar {
+/* 筛选 */
+.filters {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   background: var(--color-bg-card);
+  border: 1px solid var(--color-border-lighter);
   border-radius: var(--radius-card);
-  border: var(--border-lighter);
   padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-card);
   flex-wrap: wrap;
 }
+.filters .el-input { width: 260px; }
+.filters .el-select { width: 130px; }
 
 /* 隐私提示 */
-.privacy-alert {
-  background: var(--color-bg-card);
-  border-radius: var(--radius-card);
-}
+.alert { background: var(--color-bg-card); border-radius: var(--radius-card); }
 
-/* 审核列表 */
-.audit-list {
+/* 列表 */
+.list {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   min-height: var(--space-16);
-}
-.audit-card {
+  padding: var(--space-3);
   background: var(--color-bg-card);
+  border: 1px solid var(--color-border-lighter);
   border-radius: var(--radius-card);
-  border: var(--border-lighter);
+  box-shadow: var(--shadow-card);
+}
+
+.card {
+  background: #FBFCFF;
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-lg);
   padding: var(--space-4) var(--space-5);
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  transition: box-shadow 0.2s;
+  box-shadow: none;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
-.audit-card:hover { box-shadow: var(--shadow-card); }
-.audit-card-main { flex: 1; min-width: 0; }
-.audit-card-row1 {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-2);
+.card:hover {
+  background: var(--color-primary-50);
+  border-color: var(--color-primary-100);
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.05);
 }
-.audit-form-title {
+
+.card-body { flex: 1; min-width: 0; }
+.card-hd { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
+.card-title {
   font-size: var(--font-base);
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  color: var(--color-text-heading);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.type-tag { flex-shrink: 0; }
-.audit-card-row2 {
+.card-sub {
   display: flex;
   align-items: center;
   gap: var(--space-1);
   font-size: var(--font-xs);
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   flex-wrap: wrap;
 }
-.audit-card-row2 .el-icon { font-size: var(--font-sm); vertical-align: -2px; }
-.sep { color: var(--color-text-placeholder); margin: 0 var(--space-1); }
-.audit-card-row3 {
+.card-sub .el-icon { font-size: var(--font-sm); vertical-align: -2px; }
+.dot { color: var(--color-text-disabled); margin: 0 var(--space-1); }
+.card-risk {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: fit-content;
+  max-width: min(420px, 100%);
+  font-size: var(--font-xs);
+  color: var(--color-warning);
+  margin-top: var(--space-2);
+  padding: 3px var(--space-2);
+  background: var(--color-risk-warning-light);
+  border: 1px solid rgba(245, 158, 11, 0.18);
+  border-radius: var(--radius-full);
+}
+.card-risk span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-note {
   margin-top: var(--space-2);
   font-size: var(--font-xs);
   color: var(--color-text-secondary);
 }
-.review-label { color: var(--color-text-placeholder); }
-.audit-card-actions {
-  display: flex;
+.card-reason {
+  margin-top: var(--space-2);
+  font-size: var(--font-xs);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+.note-label { color: var(--color-text-placeholder); }
+
+.card-act {
+  display: grid;
+  grid-template-columns: 86px 104px 72px;
   align-items: center;
+  justify-content: end;
   gap: var(--space-2);
   flex-shrink: 0;
 }
-.approve-slot {
-  display: inline-flex;
-  min-width: 88px;
+.action-slot {
+  min-width: 0;
+  display: flex;
   justify-content: center;
 }
-
-/* 追溯申请原因预览 */
-.trace-reason-preview {
-  margin-top: var(--space-2);
-  font-size: var(--font-xs);
-  color: var(--color-text-body);
-  line-height: var(--line-height-normal);
+.action-slot :deep(.el-button) {
+  width: 100%;
+  margin-left: 0 !important;
+}
+.action-slot--detail :deep(.el-button) {
+  justify-content: center;
+}
+.action-slot--middle :deep(.el-tooltip__trigger),
+.action-slot--middle :deep(.el-button) {
+  width: 100%;
 }
 
 /* 空状态 */
-.empty-state {
+.empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -991,117 +813,51 @@ onMounted(() => {
   padding: var(--space-12) var(--space-4);
   gap: var(--space-2);
 }
-.empty-title {
-  font-size: var(--font-base);
-  color: var(--color-text-secondary);
-  margin: 0;
-}
-.empty-desc {
-  font-size: var(--font-sm);
-  color: var(--color-text-placeholder);
-  margin: 0;
-}
+.empty p { font-size: var(--font-base); color: var(--color-text-secondary); margin: 0; }
+.empty span { font-size: var(--font-sm); color: var(--color-text-placeholder); }
 
-/* 抽屉详情 */
-.detail-section {
-  margin-bottom: var(--space-5);
-}
-.detail-section-title {
+/* 抽屉 */
+.ds { margin-bottom: var(--space-6); }
+.ds-title {
+  font-family: var(--font-family-display);
   font-size: var(--font-base);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-heading);
   margin: 0 0 var(--space-3);
   padding-bottom: var(--space-2);
-  border-bottom: var(--border-lighter);
+  border-bottom: 1px solid var(--color-border-lighter);
 }
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-3);
-}
-.detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-.detail-item .label, .detail-block .label {
-  font-size: var(--font-xs);
-  color: var(--color-text-placeholder);
-}
-.detail-item .value, .detail-block .value {
-  font-size: var(--font-sm);
-  color: var(--color-text-body);
-}
-.detail-block {
-  margin-top: var(--space-3);
-}
-.detail-block .value {
+.dg { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); }
+.di { display: flex; flex-direction: column; gap: var(--space-1); }
+.dl { font-size: var(--font-xs); color: var(--color-text-placeholder); }
+.dv { font-size: var(--font-sm); color: var(--color-text-body); }
+.db { margin-top: var(--space-3); }
+.db .dv {
   margin: var(--space-1) 0 0;
   padding: var(--space-2) var(--space-3);
-  background: var(--color-bg-page);
+  background: var(--color-bg-light);
   border-radius: var(--radius-sm);
   font-size: var(--font-sm);
   line-height: var(--line-height-relaxed);
 }
-.detail-empty {
-  font-size: var(--font-sm);
-  color: var(--color-text-placeholder);
-  text-align: center;
-  padding: var(--space-4);
-}
-.detail-privacy-alert {
-  margin-bottom: var(--space-4);
-}
-.window-card {
-  background: var(--color-bg-page);
-  border-radius: var(--radius-sm);
-  padding: var(--space-3);
-  margin-bottom: var(--space-2);
-}
+.de { font-size: var(--font-sm); color: var(--color-text-placeholder); text-align: center; padding: var(--space-4); }
+.dpa { margin-bottom: var(--space-4); }
+.wc { background: var(--color-bg-light); border-radius: var(--radius-sm); padding: var(--space-3); margin-bottom: var(--space-2); }
 
 /* 时间线 */
-.timeline {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-.timeline-item {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-}
-.timeline-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-top: var(--space-1);
-  flex-shrink: 0;
-  background: var(--color-text-placeholder);
-}
-.timeline-dot.tone-success { background: var(--color-success); }
-.timeline-dot.tone-danger { background: var(--color-danger); }
-.timeline-dot.tone-info { background: var(--color-primary); }
-.timeline-content { flex: 1; }
-.timeline-text {
-  font-size: var(--font-sm);
-  color: var(--color-text-body);
-}
-.timeline-time {
-  font-size: var(--font-xs);
-  color: var(--color-text-placeholder);
-  margin-left: var(--space-2);
-}
-.timeline-comment {
-  margin: var(--space-1) 0 0;
-  font-size: var(--font-sm);
-  color: var(--color-text-secondary);
-  padding: var(--space-2);
-  background: var(--color-bg-page);
-  border-radius: var(--radius-sm);
-}
+.tl { display: flex; flex-direction: column; gap: var(--space-3); }
+.ti { display: flex; align-items: flex-start; gap: var(--space-3); }
+.td { width: 10px; height: 10px; border-radius: 50%; margin-top: var(--space-1); flex-shrink: 0; background: var(--color-text-disabled); }
+.ti-ok { background: var(--color-success); }
+.ti-no { background: var(--color-danger); }
+.ti-info { background: var(--color-primary); }
+.tc { flex: 1; }
+.tt { font-size: var(--font-sm); color: var(--color-text-body); }
+.tm { font-size: var(--font-xs); color: var(--color-text-placeholder); margin-left: var(--space-2); }
+.tcm { margin: var(--space-1) 0 0; font-size: var(--font-sm); color: var(--color-text-secondary); padding: var(--space-2); background: var(--color-bg-light); border-radius: var(--radius-sm); }
 
-/* 风险检查 */
-.risk-item {
+/* 风险 */
+.ri {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -1112,76 +868,23 @@ onMounted(() => {
   border-radius: var(--radius-sm);
   margin-bottom: var(--space-2);
 }
-.risk-item.risk-blocking {
-  color: var(--color-danger);
-  background: var(--color-risk-danger-bg);
-}
-.risk-item.risk-history {
-  color: var(--color-text-secondary);
-  background: var(--color-bg-page);
-}
+.ri-b { color: var(--color-danger); background: var(--color-risk-danger-bg); }
+.ri-h { color: var(--color-text-secondary); background: var(--color-bg-light); }
 
-/* 列表风险提示 */
-.audit-card-risk {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: var(--font-xs);
-  color: var(--color-warning);
-  margin-top: var(--space-2);
-  padding: var(--space-1) var(--space-2);
-  background: var(--color-risk-warning-light);
-  border-radius: var(--radius-sm);
-}
+/* 弹窗 */
+.rd { font-size: var(--font-sm); color: var(--color-text-secondary); margin: 0 0 var(--space-3); }
+.qr { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); }
+.qt { cursor: pointer; transition: all 0.15s ease; }
+.qt:hover, .qt.on { color: var(--color-primary); border-color: var(--color-primary); background: var(--color-primary-50); }
 
-/* 驳回/拒绝弹窗 */
-.reject-desc {
-  font-size: var(--font-sm);
-  color: var(--color-text-secondary);
-  margin: 0 0 var(--space-3);
-}
-.quick-reasons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
-}
-.quick-tag {
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.quick-tag:hover, .quick-tag.active {
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-  background: var(--color-risk-tag-hover);
-}
+:deep(.el-message-box__btns .audit-confirm-btn) { background-color: var(--color-primary); border-color: var(--color-primary); color: var(--color-text-white); }
+:deep(.el-message-box__btns .audit-confirm-btn:hover) { background-color: var(--color-primary-hover); border-color: var(--color-primary-hover); }
 
-/* 审核通过确认弹窗按钮样式 */
-:deep(.el-message-box__btns .audit-confirm-btn) {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-text-white);
-}
-:deep(.el-message-box__btns .audit-confirm-btn:hover) {
-  background-color: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-}
+.btn-dis { color: var(--color-text-placeholder) !important; background: var(--color-bg-page) !important; border-color: var(--color-border-lighter) !important; cursor: not-allowed; }
 
-/* 禁用状态阻断按钮 */
-.btn-disabled-hint {
-  color: var(--color-text-placeholder) !important;
-  background: var(--color-bg-page) !important;
-  border-color: var(--color-border-lighter) !important;
-  cursor: not-allowed;
-}
-
-/* 响应式 */
-@media (max-width: 1400px) {
-  .status-cards { grid-template-columns: repeat(3, 1fr); }
-}
 @media (max-width: 1000px) {
-  .status-cards { grid-template-columns: repeat(2, 1fr); }
-  .audit-card { flex-direction: column; align-items: flex-start; }
-  .audit-card-actions { width: 100%; justify-content: flex-end; }
+  .toolbar { flex-direction: column; align-items: flex-start; }
+  .card { flex-direction: column; align-items: flex-start; }
+  .card-act { width: 100%; grid-template-columns: 86px 104px 72px; justify-content: flex-end; }
 }
 </style>

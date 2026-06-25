@@ -106,9 +106,9 @@ const router = createRouter({
       path: '/staff',
       name: 'StaffLayout',
       component: () => import('@/views/TopNavLayoutView.vue'),
-      meta: { title: '职工端', requiresAuth: true, roles: ['staff'] },
+      meta: { title: '教职工端', requiresAuth: true, roles: ['staff'] },
       children: [
-        { path: 'dashboard', name: 'StaffDashboard', component: () => import('@/views/staff/dashboard/DashboardView.vue'), meta: { title: '职工工作台' } },
+        { path: 'dashboard', name: 'StaffDashboard', component: () => import('@/views/staff/dashboard/DashboardView.vue'), meta: { title: '教职工工作台' } },
         { path: 'evaluation/forms', name: 'StaffEvalForms', component: () => import('@/views/staff/evaluation/FormsView.vue'), meta: { title: '评价管理' } },
         { path: 'feedback', name: 'StaffFeedback', component: () => import('@/views/staff/feedback/FeedbackView.vue'), meta: { title: '反馈处理' } },
         { path: 'reports', name: 'StaffReports', component: () => import('@/views/staff/reports/ReportsView.vue'), meta: { title: '数据看板' } },
@@ -166,7 +166,7 @@ const roleDashboardMap = {
 // 路由守卫
 router.beforeEach((to, from, next) => {
   // 设置页面标题
-  document.title = `${to.meta.title || ''} - 校园服务质量评测系统`
+  document.title = `${to.meta.title || ''} - 校园服务质量在线评测系统`
 
   const token = getToken()
 

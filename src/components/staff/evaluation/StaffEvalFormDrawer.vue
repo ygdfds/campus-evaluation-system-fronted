@@ -1,7 +1,8 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Picture, Delete, ZoomIn } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import CoverImage from '@/components/common/CoverImage.vue'
 import QuestionEditor from './QuestionEditor.vue'
 import {
   createEvalFormDraftApi,
@@ -25,6 +26,42 @@ const emit = defineEmits(['update:visible', 'saved'])
 const currentStep = ref(0)
 const saving = ref(false)
 const formLoading = ref(false)
+
+// 封面上传
+const coverPreviewUrl = ref('')
+const uploadDialogVisible = ref(false)
+const coverPreviewVisible = ref(false)
+
+function handleOpenUpload() {
+  uploadDialogVisible.value = true
+}
+
+function handleCoverSelect(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    ElMessage.warning('请选择图片文件')
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.warning('图片大小不能超过 5MB')
+    return
+  }
+  // 本地预览（后续接入后端上传接口）
+  coverPreviewUrl.value = URL.createObjectURL(file)
+  form.cover_file_id = Date.now() // mock ID，后续替换为后端返回值
+  uploadDialogVisible.value = false
+  ElMessage.success('封面图片已选择（待接入后端上传）')
+}
+
+function handleRemoveCover() {
+  coverPreviewUrl.value = ''
+  form.cover_file_id = null
+}
+
+function handlePreviewCover() {
+  coverPreviewVisible.value = true
+}
 
 // 表单基础数据
 const form = reactive({
@@ -121,6 +158,8 @@ async function loadEditData() {
       service_org_id: props.formData.service_org_id || null,
     })
 
+    coverPreviewUrl.value = props.formData._cover_url || ''
+
     // 加载题目
     const ctx = { tenantId: props.formData.tenant_id }
     const loadedQuestions = await getEvalQuestionsByFormApi(ctx, props.formData.id)
@@ -210,6 +249,7 @@ function resetForm() {
     anonymous: true, publish_scope: 'all_students',
     course_id: null, teaching_org_id: null, service_item_id: null, service_org_id: null,
   })
+  coverPreviewUrl.value = ''
   questions.value = []
   Object.assign(windowForm, { start_at: '', end_at: '', modifiable_hours: 24 })
 }
@@ -255,6 +295,20 @@ watch(() => props.visible, (val) => {
           </el-form-item>
           <el-form-item label="表单说明">
             <el-input v-model="form.description" type="textarea" :rows="3" placeholder="简要描述评价目的和范围（选填）" maxlength="500" show-word-limit />
+          </el-form-item>
+          <el-form-item label="封面图片">
+            <div v-if="coverPreviewUrl" class="cover-preview-wrapper">
+              <CoverImage :src="coverPreviewUrl" width="160px" height="100px" radius="var(--radius-md)" />
+              <div class="cover-actions">
+                <el-button size="small" :icon="ZoomIn" circle @click="handlePreviewCover" />
+                <el-button size="small" :icon="Delete" type="danger" circle @click="handleRemoveCover" />
+              </div>
+            </div>
+            <div v-else class="cover-upload-trigger" @click="handleOpenUpload">
+              <el-icon :size="28" class="cover-upload-icon"><Picture /></el-icon>
+              <span class="cover-upload-text">点击上传封面</span>
+              <span class="cover-upload-hint">建议尺寸 16:9，不超过 5MB</span>
+            </div>
           </el-form-item>
           <el-form-item label="匿名评价">
             <el-switch v-model="form.anonymous" />
@@ -366,6 +420,9 @@ watch(() => props.visible, (val) => {
       <!-- 步骤 5: 预览与提交 -->
       <div v-show="currentStep === 4 && !isLimitedEdit" class="step-content">
         <div class="preview-section">
+          <div v-if="coverPreviewUrl" class="preview-cover">
+            <CoverImage :src="coverPreviewUrl" width="100%" height="200px" radius="var(--radius-lg)" />
+          </div>
           <h3 class="preview-title">{{ form.title || '未命名表单' }}</h3>
           <div class="preview-meta">
             <el-tag size="small" effect="light">{{ typeOptions.find(t => t.value === form.type)?.label || form.type }}</el-tag>
@@ -420,6 +477,29 @@ watch(() => props.visible, (val) => {
       </div>
     </template>
   </el-drawer>
+
+  <!-- 封面上传弹窗 -->
+  <el-dialog v-model="uploadDialogVisible" title="上传封面图片" width="480px" :close-on-click-modal="true">
+    <div class="upload-dialog-body">
+      <div class="upload-drop-zone">
+        <el-icon :size="48" class="upload-drop-icon"><Picture /></el-icon>
+        <p class="upload-drop-title">选择封面图片</p>
+        <p class="upload-drop-hint">支持 JPG、PNG、WebP 格式，不超过 5MB</p>
+        <label class="upload-drop-btn">
+          选择文件
+          <input type="file" accept="image/jpeg,image/png,image/webp" hidden @change="handleCoverSelect" />
+        </label>
+      </div>
+      <el-alert type="info" :closable="false" show-icon style="margin-top: 16px">
+        当前为本地预览模式，后端上传接口开发后将自动对接真实上传
+      </el-alert>
+    </div>
+  </el-dialog>
+
+  <!-- 封面预览弹窗 -->
+  <el-dialog v-model="coverPreviewVisible" title="封面预览" width="640px">
+    <CoverImage v-if="coverPreviewUrl" :src="coverPreviewUrl" width="100%" height="auto" radius="var(--radius-lg)" />
+  </el-dialog>
 </template>
 
 <style scoped>
@@ -567,5 +647,119 @@ watch(() => props.visible, (val) => {
   display: flex;
   gap: var(--space-2);
   margin-left: auto;
+}
+
+/* 封面上传 */
+.cover-upload-trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  width: 160px;
+  height: 100px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  justify-content: center;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.cover-upload-trigger:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-50);
+}
+
+.cover-upload-icon {
+  color: var(--color-text-placeholder);
+}
+
+.cover-upload-text {
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.cover-upload-hint {
+  font-size: var(--font-xs);
+  color: var(--color-text-placeholder);
+}
+
+.cover-preview-wrapper {
+  position: relative;
+  width: 160px;
+  height: 100px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.cover-actions {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.cover-preview-wrapper:hover .cover-actions {
+  opacity: 1;
+}
+
+.preview-cover {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* 上传弹窗 */
+.upload-dialog-body {
+  padding: var(--space-2) 0;
+}
+
+.upload-drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-6);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-secondary);
+}
+
+.upload-drop-icon {
+  color: var(--color-text-placeholder);
+}
+
+.upload-drop-title {
+  font-size: var(--font-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.upload-drop-hint {
+  font-size: var(--font-xs);
+  color: var(--color-text-placeholder);
+  margin: 0;
+}
+
+.upload-drop-btn {
+  display: inline-block;
+  padding: var(--space-2) var(--space-5);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: var(--font-sm);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.upload-drop-btn:hover {
+  background: var(--color-primary-hover);
 }
 </style>

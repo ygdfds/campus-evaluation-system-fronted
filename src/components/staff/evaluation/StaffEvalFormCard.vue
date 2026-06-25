@@ -41,7 +41,7 @@ function formatTime(dateStr) {
   <div class="form-card" @click="$emit('view', item)">
     <!-- 封面 -->
     <div class="card-cover">
-      <CoverImage v-if="item._cover_url" :src="item._cover_url" :size="72" />
+      <CoverImage v-if="item._cover_url" :src="item._cover_url" :size="72" radius="var(--radius-md)" />
       <div v-else class="cover-placeholder">
         <el-icon :size="28"><Document /></el-icon>
       </div>
@@ -148,6 +148,8 @@ function formatTime(dateStr) {
 
 .card-cover {
   flex-shrink: 0;
+  width: 72px;
+  height: 72px;
 }
 
 .cover-placeholder {

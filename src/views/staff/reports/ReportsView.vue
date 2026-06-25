@@ -227,7 +227,7 @@ onMounted(() => {
           @sort-change="handleSortChange"
           @view-detail="handleViewDetail"
         />
-        <div id="warnings">
+        <div id="warnings" class="warning-col">
           <LowScoreWarningList :warnings="warnings" @view-detail="handleViewDetail" />
         </div>
       </div>
@@ -250,6 +250,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  max-width: 1480px;
+  margin-inline: auto;
 }
 
 .no-permission {
@@ -292,6 +294,12 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
+  align-items: stretch;
+}
+
+.warning-col {
+  display: flex;
+  flex-direction: column;
 }
 
 /* 响应式 */

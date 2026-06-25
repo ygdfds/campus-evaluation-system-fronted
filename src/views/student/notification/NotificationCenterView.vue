@@ -160,6 +160,7 @@ onMounted(() => { loadData() })
 
 <template>
   <div class="notification-center">
+    <div class="notification-workspace">
     <!-- 页面标题 -->
     <div class="page-header">
       <h1 class="page-title">消息通知</h1>
@@ -242,6 +243,7 @@ onMounted(() => { loadData() })
         />
       </div>
     </template>
+    </div>
 
     <!-- 通知详情抽屉 -->
     <el-drawer
@@ -279,11 +281,18 @@ onMounted(() => { loadData() })
   width: 100%;
   padding-bottom: var(--space-8);
 }
-.page-header { padding: var(--space-2) 0 var(--space-5); }
+.notification-workspace {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+}
+.page-header { padding: 0 0 var(--space-4); border-bottom: 1px solid var(--color-border-lighter); margin-bottom: var(--space-4); }
 .page-title { font-size: 28px; font-weight: var(--font-weight-bold); color: var(--color-text-heading); margin-bottom: var(--space-1); }
 .page-subtitle { font-size: var(--font-base); color: var(--color-text-secondary); }
 
-.loading-area { padding: var(--space-8); background: var(--color-bg-card); border-radius: var(--radius-lg); }
+.loading-area { padding: var(--space-6) 0 0; }
 
 /* ==================== 筛选区 ==================== */
 .filter-bar {
@@ -291,10 +300,12 @@ onMounted(() => { loadData() })
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  padding: var(--space-4) var(--space-6);
-  background: var(--color-bg-card);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
+  min-height: 56px;
+  padding: var(--space-3) 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  border-bottom: 1px solid var(--color-border-lighter);
   margin-bottom: var(--space-4);
   flex-wrap: wrap;
 }
@@ -306,6 +317,11 @@ onMounted(() => { loadData() })
 }
 .filter-select { width: 140px; }
 .filter-search { width: 220px; }
+.filter-bar :deep(.el-select),
+.filter-bar :deep(.el-input),
+.filter-bar :deep(.el-button) {
+  vertical-align: middle;
+}
 
 /* 按钮主色覆盖 */
 .filter-bar :is(.el-button--primary) {
@@ -326,21 +342,22 @@ onMounted(() => { loadData() })
 .notification-card {
   display: flex;
   gap: var(--space-4);
-  padding: var(--space-5) var(--space-6);
-  background: var(--color-bg-card);
+  padding: var(--space-4) var(--space-5);
+  background: #fbfcff;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
   cursor: pointer;
   transition: all 0.2s;
-  border: 1px solid transparent;
+  border: 1px solid var(--color-border-lighter);
   position: relative;
 }
 .notification-card:hover {
   border-color: var(--color-primary-200);
-  box-shadow: var(--shadow-card), 0 2px 8px rgba(45, 106, 46, 0.06);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
 }
 .notification-card.is-unread {
-  background: var(--color-primary-50);
+  background: color-mix(in srgb, var(--color-primary) 7%, #ffffff);
+  border-color: color-mix(in srgb, var(--color-primary) 24%, var(--color-border-lighter));
   border-left: 3px solid var(--color-primary);
 }
 
@@ -430,10 +447,10 @@ onMounted(() => { loadData() })
   flex-direction: column;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-12) 0;
-  background: var(--color-bg-card);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
+  padding: var(--space-10) 0 var(--space-8);
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
 }
 .empty-icon { opacity: 0.25; color: var(--color-text-muted); }
 .empty-text { font-size: var(--font-md); color: var(--color-text-body); margin: 0; }
@@ -442,8 +459,10 @@ onMounted(() => { loadData() })
 /* ==================== 分页 ==================== */
 .pagination-area {
   display: flex;
-  justify-content: center;
-  padding-top: var(--space-5);
+  justify-content: flex-end;
+  padding-top: var(--space-4);
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--color-border-lighter);
 }
 
 /* ==================== 抽屉 ==================== */
@@ -489,7 +508,8 @@ onMounted(() => { loadData() })
 
 /* ==================== 响应式 ==================== */
 @media (max-width: 768px) {
-  .filter-bar { flex-direction: column; align-items: stretch; }
+  .notification-workspace { padding: var(--space-4); }
+  .filter-bar { flex-direction: column; align-items: stretch; justify-content: flex-start; min-height: auto; }
   .filter-left { flex-direction: column; }
   .filter-select, .filter-search { width: 100%; }
   .notification-card { flex-direction: column; }

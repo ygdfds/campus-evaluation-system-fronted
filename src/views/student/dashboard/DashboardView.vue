@@ -89,10 +89,28 @@ const serviceItemsMap = ref({})
 const orgUnitsMap = ref({})
 
 // 最新发布的评价任务（取前6条）
+
+
 const latestEvaluationList = computed(() => {
   return [...evaluationList.value]
     .sort((a, b) => b.startDate.localeCompare(a.startDate))
     .slice(0, 6)
+})
+const visibleAnnouncements = computed(() => announcements.value.slice(0, 5))
+const feedbackSlots = computed(() => {
+  const slots = feedbackItems.value.slice(0, 2).map(item => ({ ...item, placeholder: false }))
+  while (slots.length < 2) {
+    slots.push({
+      id: `feedback-placeholder-${slots.length}`,
+      placeholder: true,
+      title: slots.length === 0 ? '暂无反馈记录' : '暂无更多反馈',
+      progress: '提交投诉建议后，处理进度会显示在这里',
+      eta: '可在投诉建议页查看完整记录',
+      status: '占位',
+      statusType: 'info',
+    })
+  }
+  return slots
 })
 
 // ===== 数据加载 =====
@@ -207,29 +225,27 @@ async function loadDashboard() {
     })
 
     // 6. 反馈处理进度
-    const sortedComplaints = complaints.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    const latestComplaint = sortedComplaints[0]
-    if (latestComplaint) {
+    const sortedComplaints = complaints.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 2)
+    const statusMap = { pending: '待处理', processing: '处理中', resolved: '已办结', rejected: '已驳回', cancelled: '已撤销' }
+    const statusTypeMap = { pending: 'warning', processing: '', resolved: 'success', rejected: 'danger', cancelled: 'info' }
+    feedbackItems.value = await Promise.all(sortedComplaints.map(async complaint => {
       let latestRecord = null
       try {
-        const records = await getComplaintProcessRecordsApi(tenantId, latestComplaint.id)
+        const records = await getComplaintProcessRecordsApi(tenantId, complaint.id)
         if (records?.length) {
           records.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
           latestRecord = records[0]
         }
       } catch { /* 忽略 */ }
-      const statusMap = { pending: '待处理', processing: '处理中', resolved: '已办结', rejected: '已驳回', cancelled: '已撤销' }
-      const statusTypeMap = { pending: 'warning', processing: '', resolved: 'success', rejected: 'danger', cancelled: 'info' }
-      feedbackItems.value = [{
-        title: latestComplaint.title,
-        status: statusMap[latestComplaint.status] || latestComplaint.status,
-        statusType: statusTypeMap[latestComplaint.status] || 'info',
+      return {
+        id: complaint.id,
+        title: complaint.title,
+        status: statusMap[complaint.status] || complaint.status,
+        statusType: statusTypeMap[complaint.status] || 'info',
         progress: latestRecord ? latestRecord.content : '已提交，等待学校相关部门处理',
-        eta: latestComplaint.status === 'resolved' ? '已办结' : latestComplaint.status === 'cancelled' ? '已撤销' : '预计 3 个工作日内反馈',
-      }]
-    } else {
-      feedbackItems.value = []
-    }
+        eta: complaint.status === 'resolved' ? '已办结' : complaint.status === 'cancelled' ? '已撤销' : '预计 3 个工作日内反馈',
+      }
+    }))
 
     // 7. 全部评价任务
     const enrolledCourseIds = enrollments.map(e => e.course_id)
@@ -325,9 +341,9 @@ onMounted(() => { loadDashboard() })
       </div>
       <div class="announce-grid">
         <div class="carousel-card">
-          <template v-if="announcements.length > 0">
+          <template v-if="visibleAnnouncements.length > 0">
             <el-carousel ref="carouselRef" :active-index="activeAnnounceIdx" height="360px" :interval="5000" arrow="hover" indicator-position="none" class="announcement-carousel" @change="handleCarouselChange">
-              <el-carousel-item v-for="item in announcements" :key="item.id">
+              <el-carousel-item v-for="item in visibleAnnouncements" :key="item.id">
                 <div class="announce-slide" @click="handleAnnounceClick(item)">
                   <img :src="item.img" :alt="item.title" class="slide-bg" />
                   <div class="slide-gradient" />
@@ -344,7 +360,7 @@ onMounted(() => { loadDashboard() })
             <!-- 自定义指示器圆点（仅点击切换） -->
             <div class="carousel-indicators">
               <button
-                v-for="(_, idx) in announcements"
+                v-for="(_, idx) in visibleAnnouncements"
                 :key="idx"
                 class="indicator-dot"
                 :class="{ 'is-active': idx === activeAnnounceIdx }"
@@ -357,7 +373,7 @@ onMounted(() => { loadDashboard() })
           </div>
         </div>
         <div class="announce-list-card">
-          <div v-for="(item, idx) in announcements" :key="item.id" class="announce-list-item" :class="{ active: idx === activeAnnounceIdx || idx === hoveredAnnounceIdx }" @mouseenter="handleAnnounceHover(idx)" @mouseleave="hoveredAnnounceIdx = -1" @click="handleAnnounceClick(item)">
+          <div v-for="(item, idx) in visibleAnnouncements" :key="item.id" class="announce-list-item" :class="{ active: idx === activeAnnounceIdx || idx === hoveredAnnounceIdx }" @mouseenter="handleAnnounceHover(idx)" @mouseleave="hoveredAnnounceIdx = -1" @click="handleAnnounceClick(item)">
             <div class="list-item-content">
               <span class="list-item-tag">{{ item.tag }}</span>
               <span class="list-item-title">{{ item.title }}</span>
@@ -468,15 +484,28 @@ onMounted(() => { loadDashboard() })
               查看更多 <el-icon :size="14"><ArrowRight /></el-icon>
             </el-button>
           </div>
-          <div v-for="item in feedbackItems" :key="item.title" class="feedback-item" @click="router.push({ name: 'StudentComplaint' })">
-            <div class="feedback-header">
-              <span class="feedback-title">{{ item.title }}</span>
-              <el-tag :type="item.statusType" size="small" effect="plain">{{ item.status }}</el-tag>
+          <div class="feedback-list">
+            <div
+              v-for="item in feedbackSlots"
+              :key="item.id"
+              class="feedback-item"
+              :class="{ 'is-placeholder': item.placeholder }"
+              @click="!item.placeholder && router.push({ name: 'StudentComplaint' })"
+            >
+              <template v-if="!item.placeholder">
+                <div class="feedback-header">
+                  <span class="feedback-title">{{ item.title }}</span>
+                  <el-tag :type="item.statusType" size="small" effect="plain">{{ item.status }}</el-tag>
+                </div>
+                <p class="feedback-progress">{{ item.progress }}</p>
+                <p class="feedback-eta">{{ item.eta }}</p>
+              </template>
+              <div v-else class="feedback-placeholder">
+                <span class="feedback-placeholder-title">{{ item.title }}</span>
+                <span class="feedback-placeholder-desc">{{ item.progress }}</span>
+              </div>
             </div>
-            <p class="feedback-progress">{{ item.progress }}</p>
-            <p class="feedback-eta">{{ item.eta }}</p>
           </div>
-          <div v-if="!feedbackItems.length" class="feedback-empty">暂无反馈记录</div>
         </div>
       </div>
     </div>
@@ -1045,4 +1074,211 @@ onMounted(() => { loadDashboard() })
     grid-template-columns: 1fr;
   }
 }
-</style>
+
+
+/* SaaS student dashboard pass */
+.dashboard {
+  gap: var(--space-4);
+  max-width: var(--page-max-width);
+  margin-inline: auto;
+}
+
+.dashboard-loading,
+.section-card,
+.announce-list-card,
+.carousel-card {
+  border: 1px solid var(--color-border-lighter);
+  box-shadow: var(--shadow-card);
+}
+
+.module-header {
+  min-height: 36px;
+  margin-bottom: var(--space-2);
+}
+
+.module-title,
+.section-title {
+  font-family: var(--font-family-display);
+  letter-spacing: 0;
+}
+
+.announce-grid,
+.content-two-col {
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.9fr);
+  gap: var(--space-4);
+}
+
+.carousel-card,
+.announce-list-card {
+  border-radius: var(--radius-card);
+  height: 328px;
+  max-height: 328px;
+}
+
+.announcement-carousel,
+.announcement-carousel :deep(.el-carousel__container) {
+  height: 328px !important;
+  border-radius: var(--radius-card);
+}
+
+.slide-text { padding: var(--space-5); }
+.slide-title { font-size: var(--font-xl); }
+
+.announce-list-card {
+  padding: var(--space-2);
+  gap: var(--space-2);
+}
+.announce-list-item {
+  min-height: 48px;
+  padding: var(--space-2) var(--space-3);
+  background: #FFFFFF;
+  border: 1px solid transparent;
+}
+.announce-list-item + .announce-list-item { margin-top: 0; }
+.announce-list-item:hover,
+.announce-list-item.active {
+  border-color: var(--color-primary-100);
+  background: var(--color-primary-50);
+}
+
+.section-card {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border-lighter);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
+}
+
+.task-row,
+.calendar-item,
+.feedback-item {
+  background: #FBFCFF;
+  border: 1px solid var(--color-border-lighter);
+  box-shadow: none;
+}
+.task-row:hover,
+.calendar-item:hover,
+.feedback-item:hover {
+  transform: none;
+  background: var(--color-primary-50);
+  border-color: var(--color-primary-100);
+}
+
+.overview-stats { gap: var(--space-2); }
+.stat-item {
+  align-items: flex-start;
+  padding: var(--space-3);
+  background: #FBFCFF;
+  border: 1px solid var(--color-border-lighter);
+}
+.stat-value {
+  font-family: var(--font-family-data);
+  font-size: var(--font-xl);
+}
+.progress-fill { background: linear-gradient(90deg, var(--color-primary-500), var(--color-accent-school-500)); }
+.progress-value,
+.calendar-day { color: var(--color-primary-600); }
+
+@media (max-width: 1100px) {
+  .announce-grid,
+  .content-two-col { grid-template-columns: 1fr; }
+  .announce-list-card { height: auto; max-height: none; }
+}
+
+/* announcement overflow guard */
+.announce-list-card {
+  gap: var(--space-2);
+}
+.announce-list-item {
+  flex: 1 1 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* feedback two-slot layout */
+.feedback-list {
+  display: grid;
+  grid-template-rows: repeat(2, minmax(72px, 1fr));
+  gap: var(--space-3);
+  flex: 1;
+  min-height: 0;
+}
+
+.feedback-list .feedback-item {
+  min-height: 72px;
+}
+
+.feedback-item.is-placeholder {
+  cursor: default;
+  background: #fbfcff;
+  border-style: dashed;
+  color: var(--color-text-muted);
+}
+
+.feedback-item.is-placeholder:hover {
+  background: #fbfcff;
+  border-color: var(--color-border-lighter);
+}
+
+.feedback-placeholder {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.feedback-placeholder-title {
+  font-size: var(--font-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.feedback-placeholder-desc {
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
+}
+/* dashboard-bottom-height-pass */
+.content-two-col {
+  align-items: stretch;
+}
+
+.col-left,
+.col-right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 0;
+}
+
+.col-left .eval-section {
+  flex: 1 1 auto;
+  min-height: 360px;
+}
+
+.col-left .eval-section .eval-list {
+  flex: 1;
+}
+
+.col-right .overview-card,
+.col-right .calendar-card {
+  flex: 0 0 auto;
+}
+
+.col-right .feedback-card {
+  flex: 1 1 188px;
+  min-height: 188px;
+  display: flex;
+  flex-direction: column;
+}
+
+.feedback-card .section-header {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 1100px) {
+  .col-left .eval-section,
+  .col-right .feedback-card {
+    flex: initial;
+    min-height: auto;
+  }
+}</style>

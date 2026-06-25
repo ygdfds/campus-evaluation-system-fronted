@@ -1,17 +1,17 @@
 /**
- * 圆角 Token
+ * Radius tokens
  */
 :root {
   --radius-none: 0;
-  --radius-xs: 2px;
-  --radius-sm: 4px;
+  --radius-xs: 3px;
+  --radius-sm: 6px;
   --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 20px;
-  --radius-3xl: 24px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 20px;
   --radius-full: 9999px;
 
-  /* ========== 语义化圆角 ========== */
-  --radius-card: var(--radius-lg);  /* 12px - 卡片圆角 */
+  --radius-card: var(--radius-xl);
+  --radius-card-lg: var(--radius-2xl);
 }

@@ -4,11 +4,8 @@ defineOptions({ name: 'PageHeader' })
 import { computed } from 'vue'
 
 const props = defineProps({
-  /** 页面标题 */
   title: { type: String, required: true },
-  /** 描述文字 */
   description: { type: String, default: '' },
-  /** 页面副标题，兼容既有页面传参 */
   subtitle: { type: String, default: '' },
 })
 
@@ -16,8 +13,9 @@ const helperText = computed(() => props.subtitle || props.description)
 </script>
 
 <template>
-  <div class="page-header">
+  <header class="page-header">
     <div class="header-info">
+      <span class="page-kicker">Evaluation console</span>
       <h2 class="header-title">{{ title }}</h2>
       <p v-if="helperText" class="header-desc">{{ helperText }}</p>
     </div>
@@ -25,34 +23,58 @@ const helperText = computed(() => props.subtitle || props.description)
       <slot name="actions" />
       <slot name="extra" />
     </div>
-  </div>
+  </header>
 </template>
 
 <style scoped>
 .page-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: var(--space-6);
+  gap: var(--space-5);
+  padding: 0 0 var(--space-1);
+}
+
+.header-info {
+  min-width: 0;
 }
 
 .header-title {
-  font-size: var(--font-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
   margin: 0;
+  color: var(--color-text-heading);
+  font-family: var(--font-family-display);
+  font-size: var(--font-3xl);
+  font-weight: var(--font-weight-display);
   line-height: var(--line-height-tight);
+  letter-spacing: 0;
 }
 
 .header-desc {
-  font-size: var(--font-sm);
-  color: var(--color-text-secondary);
+  max-width: 760px;
   margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-sm);
+  line-height: var(--line-height-normal);
 }
 
 .header-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--space-2);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 </style>

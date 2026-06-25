@@ -1,12 +1,10 @@
 /**
- * 组件 Token
- * 按钮、弹窗、卡片等组件的样式变量
+ * Component tokens
  */
 :root {
-  /* ========== 按钮 Token ========== */
-  --btn-height-sm: 24px;
-  --btn-height-default: 32px;
-  --btn-height-lg: 40px;
+  --btn-height-sm: 28px;
+  --btn-height-default: 36px;
+  --btn-height-lg: 42px;
   --btn-padding-x-sm: var(--space-3);
   --btn-padding-x-default: var(--space-4);
   --btn-padding-x-lg: var(--space-5);
@@ -14,42 +12,36 @@
   --btn-font-size-default: var(--font-base);
   --btn-font-size-lg: var(--font-md);
   --btn-border-radius: var(--radius-md);
-  --btn-font-weight: var(--font-weight-medium);
+  --btn-font-weight: var(--font-weight-semibold);
 
-  /* 主色按钮 */
   --btn-primary-bg: var(--color-primary-500);
   --btn-primary-hover-bg: var(--color-primary-600);
   --btn-primary-active-bg: var(--color-primary-700);
   --btn-primary-text: var(--color-text-white);
   --btn-primary-shadow: var(--shadow-button);
 
-  /* 默认按钮 */
   --btn-default-bg: var(--color-bg-card);
   --btn-default-hover-bg: var(--color-bg-hover);
   --btn-default-border: var(--color-border);
   --btn-default-text: var(--color-text-regular);
 
-  /* 文字按钮 */
   --btn-text-color: var(--color-text-secondary);
   --btn-text-hover-color: var(--color-primary-500);
 
-  /* ========== 卡片 Token ========== */
   --card-bg: var(--color-bg-card);
-  --card-border-radius: var(--radius-lg);
+  --card-border-radius: var(--radius-card);
   --card-padding: var(--space-5) var(--spacing-lg);
   --card-shadow: var(--shadow-card);
   --card-shadow-hover: var(--shadow-card-hover);
   --card-border: var(--border-light);
 
-  /* 内容卡片 */
   --card-section-bg: var(--color-bg-card);
-  --card-section-border-radius: var(--radius-lg);
+  --card-section-border-radius: var(--radius-card);
   --card-section-shadow: var(--shadow-sm);
   --card-section-padding: var(--space-5) var(--spacing-lg);
 
-  /* ========== 弹窗/对话框 Token ========== */
   --dialog-bg: var(--color-bg-card);
-  --dialog-border-radius: var(--radius-xl);
+  --dialog-border-radius: var(--radius-2xl);
   --dialog-shadow: var(--shadow-modal);
   --dialog-padding: var(--space-6);
   --dialog-header-font-size: var(--font-xl);
@@ -58,29 +50,26 @@
   --dialog-body-color: var(--color-text-regular);
   --dialog-footer-border: var(--border-light);
 
-  /* ========== 输入框 Token ========== */
-  --input-height-sm: 24px;
-  --input-height-default: 32px;
-  --input-height-pill: 36px;
-  --input-height-lg: 40px;
+  --input-height-sm: 28px;
+  --input-height-default: 36px;
+  --input-height-pill: 38px;
+  --input-height-lg: 42px;
   --input-padding-x: var(--space-3);
   --input-font-size: var(--font-base);
   --input-border-radius: var(--radius-md);
   --input-pill-radius: var(--radius-full);
   --input-border-color: var(--color-border);
   --input-focus-border-color: var(--color-primary-500);
-  --input-focus-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+  --input-focus-shadow: 0 0 0 3px rgba(79, 111, 234, 0.14);
   --input-ring-border: 1px;
   --input-bg: var(--color-bg-card);
   --input-placeholder-color: var(--color-text-placeholder);
 
-  /* ========== 标签/徽章 Token ========== */
   --tag-font-size: var(--font-xs);
   --tag-padding: 2px var(--space-2);
   --tag-border-radius: var(--radius-sm);
   --tag-font-weight: var(--font-weight-semibold);
 
-  /* 角标 */
   --badge-bg: var(--color-danger);
   --badge-text: var(--color-text-white);
   --badge-font-size: var(--font-2xs);
@@ -88,8 +77,7 @@
   --badge-offset: 2px;
   --badge-padding-x: 4px;
 
-  /* ========== 导航栏 Token ========== */
-  --nav-height: 64px;
+  --nav-height: 58px;
   --nav-bg: var(--color-bg-card);
   --nav-shadow: var(--shadow-nav);
   --nav-padding-x: var(--space-10);
@@ -97,57 +85,40 @@
   --nav-item-padding: var(--space-2) var(--space-5);
   --nav-item-font-size: var(--font-base);
   --nav-item-color: var(--color-text-body);
-  --nav-item-active-color: var(--color-accent-user-700);
+  --nav-item-active-color: var(--color-primary-600);
   --nav-item-active-bg: var(--color-primary-50);
-  --nav-item-hover-color: var(--color-accent-user-700);
+  --nav-item-hover-color: var(--color-primary-500);
   --nav-item-hover-bg: var(--color-bg-primary-hover);
-  --nav-item-border-radius: var(--radius-2xl);
+  --nav-item-border-radius: var(--radius-lg);
 
-  /* ========== 侧边栏 Token ========== */
-  --sidebar-width: 220px;
-  --sidebar-width-collapsed: 64px;
+  --sidebar-width: 252px;
+  --sidebar-width-collapsed: 72px;
   --sidebar-bg: var(--color-sidebar-bg);
-  --sidebar-logo-height: var(--space-14);
-  --sidebar-logo-border: rgba(255, 255, 255, 0.1);
+  --sidebar-logo-height: 64px;
+  --sidebar-logo-border: var(--color-sidebar-border);
 
-  /* ========== 页面容器 Token ========== */
-  --page-max-width: 1200px;
-  --page-padding-x: var(--space-10);
-  --page-padding-y: var(--space-8);
+  --page-max-width: 1440px;
+  --page-padding-x: var(--space-8);
+  --page-padding-y: var(--space-6);
   --page-bg: var(--color-bg-page-alt);
 
-  /* ========== 布局栅格 Token ========== */
   --grid-main-col: 760px;
   --grid-gap: var(--spacing-lg);
+  --section-gap: var(--space-6);
 
-  /* ========== 区块间距 ========== */
-  --section-gap: var(--space-7); /* 28px */
-
-  /* ========== 首页公告轮播 Token ========== */
-  --carousel-height: 360px;
+  --carousel-height: 340px;
   --carousel-gradient-height: 120px;
-
-  /* ========== 首页待办任务 Token ========== */
   --task-row-height: 64px;
   --task-btn-height: 30px;
-
-  /* ========== 首页评价卡片 Token ========== */
   --eval-cover-width: 120px;
   --eval-action-width: 150px;
   --eval-action-btn-width: 72px;
   --eval-hover-offset: -1px;
-
-  /* ========== 首页筛选器 Token ========== */
   --filter-select-width: 110px;
-
-  /* ========== 首页进度条 Token ========== */
   --progress-bar-height: 7px;
-
-  /* ========== 首页日历 Token ========== */
   --calendar-date-min-width: 44px;
-  --calendar-info-gap: var(--space-1); /* 2px → 4px 统一 Token */
+  --calendar-info-gap: var(--space-1);
 
-  /* ========== 分页 Token ========== */
   --pagination-height: 32px;
   --pagination-font-size: var(--font-sm);
   --pagination-border-radius: var(--radius-md);
@@ -165,17 +136,15 @@
   --pagination-jumper-font-size: var(--font-sm);
   --pagination-select-width: 100px;
 
-  /* ========== 学校信息页 Token ========== */
   --banner-cover-height: 160px;
   --banner-logo-size: 80px;
   --banner-logo-border-width: var(--border-width-2);
   --banner-logo-offset-y: calc(var(--banner-logo-size) / -2);
   --banner-gradient-start: var(--color-accent-school-400);
-  --banner-gradient-end: var(--color-accent-school-600);
-  --banner-placeholder-opacity: 0.15;
+  --banner-gradient-end: var(--color-primary-600);
+  --banner-placeholder-opacity: 0.12;
   --info-label-width: 100px;
 
-  /* ========== 数据概览页 Token ========== */
   --chart-height: 320px;
   --metrics-grid-cols: 6;
   --chart-grid-cols: 2;

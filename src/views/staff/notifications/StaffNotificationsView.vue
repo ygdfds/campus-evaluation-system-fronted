@@ -31,7 +31,7 @@ const sortOrder = ref('desc')
 const searchKeyword = ref('')
 const filterType = ref('all') // 低频筛选：类型
 const currentPage = ref(1)
-const pageSize = 10
+const pageSize = 8
 const drawerVisible = ref(false)
 const selectedNotification = ref(null)
 const showFilterPopover = ref(false)
@@ -242,109 +242,112 @@ onMounted(() => { loadData() })
     <div v-if="loading" class="loading-area"><el-skeleton :rows="6" animated /></div>
 
     <template v-else>
-      <!-- 轻量筛选区：Tabs + 搜索 + 折叠筛选 -->
-      <div class="filter-bar">
-        <div class="filter-tabs">
-          <button
-            v-for="tab in tabs"
-            :key="tab.key"
-            class="tab-btn"
-            :class="{ active: activeTab === tab.key }"
-            @click="activeTab = tab.key"
-          >
-            {{ tab.label }}
-            <span v-if="tab.key === 'unread' && unreadCount > 0" class="tab-badge">{{ unreadCount }}</span>
-          </button>
+      <!-- 筛选 + 列表 + 分页（合并到大盒子） -->
+      <el-card shadow="never" class="section-card list-card">
+        <!-- 轻量筛选区：Tabs + 搜索 + 折叠筛选 -->
+        <div class="filter-bar">
+          <div class="filter-tabs">
+            <button
+              v-for="tab in tabs"
+              :key="tab.key"
+              class="tab-btn"
+              :class="{ active: activeTab === tab.key }"
+              @click="activeTab = tab.key"
+            >
+              {{ tab.label }}
+              <span v-if="tab.key === 'unread' && unreadCount > 0" class="tab-badge">{{ unreadCount }}</span>
+            </button>
+          </div>
+          <div class="filter-actions">
+            <el-input
+              v-model="searchKeyword"
+              placeholder="搜索通知"
+              :prefix-icon="Search"
+              clearable
+              class="filter-search"
+            />
+            <el-popover
+              v-model:visible="showFilterPopover"
+              trigger="click"
+              placement="bottom-end"
+              :width="240"
+            >
+              <template #reference>
+                <el-button class="filter-btn" :icon="Filter">
+                  筛选
+                  <el-icon class="arrow-icon" :class="{ 'is-open': showFilterPopover }"><ArrowDown /></el-icon>
+                </el-button>
+              </template>
+              <div class="popover-content">
+                <div class="popover-item">
+                  <label>类型</label>
+                  <el-select v-model="filterType" size="small" class="popover-select">
+                    <el-option v-for="opt in typeFilterOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
+                  </el-select>
+                </div>
+                <div class="popover-item">
+                  <label>排序</label>
+                  <el-select v-model="sortOrder" size="small" class="popover-select">
+                    <el-option v-for="opt in sortOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
+                  </el-select>
+                </div>
+              </div>
+            </el-popover>
+          </div>
         </div>
-        <div class="filter-actions">
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索通知"
-            :prefix-icon="Search"
-            clearable
-            class="filter-search"
+
+        <!-- 通知列表 -->
+        <div v-if="pagedList.length" class="notification-list">
+          <div
+            v-for="(item, index) in pagedList"
+            :key="item.id"
+            class="notification-card"
+            :class="{
+              'is-unread': item.read_status === 'unread',
+              'is-first-unread': item.read_status === 'unread' && !pagedList.slice(0, index).some(n => n.read_status === 'unread')
+            }"
+            @click="handleItemClick(item)"
+          >
+            <div class="card-left">
+              <div class="type-icon" :style="{ color: typeConfig[item.type]?.color, background: typeConfig[item.type]?.bg }">
+                <el-icon :size="18">
+                  <component :is="typeConfig[item.type]?.icon || InfoFilled" />
+                </el-icon>
+              </div>
+              <span v-if="item.read_status === 'unread'" class="unread-dot" />
+            </div>
+            <div class="card-body">
+              <div class="card-top-row">
+                <span class="type-badge" :style="{ color: typeConfig[item.type]?.color, background: typeConfig[item.type]?.bg }">
+                  {{ typeConfig[item.type]?.label || '通知' }}
+                </span>
+                <span v-if="item.business_type" class="biz-badge">{{ getBizLabel(item.business_type) }}</span>
+                <span class="card-time">{{ formatDateTime(item.created_at) }}</span>
+              </div>
+              <h3 class="card-title">{{ item.title }}</h3>
+              <p class="card-content">{{ item.content }}</p>
+            </div>
+            <div class="card-right">
+              <span class="card-action">{{ getActionLabel(item) }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-else class="empty-state">
+          <el-icon :size="48" class="empty-icon"><NotificationIcon /></el-icon>
+          <p class="empty-text">暂无通知</p>
+          <p class="empty-hint">当前筛选条件下没有匹配的通知</p>
+        </div>
+
+        <!-- 分页 -->
+        <div v-if="filteredNotifications.length > 0" class="pagination-bar">
+          <el-pagination
+            v-model:current-page="currentPage"
+            :page-size="pageSize"
+            :total="filteredNotifications.length"
+            layout="prev, pager, next"
           />
-          <el-popover
-            v-model:visible="showFilterPopover"
-            trigger="click"
-            placement="bottom-end"
-            :width="240"
-          >
-            <template #reference>
-              <el-button class="filter-btn" :icon="Filter">
-                筛选
-                <el-icon class="arrow-icon" :class="{ 'is-open': showFilterPopover }"><ArrowDown /></el-icon>
-              </el-button>
-            </template>
-            <div class="popover-content">
-              <div class="popover-item">
-                <label>类型</label>
-                <el-select v-model="filterType" size="small" class="popover-select">
-                  <el-option v-for="opt in typeFilterOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
-                </el-select>
-              </div>
-              <div class="popover-item">
-                <label>排序</label>
-                <el-select v-model="sortOrder" size="small" class="popover-select">
-                  <el-option v-for="opt in sortOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
-                </el-select>
-              </div>
-            </div>
-          </el-popover>
         </div>
-      </div>
-
-      <!-- 通知列表 -->
-      <div v-if="pagedList.length" class="notification-list">
-        <div
-          v-for="(item, index) in pagedList"
-          :key="item.id"
-          class="notification-card"
-          :class="{
-            'is-unread': item.read_status === 'unread',
-            'is-first-unread': item.read_status === 'unread' && !pagedList.slice(0, index).some(n => n.read_status === 'unread')
-          }"
-          @click="handleItemClick(item)"
-        >
-          <div class="card-left">
-            <div class="type-icon" :style="{ color: typeConfig[item.type]?.color, background: typeConfig[item.type]?.bg }">
-              <el-icon :size="18">
-                <component :is="typeConfig[item.type]?.icon || InfoFilled" />
-              </el-icon>
-            </div>
-            <span v-if="item.read_status === 'unread'" class="unread-dot" />
-          </div>
-          <div class="card-body">
-            <div class="card-top-row">
-              <span class="type-badge" :style="{ color: typeConfig[item.type]?.color, background: typeConfig[item.type]?.bg }">
-                {{ typeConfig[item.type]?.label || '通知' }}
-              </span>
-              <span v-if="item.business_type" class="biz-badge">{{ getBizLabel(item.business_type) }}</span>
-              <span class="card-time">{{ formatDateTime(item.created_at) }}</span>
-            </div>
-            <h3 class="card-title">{{ item.title }}</h3>
-            <p class="card-content">{{ item.content }}</p>
-          </div>
-          <div class="card-right">
-            <span class="card-action">{{ getActionLabel(item) }}</span>
-          </div>
-        </div>
-      </div>
-      <div v-else class="empty-state">
-        <el-icon :size="48" class="empty-icon"><NotificationIcon /></el-icon>
-        <p class="empty-text">暂无通知</p>
-        <p class="empty-hint">当前筛选条件下没有匹配的通知</p>
-      </div>
-
-      <!-- 分页 -->
-      <div v-if="filteredNotifications.length > pageSize" class="pagination-area">
-        <el-pagination
-          v-model:current-page="currentPage"
-          :page-size="pageSize"
-          :total="filteredNotifications.length"
-          layout="prev, pager, next"
-        />
-      </div>
+      </el-card>
     </template>
 
     <!-- 通知详情抽屉 -->
@@ -380,10 +383,28 @@ onMounted(() => { loadData() })
 
 <style scoped>
 .notification-center {
-  max-width: 1080px;
+  max-width: 1480px;
   margin: 0 auto;
   width: 100%;
   padding-bottom: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* 大盒子 */
+.section-card {
+  border: 1px solid var(--color-border-lighter) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card) !important;
+  overflow: hidden;
+}
+
+.list-card :deep(.el-card__body) {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 .page-header {
   display: flex;
@@ -445,9 +466,8 @@ onMounted(() => { loadData() })
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  padding: var(--space-3) 0;
-  margin-bottom: var(--space-3);
-  border-bottom: 1px solid var(--color-border-light);
+  padding: 0 0 var(--space-4);
+  border-bottom: 1px solid var(--color-border-lighter);
   flex-wrap: wrap;
 }
 .filter-tabs {
@@ -543,15 +563,14 @@ onMounted(() => { loadData() })
   padding: var(--space-4) var(--space-5);
   background: var(--color-bg-card);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card-sm);
+  border: 1px solid var(--color-border-lighter);
   cursor: pointer;
   transition: all 0.15s;
-  border: 1px solid transparent;
   position: relative;
 }
 .notification-card:hover {
   border-color: var(--color-primary-200);
-  box-shadow: var(--shadow-card);
+  background: var(--color-primary-50);
 }
 
 /* 未读样式：轻量表达 */
@@ -617,13 +636,13 @@ onMounted(() => { loadData() })
 .notification-card:hover .card-action { color: var(--color-primary-hover); }
 
 /* ==================== 空状态 ==================== */
-.empty-state { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: var(--space-10) 0; background: var(--color-bg-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-card-sm); }
+.empty-state { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: var(--space-10) 0; }
 .empty-icon { opacity: 0.25; color: var(--color-text-muted); }
 .empty-text { font-size: var(--font-md); color: var(--color-text-body); margin: 0; }
 .empty-hint { font-size: var(--font-sm); color: var(--color-text-muted); margin: 0; }
 
 /* ==================== 分页 ==================== */
-.pagination-area { display: flex; justify-content: center; padding-top: var(--space-5); }
+.pagination-bar { display: flex; justify-content: center; padding-top: var(--space-3); border-top: 1px solid var(--color-border-lighter); }
 
 /* ==================== 抽屉 ==================== */
 .drawer-content { padding: 0 var(--space-2); }

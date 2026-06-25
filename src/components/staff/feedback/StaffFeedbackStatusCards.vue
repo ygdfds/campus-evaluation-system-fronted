@@ -1,5 +1,5 @@
 <script setup>
-import { Clock, Loading, CircleCheck, CircleClose } from '@element-plus/icons-vue'
+
 
 defineOptions({ name: 'StaffFeedbackStatusCards' })
 
@@ -11,99 +11,86 @@ defineProps({
 defineEmits(['status-change'])
 
 const statusItems = [
-  { key: 'pending', label: '待处理', icon: Clock, color: 'warning', desc: '等待受理的反馈' },
-  { key: 'processing', label: '处理中', icon: Loading, color: 'primary', desc: '正在跟进处理' },
-  { key: 'resolved', label: '已办结', icon: CircleCheck, color: 'success', desc: '已完成处理' },
-  { key: 'rejected', label: '已驳回', icon: CircleClose, color: 'danger', desc: '不符合条件已驳回' },
+  { key: 'pending', label: '待处理', color: 'warning' },
+  { key: 'processing', label: '处理中', color: 'primary' },
+  { key: 'resolved', label: '已办结', color: 'success' },
+  { key: 'rejected', label: '已驳回', color: 'danger' },
 ]
 </script>
 
 <template>
-  <div class="status-cards">
+  <div class="stats-strip">
     <div
       v-for="item in statusItems"
       :key="item.key"
-      class="status-card"
-      :class="[`status-${item.color}`, { active: activeStatus === item.key }]"
+      class="strip-item"
+      :class="{ active: activeStatus === item.key }"
       @click="$emit('status-change', activeStatus === item.key ? 'all' : item.key)"
     >
-      <div class="status-icon">
-        <el-icon :size="22"><component :is="item.icon" /></el-icon>
-      </div>
-      <div class="status-info">
-        <span class="status-value">{{ stats[item.key] || 0 }}</span>
-        <span class="status-label">{{ item.label }}</span>
-        <span class="status-desc">{{ item.desc }}</span>
-      </div>
+      <span class="strip-value">{{ stats[item.key] || 0 }}</span>
+      <span class="strip-label">{{ item.label }}</span>
     </div>
   </div>
 </template>
 
 <style scoped>
-.status-cards {
+.stats-strip {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-4);
-}
-
-.status-card {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-5);
-  background: var(--color-bg-card);
-  border-radius: var(--radius-lg);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  padding: 0;
+  background: var(--color-border-lighter);
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
 }
 
-.status-card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
-}
-
-.status-card.active {
-  border-color: var(--color-accent-user-700);
-  background: var(--color-primary-50);
-}
-
-.status-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.status-warning .status-icon { background: var(--color-warning-light); color: var(--color-warning); }
-.status-primary .status-icon { background: var(--color-primary-50); color: var(--color-accent-user-700); }
-.status-success .status-icon { background: var(--color-success-light); color: var(--color-success); }
-.status-danger .status-icon { background: var(--color-danger-light); color: var(--color-danger); }
-
-.status-info {
+.strip-item {
+  min-height: 72px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-bg-card);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.16s;
 }
 
-.status-value {
+.strip-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  width: 3px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-light);
+}
+
+.strip-item:hover { background: var(--color-bg-page); }
+
+.strip-item.active { background: var(--color-primary-50); }
+.strip-item.active::before { background: var(--color-primary); }
+
+.strip-value {
+  font-family: var(--font-family-data);
   font-size: 24px;
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  line-height: var(--line-height-tight);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-heading);
 }
 
-.status-label {
-  font-size: var(--font-sm);
+.strip-label {
   color: var(--color-text-secondary);
+  font-size: var(--font-xs);
 }
 
-.status-desc {
-  font-size: var(--font-xs);
-  color: var(--color-text-placeholder);
+@media (max-width: 900px) {
+  .stats-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 </style>

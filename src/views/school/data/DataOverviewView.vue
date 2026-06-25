@@ -4,6 +4,7 @@ import { useUserStore } from '@/stores/user'
 import {
   DataAnalysis, OfficeBuilding, Files, TrendCharts,
 } from '@element-plus/icons-vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import { getDataOverviewAllApi } from '@/api/schoolDataOverview'
 
 // 动态导入 ECharts 相关模块，避免主包体积过大
@@ -42,12 +43,12 @@ const formTypeDistribution = ref([])
 
 // 核心指标卡
 const metricCards = computed(() => [
-  { key: 'totalSubmissions', title: '评价提交总数', value: metrics.value.totalSubmissions, icon: DataAnalysis, color: '#409eff' },
-  { key: 'avgScore', title: '平均评分', value: metrics.value.avgScore, icon: TrendCharts, color: '#67c23a' },
-  { key: 'activeForms', title: '已发布表单', value: metrics.value.activeForms, icon: Files, color: '#e6a23c' },
-  { key: 'teachingOrgCount', title: '教学院系', value: metrics.value.teachingOrgCount, icon: OfficeBuilding, color: '#909399' },
-  { key: 'serviceOrgCount', title: '服务部门', value: metrics.value.serviceOrgCount, icon: OfficeBuilding, color: '#909399' },
-  { key: 'monthSubmissions', title: '本月提交', value: metrics.value.monthSubmissions, icon: TrendCharts, color: '#f56c6c' },
+  { key: 'totalSubmissions', title: '评价提交总数', value: metrics.value.totalSubmissions, icon: DataAnalysis, color: 'var(--color-primary)' },
+  { key: 'avgScore', title: '平均评分', value: metrics.value.avgScore, icon: TrendCharts, color: 'var(--color-success)' },
+  { key: 'activeForms', title: '已发布表单', value: metrics.value.activeForms, icon: Files, color: 'var(--color-warning)' },
+  { key: 'teachingOrgCount', title: '教学院系', value: metrics.value.teachingOrgCount, icon: OfficeBuilding, color: 'var(--color-info)' },
+  { key: 'serviceOrgCount', title: '服务部门', value: metrics.value.serviceOrgCount, icon: OfficeBuilding, color: 'var(--color-info)' },
+  { key: 'monthSubmissions', title: '本月提交', value: metrics.value.monthSubmissions, icon: TrendCharts, color: 'var(--color-accent-school-500)' },
 ])
 
 // 教学评价院系分布 - 柱状图
@@ -71,14 +72,14 @@ const teachingChartOption = computed(() => {
         name: '评价数',
         type: 'bar',
         data: data.map(d => d.count),
-        itemStyle: { color: '#409eff' },
+        itemStyle: { color: '#4F6FEA' },
       },
       {
         name: '平均分',
         type: 'line',
         yAxisIndex: 1,
         data: data.map(d => d.avgScore),
-        itemStyle: { color: '#e6a23c' },
+        itemStyle: { color: '#D99118' },
         lineStyle: { width: 2 },
         symbol: 'circle',
         symbolSize: 6,
@@ -108,14 +109,14 @@ const serviceChartOption = computed(() => {
         name: '评价数',
         type: 'bar',
         data: data.map(d => d.count),
-        itemStyle: { color: '#67c23a' },
+        itemStyle: { color: '#16A36B' },
       },
       {
         name: '平均分',
         type: 'line',
         yAxisIndex: 1,
         data: data.map(d => d.avgScore),
-        itemStyle: { color: '#f56c6c' },
+        itemStyle: { color: '#D9435E' },
         lineStyle: { width: 2 },
         symbol: 'circle',
         symbolSize: 6,
@@ -128,7 +129,7 @@ const serviceChartOption = computed(() => {
 const scorePieOption = computed(() => {
   const data = scoreDistribution.value
   if (!data.length) return {}
-  const colors = ['#f56c6c', '#e6a23c', '#909399', '#409eff', '#67c23a']
+  const colors = ['#D9435E', '#D99118', '#687487', '#4F6FEA', '#16A36B']
   return {
     tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     legend: { orient: 'vertical', right: 10, top: 'center' },
@@ -168,8 +169,8 @@ const trendChartOption = computed(() => {
         type: 'line',
         smooth: true,
         data: data.map(d => d.count),
-        itemStyle: { color: '#409eff' },
-        areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(64,158,255,0.3)' }, { offset: 1, color: 'rgba(64,158,255,0.05)' }] } },
+        itemStyle: { color: '#4F6FEA' },
+        areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(79,111,234,0.24)' }, { offset: 1, color: 'rgba(79,111,234,0.04)' }] } },
       },
       {
         name: '平均分',
@@ -177,7 +178,7 @@ const trendChartOption = computed(() => {
         smooth: true,
         yAxisIndex: 1,
         data: data.map(d => d.avgScore),
-        itemStyle: { color: '#e6a23c' },
+        itemStyle: { color: '#D99118' },
         lineStyle: { type: 'dashed' },
       },
     ],
@@ -188,7 +189,7 @@ const trendChartOption = computed(() => {
 const typePieOption = computed(() => {
   const data = formTypeDistribution.value.filter(d => d.count > 0)
   if (!data.length) return {}
-  const colors = ['#409eff', '#67c23a', '#e6a23c']
+  const colors = ['#4F6FEA', '#16A36B', '#D99118']
   return {
     tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     legend: { bottom: 0 },
@@ -236,32 +237,22 @@ async function loadData() {
 
 onMounted(loadData)
 
-const typeColorMap = { teaching: '#409eff', service: '#67c23a', instant: '#e6a23c' }
+const typeColorMap = { teaching: '#4F6FEA', service: '#16A36B', instant: '#D99118' }
 function getTypeColor(type) {
-  return typeColorMap[type] || '#909399'
+  return typeColorMap[type] || '#8E99A8'
 }
 </script>
 
 <template>
   <div v-loading="loading" class="page-container">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <div>
-        <h2>数据概览</h2>
-        <p class="page-desc">本校评价数据、服务质量与运营指标的综合分析</p>
+    <PageHeader title="数据概览" description="本校评价数据、服务质量与运营指标的综合分析" />
+
+    <div class="stats-strip">
+      <div v-for="item in metricCards" :key="item.key" class="strip-item">
+        <span class="strip-value" :style="{ color: item.color }">{{ item.value }}</span>
+        <span class="strip-label">{{ item.title }}</span>
       </div>
     </div>
-
-    <!-- 核心指标卡 -->
-    <section class="metrics-grid">
-      <div v-for="item in metricCards" :key="item.key" class="metric-card">
-        <div class="metric-top">
-          <el-icon :size="18" class="metric-icon" :style="{ color: item.color }"><component :is="item.icon" /></el-icon>
-          <span class="metric-value" :style="{ color: item.color }">{{ item.value }}</span>
-        </div>
-        <span class="metric-title">{{ item.title }}</span>
-      </div>
-    </section>
 
     <!-- 评价类型分布 -->
     <section class="chart-section">
@@ -360,66 +351,38 @@ function getTypeColor(type) {
   margin-inline: auto;
 }
 
-.page-header {
-  margin-bottom: var(--space-6);
-}
-
-.page-header h2 {
-  font-size: var(--font-2xl);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
-  margin: 0 0 var(--space-1);
-}
-
-.page-desc {
-  font-size: var(--font-base);
-  color: var(--color-text-secondary);
-  margin: 0;
-}
-
 /* 核心指标卡 */
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-3);
-  margin-bottom: var(--space-6);
-}
-
-.metric-card {
-  background: var(--color-bg-card);
-  border-radius: var(--radius-card);
-  border: var(--border-light);
-  padding: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  transition: border-color var(--transition-fast, 0.2s), transform var(--transition-fast, 0.2s);
-}
-
-.metric-card:hover {
-  border-color: var(--color-primary-200);
-  transform: translateY(-2px);
-}
-
-.metric-top {
+.stats-strip {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-bg-light);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-5);
 }
 
-.metric-icon {
-  opacity: 0.8;
+.strip-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
 }
 
-.metric-value {
-  font-size: var(--font-2xl);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-tight);
+.strip-item + .strip-item {
+  padding-left: var(--space-5);
+  border-left: 1px solid var(--color-border-lighter);
 }
 
-.metric-title {
-  font-size: var(--font-sm);
-  color: var(--color-text-secondary);
+.strip-value {
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-heading);
+  line-height: 1;
+}
+
+.strip-label {
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
 }
 
 /* 图表区域 */
@@ -428,10 +391,13 @@ function getTypeColor(type) {
 }
 
 .section-title {
-  font-size: var(--font-base);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-title);
+  font-size: var(--font-md);
+  font-weight: var(--font-weight-display);
+  font-family: var(--font-family-display);
+  color: var(--color-text-heading);
   margin: 0 0 var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border-lighter);
 }
 
 .chart-grid {
@@ -443,7 +409,8 @@ function getTypeColor(type) {
 .chart-card {
   background: var(--color-bg-card);
   border-radius: var(--radius-card);
-  border: var(--border-light);
+  border: 1px solid var(--color-border-lighter);
+  box-shadow: var(--shadow-card);
   padding: var(--space-4);
   overflow: hidden;
 }
@@ -451,8 +418,11 @@ function getTypeColor(type) {
 .chart-title {
   font-size: var(--font-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-title);
+  font-family: var(--font-family-display);
+  color: var(--color-text-heading);
   margin: 0 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border-lighter);
 }
 
 .chart-container {
@@ -484,7 +454,7 @@ function getTypeColor(type) {
 .type-summary-label {
   font-size: var(--font-sm);
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-title);
+  color: var(--color-text-heading);
 }
 
 .type-summary-count {
@@ -493,23 +463,23 @@ function getTypeColor(type) {
 }
 
 .type-summary-bar-track {
-  height: var(--space-3);
+  height: 6px;
   background: var(--color-bg-light);
-  border-radius: var(--radius-sm);
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .type-summary-bar-fill {
   height: 100%;
-  border-radius: var(--radius-sm);
-  transition: width var(--transition-normal, 0.6s) ease;
+  border-radius: 3px;
+  transition: width 0.6s ease;
   min-width: 0;
 }
 
 .type-summary-percent {
   font-size: var(--font-xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-title);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-heading);
   text-align: right;
 }
 
@@ -521,9 +491,6 @@ function getTypeColor(type) {
 
 /* 响应式 */
 @media (max-width: 1366px) {
-  .metrics-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
   .chart-grid {
     grid-template-columns: 1fr;
   }
@@ -534,8 +501,9 @@ function getTypeColor(type) {
     padding: var(--space-4) var(--space-3);
   }
 
-  .metrics-grid {
-    grid-template-columns: 1fr;
+  .stats-strip {
+    flex-wrap: wrap;
+    gap: var(--space-3);
   }
 
   .chart-container {
@@ -546,4 +514,107 @@ function getTypeColor(type) {
     padding: var(--space-3);
   }
 }
+/* SaaS refactor overrides */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 1480px;
+  margin-inline: auto;
+  padding: 0;
+}
+
+.stats-strip {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  padding: 0;
+  background: var(--color-border-lighter);
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 0;
+}
+
+.strip-item {
+  min-height: 82px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-bg-card);
+  position: relative;
+}
+
+.strip-item + .strip-item {
+  padding-left: var(--space-4);
+  border-left: 0;
+}
+
+.strip-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  width: 3px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-light);
+}
+
+.strip-value {
+  font-family: var(--font-family-data);
+  font-size: 26px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-section {
+  margin-bottom: 0;
+}
+
+.section-title {
+  margin-bottom: var(--space-3);
+  letter-spacing: 0;
+}
+
+.section-title::before,
+.chart-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 14px;
+  margin-right: var(--space-2);
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, var(--color-primary-500), var(--color-accent-school-500));
+  vertical-align: -2px;
+}
+
+.chart-grid {
+  gap: var(--space-4);
+}
+
+.chart-card {
+  border: 1px solid var(--color-border-lighter);
+  box-shadow: var(--shadow-card);
+}
+
+.chart-title {
+  border-bottom-color: var(--color-border-lighter);
+}
+
+.type-summary-bar-track {
+  background: var(--color-bg-light);
+}
+
+@media (max-width: 1180px) {
+  .stats-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
 </style>
+
