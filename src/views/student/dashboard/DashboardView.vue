@@ -150,7 +150,7 @@ async function loadDashboard() {
     announcements.value = annList.map(n => ({
       id: n.id,
       title: n.title,
-      desc: n.content,
+      desc: n.summary || n.content,
       tag: n.tag,
       time: formatDate(n.publish_time),
       img: getCoverUrl(n.cover_file_id),

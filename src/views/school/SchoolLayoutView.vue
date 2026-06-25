@@ -5,7 +5,7 @@ import { useUserStore } from '@/stores/user'
 import {
   HomeFilled, OfficeBuilding, User, Files, DocumentChecked,
   School, ArrowDown, SwitchButton, DataAnalysis, InfoFilled,
-  ChatDotRound,
+  ChatDotRound, Bell,
 } from '@element-plus/icons-vue'
 import NotificationDropdown from '@/components/NotificationDropdown.vue'
 
@@ -30,6 +30,7 @@ const menuItems = [
     ],
   },
   { index: '/school/form/list', title: '评价表单', icon: Files },
+  { index: '/school/announcements', title: '公告管理', icon: Bell },
   { index: '/school/data/overview', title: '数据概览', icon: DataAnalysis },
   { index: '/school/complaint/stats', title: '投诉建议', icon: ChatDotRound },
   { index: '/school/school-info', title: '学校信息', icon: InfoFilled },
@@ -58,6 +59,7 @@ const breadcrumbs = computed(() => {
     '/school/users/student': '学生管理',
     '/school/admins': '管理员管理',
     '/school/form/list': '表单管理',
+    '/school/announcements': '公告管理',
   }
   if (pathMap[route.path]) {
     crumbs[crumbs.length - 1] = { title: pathMap[route.path], path: '' }

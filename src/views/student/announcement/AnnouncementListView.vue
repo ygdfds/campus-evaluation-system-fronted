@@ -24,11 +24,11 @@ const pageSize = 8
 
 const tagOptions = [
   { label: '全部', value: 'all' },
-  { label: '评价开放', value: '评价开放中' },
+  { label: '评价安排', value: '评价安排' },
+  { label: '教学评价', value: '教学评价' },
   { label: '服务评价', value: '服务评价' },
-  { label: '截止提醒', value: '截止提醒' },
-  { label: '维护通知', value: '维护通知' },
-  { label: '服务提醒', value: '服务提醒' },
+  { label: '评价规则', value: '评价规则' },
+  { label: '系统公告', value: '系统公告' },
 ]
 
 function formatDate(dateStr) {
@@ -43,13 +43,15 @@ const filteredList = computed(() => {
   }
   if (searchText.value.trim()) {
     const kw = searchText.value.trim().toLowerCase()
-    list = list.filter(a => a.title.toLowerCase().includes(kw))
+    list = list.filter(a =>
+      a.title.toLowerCase().includes(kw) ||
+      a.content.toLowerCase().includes(kw) ||
+      (a.summary || '').toLowerCase().includes(kw),
+    )
   }
-  if (sortOrder.value === 'asc') {
-    list.sort((a, b) => a.publish_time.localeCompare(b.publish_time))
-  } else {
-    list.sort((a, b) => b.publish_time.localeCompare(a.publish_time))
-  }
+  list.sort((a, b) => sortOrder.value === 'asc'
+    ? a.publish_time.localeCompare(b.publish_time)
+    : b.publish_time.localeCompare(a.publish_time))
   return list
 })
 
@@ -66,22 +68,23 @@ async function loadData() {
   loading.value = true
   const tenantId = userStore.tenantId
   const roleType = userStore.userRole || 'student'
-  if (!tenantId) { loading.value = false; return }
+  if (!tenantId) {
+    loading.value = false
+    return
+  }
 
   try {
     const [list, files] = await Promise.all([
       getAnnouncementsApi(tenantId, roleType),
       getFileResourcesApi(tenantId),
     ])
-    const fileMap = {}
-    files.forEach(f => { fileMap[f.id] = f })
+    const fileMap = Object.fromEntries(files.map(f => [f.id, f]))
 
     announcements.value = list.map(n => ({
       id: n.id,
       title: n.title,
-      content: n.content,
+      content: n.summary || n.content,
       tag: n.tag,
-      notice_type: n.notice_type,
       publish_time: formatDate(n.publish_time),
       cover: n.cover_file_id && fileMap[n.cover_file_id] ? fileMap[n.cover_file_id].url : '',
     }))
@@ -92,18 +95,19 @@ async function loadData() {
   }
 }
 
-onMounted(() => { loadData() })
+onMounted(loadData)
 </script>
 
 <template>
   <div class="page-container">
-    <PageHeader title="校园公告" description="查看学校评价通知、服务提醒和系统公告" />
+    <PageHeader title="校园公告" description="查看评价工作公告、规则说明和系统通知" />
 
-    <!-- 筛选工具条 -->
     <div class="filter-bar">
       <div class="filter-left">
         <el-radio-group v-model="filterTag" size="small">
-          <el-radio-button v-for="opt in tagOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</el-radio-button>
+          <el-radio-button v-for="opt in tagOptions" :key="opt.value" :value="opt.value">
+            {{ opt.label }}
+          </el-radio-button>
         </el-radio-group>
         <el-select v-model="sortOrder" size="small" class="sort-select">
           <el-option label="最新发布" value="desc" />
@@ -112,20 +116,17 @@ onMounted(() => { loadData() })
       </div>
       <el-input
         v-model="searchText"
-        placeholder="搜索公告标题"
+        placeholder="搜索公告标题或内容"
         :prefix-icon="Search"
         clearable
         class="search-input"
-        size="default"
       />
     </div>
 
-    <!-- 加载状态 -->
     <div v-if="loading" class="loading-skeleton">
       <el-skeleton :rows="5" animated />
     </div>
 
-    <!-- 公告列表 -->
     <div v-else-if="filteredList.length" class="announce-list">
       <AnnouncementCard
         v-for="item in pagedList"
@@ -135,12 +136,10 @@ onMounted(() => { loadData() })
       />
     </div>
 
-    <!-- 空状态 -->
     <el-card v-else shadow="never" class="empty-card">
-      <EmptyPlaceholder text="暂无公告" description="当前没有符合条件的公告通知" />
+      <EmptyPlaceholder text="暂无公告" description="当前没有符合条件的正式校园公告" />
     </el-card>
 
-    <!-- 分页 -->
     <div v-if="filteredList.length > pageSize" class="pagination-wrap">
       <el-pagination
         v-model:current-page="currentPage"
@@ -165,6 +164,11 @@ onMounted(() => { loadData() })
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   flex-wrap: wrap;
 }
 
@@ -172,17 +176,19 @@ onMounted(() => { loadData() })
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
 .sort-select {
-  width: 130px;
+  width: 128px;
 }
 
 .search-input {
-  width: 240px;
+  width: 260px;
 }
 
-.loading-skeleton {
+.loading-skeleton,
+.empty-card {
   padding: var(--space-6);
   background: var(--color-bg-card);
   border-radius: var(--radius-lg);
@@ -194,13 +200,22 @@ onMounted(() => { loadData() })
   gap: var(--space-3);
 }
 
-.empty-card {
-  border-radius: var(--radius-lg);
-}
-
 .pagination-wrap {
   display: flex;
   justify-content: center;
   padding-top: var(--space-3);
+}
+
+@media (max-width: 768px) {
+  .filter-bar,
+  .filter-left {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .search-input,
+  .sort-select {
+    width: 100%;
+  }
 }
 </style>

@@ -1,7 +1,9 @@
 <script setup>
+import { computed, ref, watch } from 'vue'
+
 defineOptions({ name: 'CoverImage' })
 
-defineProps({
+const props = defineProps({
   /** 图片 URL */
   src: { type: String, default: '' },
   /** 替代文字 */
@@ -15,11 +17,31 @@ defineProps({
   /** object-fit */
   fit: { type: String, default: 'cover' },
 })
+
+const imageFailed = ref(false)
+const displaySrc = computed(() => (props.src && !imageFailed.value ? props.src : ''))
+
+watch(
+  () => props.src,
+  () => {
+    imageFailed.value = false
+  },
+)
+
+function handleImageError() {
+  imageFailed.value = true
+}
 </script>
 
 <template>
   <div class="cover-image" :style="{ width, height, borderRadius: radius }">
-    <img v-if="src" :src="src" :alt="alt" :style="{ objectFit: fit }" />
+    <img
+      v-if="displaySrc"
+      :src="displaySrc"
+      :alt="alt"
+      :style="{ objectFit: fit }"
+      @error="handleImageError"
+    />
     <div v-else class="cover-placeholder">
       <span>{{ alt || '暂无图片' }}</span>
     </div>
