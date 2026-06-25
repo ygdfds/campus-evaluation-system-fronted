@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { School, User, Phone, Message, Upload, ArrowRight, ArrowLeft, Check } from '@element-plus/icons-vue'
 import { getOnboardingPlansApi, submitOnboardingApi } from '@/api/school'
+import { clearAuth } from '@/utils/auth'
 
 defineOptions({ name: 'OnboardingView' })
 
@@ -78,6 +79,7 @@ async function handleSubmit() {
       planId: planForm.planId,
     })
     ElMessage.success('入驻申请已提交，请等待审核')
+    clearAuth()
     router.push('/login/school')
   } catch (err) {
     ElMessage.error(err.message || '提交失败，请重试')

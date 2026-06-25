@@ -77,7 +77,7 @@ const feedbackStatusItems = computed(() => {
 
 // 快捷入口
 const quickEntries = [
-  { title: '审核中心', desc: '审核评价表单发布申请', path: '/school/audit/list', icon: DocumentChecked },
+  { title: '审核中心', desc: '审核评价表单发布申请', path: '/school/audit/list?tab=form', icon: DocumentChecked },
   { title: '组织架构', desc: '管理院系与部门', path: '/school/org/departments', icon: OfficeBuilding },
   { title: '教职工管理', desc: '管理教职工账号', path: '/school/users/staff', icon: User },
   { title: '学生管理', desc: '管理学生账号', path: '/school/users/student', icon: User },
@@ -148,7 +148,7 @@ onMounted(loadData)
               待审核评价表单
               <el-badge v-if="auditForms.length" :value="auditForms.length" type="warning" />
             </h3>
-            <el-button text type="primary" size="small" @click="router.push('/school/audit/list')">
+            <el-button text type="primary" size="small" @click="router.push('/school/audit/list?tab=form')">
               查看全部 <el-icon><ArrowRight /></el-icon>
             </el-button>
           </div>
@@ -161,7 +161,7 @@ onMounted(loadData)
                 </div>
                 <div class="todo-item-row2">
                   <span class="todo-meta">提交人：{{ item.requester_name }} · 所属组织：{{ item.org_name || '组织未匹配' }} · {{ formatTime(item.requested_at) }}</span>
-                  <el-button text type="primary" size="small" class="todo-action-btn" @click="router.push('/school/audit/list')">去审核</el-button>
+                  <el-button text type="primary" size="small" class="todo-action-btn" @click="router.push('/school/audit/list?tab=form')">去审核</el-button>
                 </div>
               </div>
             </template>
@@ -180,7 +180,7 @@ onMounted(loadData)
               追溯授权申请
               <el-badge v-if="traceTasks.length" :value="traceTasks.length" type="warning" />
             </h3>
-            <el-button text type="primary" size="small" @click="router.push('/school/audit/list')">
+            <el-button text type="primary" size="small" @click="router.push('/school/audit/list?tab=trace')">
               查看全部 <el-icon><ArrowRight /></el-icon>
             </el-button>
           </div>
@@ -194,7 +194,7 @@ onMounted(loadData)
                 <div class="todo-item-row2">
                   <span>申请人：{{ item.applicant_name }}</span>
                   <span>{{ formatTime(item.requested_at) }}</span>
-                  <el-button text type="primary" size="small" class="todo-action-btn" @click="router.push('/school/audit/list')">查看</el-button>
+                  <el-button text type="primary" size="small" class="todo-action-btn" @click="router.push('/school/audit/list?tab=trace')">查看</el-button>
                 </div>
                 <p class="todo-item-reason">{{ item.reason }}</p>
               </div>

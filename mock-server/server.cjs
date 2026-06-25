@@ -213,7 +213,30 @@ server.get('/api/auth/schools', (req, res) => {
 
 // 套餐列表（兼容旧接口）
 server.get('/api/tenant-plans', (req, res) => {
-  res.json({ code: 200, message: 'success', data: [] })
+  const plans = [
+    {
+      id: 1,
+      planName: '基础版',
+      features: '满足基本评价需求，支持 30 个表单、500 名用户、100GB 存储空间',
+      status: 'active',
+      price: 0,
+    },
+    {
+      id: 2,
+      planName: '专业版',
+      features: '适合中大规模学校，支持 80 个表单、2000 名用户、500GB 存储空间',
+      status: 'active',
+      price: 2000,
+    },
+    {
+      id: 3,
+      planName: '旗舰版',
+      features: '全功能无限制，不限表单和用户数量，1TB 存储空间',
+      status: 'active',
+      price: 5000,
+    },
+  ]
+  res.json({ code: 200, message: 'success', data: plans })
 })
 
 // 学校入驻申请（兼容旧接口）

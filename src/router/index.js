@@ -56,7 +56,7 @@ const router = createRouter({
       path: '/onboarding',
       name: 'Onboarding',
       component: () => import('@/views/auth/OnboardingView.vue'),
-      meta: { title: '学校入驻申请', guest: true },
+      meta: { title: '学校入驻申请' },
     },
     // ==================== 系统管理端 ====================
     {
