@@ -15,6 +15,195 @@ const router = jsonServer.router(path.join(__dirname, 'db.json'))
 const middlewares = jsonServer.defaults()
 const db = router.db
 
+const tenantPlans = [
+  {
+    id: 1,
+    planName: '基础版',
+    description: '适合小规模学校试用，包含基础评价表单、学生评价和统计概览。',
+    features: '基础评价表单、学生评价、统计概览',
+    price: '免费',
+    maxUsers: 500,
+    storageLimit: 100,
+    duration: '500人',
+    durationDays: 365,
+    status: 'active',
+    createdAt: '2026-01-01 09:00:00',
+  },
+  {
+    id: 2,
+    planName: '专业版',
+    description: '适合正式上线学校，支持多角色协作、工单处理、凭证管理和数据报表。',
+    features: '多角色协作、工单处理、凭证管理、数据报表',
+    price: '¥1999/年',
+    maxUsers: 2000,
+    storageLimit: 500,
+    duration: '2000人',
+    durationDays: 365,
+    status: 'active',
+    createdAt: '2026-02-01 09:00:00',
+  },
+  {
+    id: 3,
+    planName: '旗舰版',
+    description: '适合多校区或评价规模较大的学校，开放更多报表、并发与存储配额。',
+    features: '高级报表、容量扩展、高并发评价、专属支持',
+    price: '¥4999/年',
+    maxUsers: 8000,
+    storageLimit: 1024,
+    duration: '8000人',
+    durationDays: 365,
+    status: 'active',
+    createdAt: '2026-03-01 09:00:00',
+  },
+]
+
+const systemAdmins = [
+  {
+    id: 1,
+    username: 'admin',
+    realName: '系统管理员',
+    roleName: '系统管理员',
+    email: 'admin@platform.cn',
+    phone: '13800000000',
+    status: 'active',
+    createdAt: '2026-01-01 09:00:00',
+  },
+  {
+    id: 2,
+    username: 'ops_admin',
+    realName: '运维管理员',
+    roleName: '平台运维',
+    email: 'ops@platform.cn',
+    phone: '13800000002',
+    status: 'active',
+    createdAt: '2026-06-08 10:20:00',
+  },
+]
+
+const systemRoles = [
+  {
+    id: 1,
+    roleName: '系统管理员',
+    description: '拥有平台租户、账号、权限、审计和运维的全部管理权限。',
+    dataScope: 'all',
+    status: 'active',
+    createdAt: '2026-01-01 09:00:00',
+  },
+  {
+    id: 2,
+    roleName: '平台运维',
+    description: '负责监控告警、审计日志、统计报表和工单支持。',
+    dataScope: 'assigned',
+    status: 'active',
+    createdAt: '2026-04-12 15:30:00',
+  },
+]
+
+const customRoles = [
+  {
+    id: 101,
+    roleName: '入驻审核员',
+    description: '负责学校入驻材料核验、套餐分配和审核意见填写。',
+    dataScope: 'assigned',
+    status: 'active',
+    createdAt: '2026-06-10 11:00:00',
+  },
+]
+
+const menuPermissions = [
+  {
+    id: 10,
+    label: '平台概览',
+    children: [
+      { id: 11, label: '查看统计卡片' },
+      { id: 12, label: '查看趋势图表' },
+    ],
+  },
+  {
+    id: 20,
+    label: '租户管理',
+    children: [
+      { id: 21, label: '查看租户' },
+      { id: 22, label: '创建租户' },
+      { id: 23, label: '冻结租户' },
+      { id: 24, label: '调整套餐' },
+    ],
+  },
+  {
+    id: 30,
+    label: '入驻审核',
+    children: [
+      { id: 31, label: '查看申请' },
+      { id: 32, label: '审核通过' },
+      { id: 33, label: '审核驳回' },
+      { id: 34, label: '查看材料' },
+    ],
+  },
+  {
+    id: 40,
+    label: '用户管理',
+    children: [
+      { id: 41, label: '查看账号' },
+      { id: 42, label: '新增账号' },
+      { id: 43, label: '编辑账号' },
+      { id: 44, label: '配置角色' },
+    ],
+  },
+  {
+    id: 50,
+    label: '平台运维',
+    children: [
+      { id: 51, label: '监控告警' },
+      { id: 52, label: '审计日志' },
+      { id: 53, label: '统计报表' },
+      { id: 54, label: '工单帮助' },
+    ],
+  },
+]
+
+const onboardingApplications = [
+  {
+    id: 1,
+    schoolName: '复旦大学',
+    creditCode: '91310000FUDAN00001',
+    contactName: '陈老师',
+    contactPhone: '13800000011',
+    contactEmail: 'contact@fudan.edu.cn',
+    planId: 2,
+    planName: '专业版',
+    status: 'pending',
+    createdAt: '2026-06-18 09:10:00',
+  },
+  {
+    id: 2,
+    schoolName: '上海交通大学',
+    creditCode: '91310000SJTU000002',
+    contactName: '刘老师',
+    contactPhone: '13800000012',
+    contactEmail: 'contact@sjtu.edu.cn',
+    planId: 3,
+    planName: '旗舰版',
+    status: 'approved',
+    createdAt: '2026-06-16 14:25:00',
+  },
+]
+
+function ok(res, data, message = 'success') {
+  res.json({ code: 200, message, data })
+}
+
+function nextId(list) {
+  return list.length > 0 ? Math.max(...list.map(item => Number(item.id) || 0)) + 1 : 1
+}
+
+function applyFilters(list, query, keys) {
+  return list.filter(item => keys.every(key => {
+    const val = query[key]
+    if (val === undefined || val === null || val === '') return true
+    return String(item[key] || '').includes(String(val))
+  }))
+}
+
 server.use(middlewares)
 server.use(require('express').json())
 server.use(require('express').urlencoded({ extended: true }))
@@ -33,8 +222,24 @@ server.use((req, res, next) => {
 
 // 获取已激活租户（学校）列表
 server.get('/api/tenants', (req, res) => {
-  const tenants = db.get('tenants').value().filter(t => t.status === 'active' && !t.deleted)
-  res.json({ code: 200, message: 'success', data: tenants })
+  const schoolProfiles = db.get('schoolProfiles').value()
+  const plans = tenantPlans
+  const tenants = db.get('tenants').value()
+    .filter(t => t.status === 'active' && !t.deleted)
+    .map(t => {
+      const school = schoolProfiles.find(s => s.tenant_id === t.id)
+      const plan = plans.find(p => p.id === t.plan_id) || plans[0]
+      return {
+        ...t,
+        tenantId: 'T' + String(t.id).padStart(3, '0'),
+        schoolName: t.school_name,
+        planName: plan.planName,
+        createdAt: (t.created_at || '').replace('T', ' ').slice(0, 19),
+        website: school?.website || '',
+        address: school?.address || '',
+      }
+    })
+  ok(res, { list: tenants, total: tenants.length })
 })
 
 // 登录接口
@@ -211,14 +416,197 @@ server.get('/api/auth/schools', (req, res) => {
   res.json({ code: 200, message: 'success', data: merged })
 })
 
-// 套餐列表（兼容旧接口）
+// ==================== 系统管理端 Mock 接口 ====================
+
+server.get('/api/admin/stats', (req, res) => {
+  const tenants = db.get('tenants').value().filter(t => !t.deleted)
+  const activeTenants = tenants.filter(t => t.status === 'active').length
+  const pendingApps = onboardingApplications.filter(item => item.status === 'pending').length
+  const totalUsers = db.get('userAccounts').value().filter(item => !item.deleted).length
+  ok(res, {
+    activeSchools: activeTenants,
+    pendingApps,
+    activeTenants,
+    totalUsers,
+  })
+})
+
 server.get('/api/tenant-plans', (req, res) => {
-  res.json({ code: 200, message: 'success', data: [] })
+  const list = applyFilters(tenantPlans, req.query, ['planName', 'status'])
+  ok(res, { list, total: list.length })
+})
+
+server.post('/api/tenant-plans', (req, res) => {
+  const item = {
+    id: nextId(tenantPlans),
+    planName: req.body.planName,
+    description: req.body.features || req.body.description || '',
+    features: req.body.features || req.body.description || '',
+    price: req.body.price === 0 ? '免费' : `¥${Number(req.body.price || 0).toLocaleString()}/年`,
+    maxUsers: req.body.maxUsers || 500,
+    storageLimit: req.body.storageLimit || 100,
+    duration: `${req.body.maxUsers || 500}人`,
+    durationDays: req.body.durationDays || 365,
+    status: 'active',
+    createdAt: new Date().toLocaleString('zh-CN', { hour12: false }),
+  }
+  tenantPlans.push(item)
+  ok(res, item, '创建成功')
+})
+
+server.put('/api/tenant-plans/:id', (req, res) => {
+  const item = tenantPlans.find(plan => plan.id === Number(req.params.id))
+  if (!item) return res.status(404).json({ code: 404, message: '未找到套餐' })
+  Object.assign(item, {
+    planName: req.body.planName ?? item.planName,
+    description: req.body.features || req.body.description || item.description,
+    features: req.body.features || req.body.description || item.features,
+    price: req.body.price === 0 ? '免费' : (req.body.price ? `¥${Number(req.body.price).toLocaleString()}/年` : item.price),
+    maxUsers: req.body.maxUsers ?? item.maxUsers,
+    storageLimit: req.body.storageLimit ?? item.storageLimit,
+    duration: req.body.maxUsers ? `${req.body.maxUsers}人` : item.duration,
+    durationDays: req.body.durationDays ?? item.durationDays,
+  })
+  ok(res, item, '更新成功')
+})
+
+server.delete('/api/tenant-plans/:id', (req, res) => {
+  const item = tenantPlans.find(plan => plan.id === Number(req.params.id))
+  if (!item) return res.status(404).json({ code: 404, message: '未找到套餐' })
+  item.status = 'inactive'
+  ok(res, item, '下架成功')
+})
+
+server.get('/api/onboarding-applications', (req, res) => {
+  const list = applyFilters(onboardingApplications, req.query, ['schoolName', 'status'])
+  ok(res, { list, total: list.length })
+})
+
+server.post('/api/onboarding-applications/:id/audit', (req, res) => {
+  const item = onboardingApplications.find(app => app.id === Number(req.params.id))
+  if (!item) return res.status(404).json({ code: 404, message: '未找到入驻申请' })
+  item.status = req.body.action || item.status
+  item.auditReason = req.body.reason || ''
+  item.planId = req.body.planId || item.planId
+  const plan = tenantPlans.find(p => p.id === Number(item.planId))
+  item.planName = plan?.planName || item.planName
+  ok(res, item, '审核成功')
+})
+
+server.get('/api/system-admins', (req, res) => {
+  const list = applyFilters(systemAdmins, req.query, ['username', 'realName', 'status'])
+  ok(res, { list, total: list.length })
+})
+
+server.post('/api/system-admins', (req, res) => {
+  if (systemAdmins.some(item => item.username === req.body.username)) {
+    return res.status(400).json({ code: 400, message: '用户名已存在' })
+  }
+  const item = {
+    id: nextId(systemAdmins),
+    username: req.body.username,
+    realName: req.body.realName,
+    roleName: req.body.roleName || '平台运维',
+    email: req.body.email || '',
+    phone: req.body.phone || '',
+    status: 'active',
+    createdAt: new Date().toLocaleString('zh-CN', { hour12: false }),
+  }
+  systemAdmins.push(item)
+  ok(res, item, '创建成功')
+})
+
+server.put('/api/system-admins/:id', (req, res) => {
+  const item = systemAdmins.find(admin => admin.id === Number(req.params.id))
+  if (!item) return res.status(404).json({ code: 404, message: '未找到管理员' })
+  Object.assign(item, {
+    realName: req.body.realName ?? item.realName,
+    email: req.body.email ?? item.email,
+    phone: req.body.phone ?? item.phone,
+  })
+  ok(res, item, '更新成功')
+})
+
+server.patch('/api/system-admins/:id/status', (req, res) => {
+  const item = systemAdmins.find(admin => admin.id === Number(req.params.id))
+  if (!item) return res.status(404).json({ code: 404, message: '未找到管理员' })
+  item.status = item.status === 'active' ? 'inactive' : 'active'
+  ok(res, item, '状态已更新')
+})
+
+server.post('/api/system-admins/:id/reset-password', (req, res) => {
+  const item = systemAdmins.find(admin => admin.id === Number(req.params.id))
+  if (!item) return res.status(404).json({ code: 404, message: '未找到管理员' })
+  ok(res, { id: item.id, password: 'admin123' }, '密码已重置')
+})
+
+server.delete('/api/system-admins/:id', (req, res) => {
+  const index = systemAdmins.findIndex(admin => admin.id === Number(req.params.id))
+  if (index === -1) return res.status(404).json({ code: 404, message: '未找到管理员' })
+  const [removed] = systemAdmins.splice(index, 1)
+  ok(res, removed, '删除成功')
+})
+
+server.get('/api/system-roles', (req, res) => {
+  ok(res, { list: systemRoles, total: systemRoles.length })
+})
+
+server.get('/api/custom-roles', (req, res) => {
+  ok(res, { list: customRoles, total: customRoles.length })
+})
+
+server.post('/api/system-roles', (req, res) => {
+  const item = {
+    id: nextId(customRoles),
+    roleName: req.body.roleName,
+    description: req.body.description,
+    dataScope: req.body.dataScope || 'assigned',
+    status: 'active',
+    createdAt: new Date().toLocaleString('zh-CN', { hour12: false }),
+  }
+  customRoles.push(item)
+  ok(res, item, '创建成功')
+})
+
+server.put('/api/system-roles/:id', (req, res) => {
+  const item = customRoles.find(role => role.id === Number(req.params.id))
+  if (!item) return res.status(404).json({ code: 404, message: '未找到自定义角色' })
+  Object.assign(item, {
+    roleName: req.body.roleName ?? item.roleName,
+    description: req.body.description ?? item.description,
+    dataScope: req.body.dataScope ?? item.dataScope,
+  })
+  ok(res, item, '更新成功')
+})
+
+server.delete('/api/system-roles/:id', (req, res) => {
+  const index = customRoles.findIndex(role => role.id === Number(req.params.id))
+  if (index === -1) return res.status(404).json({ code: 404, message: '未找到自定义角色' })
+  const [removed] = customRoles.splice(index, 1)
+  ok(res, removed, '删除成功')
+})
+
+server.get('/api/menu-permissions', (req, res) => {
+  ok(res, { list: menuPermissions })
 })
 
 // 学校入驻申请（兼容旧接口）
 server.post('/api/schools/onboarding', (req, res) => {
-  res.json({ code: 200, message: '入驻申请已提交' })
+  const plan = tenantPlans.find(p => p.id === Number(req.body.planId))
+  const item = {
+    id: nextId(onboardingApplications),
+    schoolName: req.body.schoolName,
+    creditCode: req.body.creditCode,
+    contactName: req.body.contactName,
+    contactPhone: req.body.contactPhone,
+    contactEmail: req.body.contactEmail,
+    planId: req.body.planId,
+    planName: plan?.planName || '',
+    status: 'pending',
+    createdAt: new Date().toLocaleString('zh-CN', { hour12: false }),
+  }
+  onboardingApplications.push(item)
+  ok(res, item, '入驻申请已提交')
 })
 
 // 部门列表（兼容旧接口）

@@ -518,6 +518,15 @@ export function getCredentialListApi() {
   return Promise.resolve({ data: { list: clone(credentialRecords) } })
 }
 
+export function updateCredentialExpirationApi(id, expirationDate) {
+  const credential = credentialRecords.find((item) => item.id === id)
+  if (credential) {
+    credential.expirationDate = expirationDate
+    credential.status = new Date(expirationDate) >= new Date(new Date().toDateString()) ? 'valid' : 'expired'
+  }
+  return Promise.resolve({ data: clone(credential || { id, expirationDate }) })
+}
+
 export function getMonitoringStatsApi() {
   const frozenCount = tenantLifecycleRecords.filter((item) => item.status === 'frozen').length
   return Promise.resolve({
@@ -541,8 +550,39 @@ export function getSupportTicketsApi() {
   return Promise.resolve({ data: { list: clone(supportTickets) } })
 }
 
+export function updateSupportTicketApi(id, data) {
+  const ticket = supportTickets.find((item) => item.id === id)
+  if (ticket) {
+    Object.assign(ticket, data)
+  }
+  return Promise.resolve({ data: clone(ticket || { id, ...data }) })
+}
+
 export function getHelpDocumentsApi() {
   return Promise.resolve({ data: { list: clone(helpDocuments) } })
+}
+
+export function createHelpDocumentApi(data) {
+  const document = {
+    id: Date.now(),
+    title: data.title,
+    category: data.category,
+    status: data.status || 'draft',
+    updatedAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
+  }
+  helpDocuments.unshift(document)
+  return Promise.resolve({ data: clone(document) })
+}
+
+export function updateHelpDocumentApi(id, data) {
+  const document = helpDocuments.find((item) => item.id === id)
+  if (document) {
+    Object.assign(document, {
+      ...data,
+      updatedAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
+    })
+  }
+  return Promise.resolve({ data: clone(document || { id, ...data }) })
 }
 
 export function getReportDashboardApi() {

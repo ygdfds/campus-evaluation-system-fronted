@@ -11,6 +11,7 @@ import {
   getCredentialListApi,
   getCredentialTypeOptionsApi,
   SYSTEM_STATUS_MAP,
+  updateCredentialExpirationApi,
 } from '@/api/system'
 
 defineOptions({ name: 'AdminCredentialListView' })
@@ -89,10 +90,28 @@ const revokeCredential = async (credential) => {
   }
 }
 
-const saveExpiration = () => {
+const saveExpiration = async () => {
   if (!expirationForm.value.expirationDate) {
     ElMessage.warning('请选择有效期')
     return
+  }
+  if (!currentCredential.value) return
+
+  const response = await updateCredentialExpirationApi(
+    currentCredential.value.id,
+    expirationForm.value.expirationDate
+  )
+  const updatedCredential = response.data
+  const targetIndex = credentials.value.findIndex((item) => item.id === updatedCredential.id)
+  if (targetIndex >= 0) {
+    credentials.value.splice(targetIndex, 1, {
+      ...credentials.value[targetIndex],
+      ...updatedCredential,
+    })
+  }
+  currentCredential.value = {
+    ...currentCredential.value,
+    ...updatedCredential,
   }
   ElMessage.success('证件有效期已更新')
   expirationDialogVisible.value = false

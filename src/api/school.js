@@ -4,7 +4,10 @@ import request from '@/request'
  * 获取入驻套餐列表
  */
 export function getOnboardingPlansApi() {
-  return request.get('/tenant-plans')
+  return request.get('/tenant-plans').then((response) => ({
+    ...response,
+    data: response.data?.list || response.data || [],
+  }))
 }
 
 /**
