@@ -1,21 +1,23 @@
 const adminMenuItems = [
-  { index: '/admin/dashboard', title: '平台概览', icon: 'HomeFilled' },
+  { index: '/admin/dashboard', title: '平台概览', icon: 'HomeFilled', group: '工作台' },
   {
     index: '/admin/tenants',
     title: '租户管理',
     icon: 'School',
+    group: '租户运营',
     children: [
       { index: '/admin/tenants/lifecycle', title: '生命周期' },
       { index: '/admin/plans', title: '套餐管理' },
     ],
   },
-  { index: '/admin/onboarding/audit', title: '入驻审核', icon: 'DocumentChecked' },
-  { index: '/admin/users/roles', title: '角色管理', icon: 'User' },
-  { index: '/admin/system', title: '系统设置', icon: 'Setting' },
+  { index: '/admin/onboarding/audit', title: '入驻审核', icon: 'DocumentChecked', group: '租户运营' },
+  { index: '/admin/users/roles', title: '角色管理', icon: 'User', group: '系统配置' },
+  { index: '/admin/system', title: '系统设置', icon: 'Setting', group: '系统配置' },
   {
     index: '/admin/ops',
     title: '平台运维',
     icon: 'Monitor',
+    group: '平台运维',
     children: [
       { index: '/admin/monitoring', title: '监控告警' },
       { index: '/admin/audit/logs', title: '审计日志' },
@@ -26,6 +28,7 @@ const adminMenuItems = [
     index: '/admin/services',
     title: '服务支持',
     icon: 'Files',
+    group: '平台运维',
     children: [
       { index: '/admin/documents', title: '凭证材料' },
       { index: '/admin/support', title: '工单帮助' },
@@ -518,6 +521,15 @@ export function getCredentialListApi() {
   return Promise.resolve({ data: { list: clone(credentialRecords) } })
 }
 
+export function updateCredentialExpirationApi(id, expirationDate) {
+  const credential = credentialRecords.find((item) => item.id === id)
+  if (credential) {
+    credential.expirationDate = expirationDate
+    credential.status = new Date(expirationDate) >= new Date(new Date().toDateString()) ? 'valid' : 'expired'
+  }
+  return Promise.resolve({ data: clone(credential || { id, expirationDate }) })
+}
+
 export function getMonitoringStatsApi() {
   const frozenCount = tenantLifecycleRecords.filter((item) => item.status === 'frozen').length
   return Promise.resolve({
@@ -541,8 +553,39 @@ export function getSupportTicketsApi() {
   return Promise.resolve({ data: { list: clone(supportTickets) } })
 }
 
+export function updateSupportTicketApi(id, data) {
+  const ticket = supportTickets.find((item) => item.id === id)
+  if (ticket) {
+    Object.assign(ticket, data)
+  }
+  return Promise.resolve({ data: clone(ticket || { id, ...data }) })
+}
+
 export function getHelpDocumentsApi() {
   return Promise.resolve({ data: { list: clone(helpDocuments) } })
+}
+
+export function createHelpDocumentApi(data) {
+  const document = {
+    id: Date.now(),
+    title: data.title,
+    category: data.category,
+    status: data.status || 'draft',
+    updatedAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
+  }
+  helpDocuments.unshift(document)
+  return Promise.resolve({ data: clone(document) })
+}
+
+export function updateHelpDocumentApi(id, data) {
+  const document = helpDocuments.find((item) => item.id === id)
+  if (document) {
+    Object.assign(document, {
+      ...data,
+      updatedAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
+    })
+  }
+  return Promise.resolve({ data: clone(document || { id, ...data }) })
 }
 
 export function getReportDashboardApi() {

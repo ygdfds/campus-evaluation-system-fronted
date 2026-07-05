@@ -9,6 +9,8 @@ defineProps({
   title: { type: String, required: true },
   /** 菜单项数组: { index, title, icon, children? } */
   menuItems: { type: Array, required: true },
+  /** 菜单分组: [{ title, items: [...] }] 如提供则显示分组标题 */
+  menuGroups: { type: Array, default: null },
   /** 是否折叠 */
   collapsed: { type: Boolean, default: false },
 })
@@ -37,30 +39,59 @@ const activeIndex = computed(() => route.path)
       text-color="var(--color-sidebar-text)"
       active-text-color="var(--color-sidebar-active)"
     >
-      <template v-for="item in menuItems" :key="item.index">
-        <!-- 有子菜单 -->
-        <el-sub-menu v-if="item.children && item.children.length" :index="item.index">
-          <template #title>
-            <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
-            <span>{{ item.title }}</span>
+      <!-- 分组模式：显示分类标题 -->
+      <template v-if="menuGroups">
+        <template v-for="group in menuGroups" :key="group.title">
+          <div v-show="!collapsed" class="menu-section-title">{{ group.title }}</div>
+          <template v-for="item in group.items" :key="item.index">
+            <el-sub-menu v-if="item.children && item.children.length" :index="item.index">
+              <template #title>
+                <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
+                <span>{{ item.title }}</span>
+              </template>
+              <el-menu-item
+                v-for="child in item.children"
+                :key="child.index"
+                :index="child.index"
+              >
+                <el-icon v-if="child.icon"><component :is="child.icon" /></el-icon>
+                <span>{{ child.title }}</span>
+              </el-menu-item>
+            </el-sub-menu>
+            <el-menu-item v-else :index="item.index">
+              <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
+              <template #title>
+                <span>{{ item.title }}</span>
+              </template>
+            </el-menu-item>
           </template>
-          <el-menu-item
-            v-for="child in item.children"
-            :key="child.index"
-            :index="child.index"
-          >
-            <el-icon v-if="child.icon"><component :is="child.icon" /></el-icon>
-            <span>{{ child.title }}</span>
-          </el-menu-item>
-        </el-sub-menu>
+        </template>
+      </template>
 
-        <!-- 无子菜单 -->
-        <el-menu-item v-else :index="item.index">
-          <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
-          <template #title>
-            <span>{{ item.title }}</span>
-          </template>
-        </el-menu-item>
+      <!-- 扁平模式 -->
+      <template v-else>
+        <template v-for="item in menuItems" :key="item.index">
+          <el-sub-menu v-if="item.children && item.children.length" :index="item.index">
+            <template #title>
+              <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
+              <span>{{ item.title }}</span>
+            </template>
+            <el-menu-item
+              v-for="child in item.children"
+              :key="child.index"
+              :index="child.index"
+            >
+              <el-icon v-if="child.icon"><component :is="child.icon" /></el-icon>
+              <span>{{ child.title }}</span>
+            </el-menu-item>
+          </el-sub-menu>
+          <el-menu-item v-else :index="item.index">
+            <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
+            <template #title>
+              <span>{{ item.title }}</span>
+            </template>
+          </el-menu-item>
+        </template>
       </template>
     </el-menu>
   </div>
@@ -172,4 +203,18 @@ const activeIndex = computed(() => route.path)
 
 .sidebar-nav :deep(.el-menu-item .el-icon),
 .sidebar-nav :deep(.el-sub-menu__title .el-icon) { color: inherit; }
+
+.menu-section-title {
+  margin-top: var(--space-3);
+  padding: var(--space-1) var(--space-3) var(--space-1);
+  color: var(--color-text-placeholder);
+  font-size: var(--font-2xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.menu-section-title:first-child {
+  margin-top: 0;
+}
 </style>

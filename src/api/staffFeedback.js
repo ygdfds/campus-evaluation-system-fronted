@@ -1,4 +1,5 @@
 import request from '@/request'
+import { unwrap } from '@/request'
 
 /**
  * 职工端反馈处理 API
@@ -335,7 +336,7 @@ export async function rejectFeedbackApi(context, complaintId, rejectReason) {
  * 创建通知（反馈处理进度通知给学生）
  */
 export async function createFeedbackNotificationApi(payload) {
-  return request.post('/notifications', payload).then(res => res.data)
+  return request.post('/notifications', payload).then(unwrap)
 }
 
 /**

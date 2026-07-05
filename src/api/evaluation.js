@@ -1,4 +1,5 @@
 import request from '@/request'
+import { unwrap } from '@/request'
 
 // ==================== 基础读取 ====================
 
@@ -132,56 +133,56 @@ export function getSubmissionAttachments(submissionId, context) {
  * 创建评价提交
  */
 export function createEvaluationSubmissionApi(data) {
-  return request.post('/evaluationSubmissions', data).then(res => res.data)
+  return request.post('/evaluationSubmissions', data).then(unwrap)
 }
 
 /**
  * 更新评价提交（PATCH 部分更新）
  */
 export function updateEvaluationSubmissionApi(id, data) {
-  return request.patch(`/evaluationSubmissions/${id}`, data).then(res => res.data)
+  return request.patch(`/evaluationSubmissions/${id}`, data).then(unwrap)
 }
 
 /**
  * 创建答案
  */
 export function createEvaluationAnswerApi(data) {
-  return request.post('/evaluationAnswers', data).then(res => res.data)
+  return request.post('/evaluationAnswers', data).then(unwrap)
 }
 
 /**
  * 创建评分
  */
 export function createEvaluationScoreApi(data) {
-  return request.post('/evaluationScores', data).then(res => res.data)
+  return request.post('/evaluationScores', data).then(unwrap)
 }
 
 /**
  * 创建附件
  */
 export function createEvaluationAttachmentApi(data) {
-  return request.post('/evaluationAttachments', data).then(res => res.data)
+  return request.post('/evaluationAttachments', data).then(unwrap)
 }
 
 /**
  * 软删除答案（PATCH deleted=true）
  */
 export function softDeleteAnswerApi(id) {
-  return request.patch(`/evaluationAnswers/${id}`, { deleted: true }).then(res => res.data)
+  return request.patch(`/evaluationAnswers/${id}`, { deleted: true }).then(unwrap)
 }
 
 /**
  * 软删除评分
  */
 export function softDeleteScoreApi(id) {
-  return request.patch(`/evaluationScores/${id}`, { deleted: true }).then(res => res.data)
+  return request.patch(`/evaluationScores/${id}`, { deleted: true }).then(unwrap)
 }
 
 /**
  * 软删除附件
  */
 export function softDeleteAttachmentApi(id) {
-  return request.patch(`/evaluationAttachments/${id}`, { deleted: true }).then(res => res.data)
+  return request.patch(`/evaluationAttachments/${id}`, { deleted: true }).then(unwrap)
 }
 
 // ==================== 答案/评分/附件 更新（覆盖式） ====================

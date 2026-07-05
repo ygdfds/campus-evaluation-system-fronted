@@ -114,7 +114,7 @@ onMounted(loadData)
         </div>
 
         <!-- 学校简介 -->
-        <div class="info-card">
+        <div class="info-card info-card--tall">
           <div class="info-card-header">
             <el-icon class="info-card-icon" color="var(--color-success)"><Document /></el-icon>
             <h3 class="info-card-title">学校简介</h3>
@@ -281,6 +281,10 @@ onMounted(loadData)
   margin: 0;
 }
 
+.info-card--tall {
+  grid-row: span 2;
+}
+
 .info-card-body {
   padding: var(--space-4);
 }
@@ -345,6 +349,10 @@ onMounted(loadData)
 @media (max-width: 1366px) {
   .info-grid {
     grid-template-columns: 1fr;
+  }
+
+  .info-card--tall {
+    grid-row: span 1;
   }
 }
 

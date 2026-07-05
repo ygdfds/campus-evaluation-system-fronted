@@ -1,4 +1,5 @@
 import request from '@/request'
+import { unwrap } from '@/request'
 
 // ==================== 个人信息 - 读取 ====================
 
@@ -54,14 +55,14 @@ export function getLoginLogsApi(tenantId, userId, params = {}) {
  * 更新人员档案（基本信息）
  */
 export function updatePersonProfileApi(profileId, data) {
-  return request.patch(`/personProfiles/${profileId}`, data).then(res => res.data)
+  return request.patch(`/personProfiles/${profileId}`, data).then(unwrap)
 }
 
 /**
  * 更新用户账号（手机号、邮箱等）
  */
 export function updateUserAccountApi(accountId, data) {
-  return request.patch(`/userAccounts/${accountId}`, data).then(res => res.data)
+  return request.patch(`/userAccounts/${accountId}`, data).then(unwrap)
 }
 
 /**
@@ -88,5 +89,5 @@ export function updateAvatarApi(profileId, fileId) {
  * 新增文件资源（mock 头像上传）
  */
 export function createFileResourceApi(data) {
-  return request.post('/fileResources', data).then(res => res.data)
+  return request.post('/fileResources', data).then(unwrap)
 }

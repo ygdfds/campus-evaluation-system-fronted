@@ -181,8 +181,10 @@ function handleLogout() {
 
 /* 顶部导航栏 */
 .top-nav {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
   height: var(--nav-height);
   display: flex;
@@ -306,7 +308,7 @@ function handleLogout() {
   z-index: 1;
   max-width: var(--page-max-width);
   margin: 0 auto;
-  padding: var(--page-padding-y) var(--page-padding-x) var(--space-12);
+  padding: calc(var(--nav-height) + var(--page-padding-y)) var(--page-padding-x) var(--space-12);
 }
 
 @media (max-width: 768px) {
@@ -320,7 +322,7 @@ function handleLogout() {
     display: none;
   }
   .nav-main {
-    padding: var(--spacing-base);
+    padding: calc(var(--nav-height) + var(--spacing-base)) var(--spacing-base) var(--spacing-base);
   }
 }
 </style>

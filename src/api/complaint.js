@@ -1,4 +1,5 @@
 import request from '@/request'
+import { unwrap } from '@/request'
 
 // ==================== 投诉建议 - 读取 ====================
 
@@ -35,28 +36,28 @@ export function getFeedbackWorkOrdersApi(tenantId, submitterId) {
  * 提交投诉建议（新增 complaint 记录）
  */
 export function createComplaintApi(data) {
-  return request.post('/complaints', data).then(res => res.data)
+  return request.post('/complaints', data).then(unwrap)
 }
 
 /**
  * 新增处理记录
  */
 export function createProcessRecordApi(data) {
-  return request.post('/complaintProcessRecords', data).then(res => res.data)
+  return request.post('/complaintProcessRecords', data).then(unwrap)
 }
 
 /**
  * 新增反馈工单
  */
 export function createFeedbackWorkOrderApi(data) {
-  return request.post('/feedbackWorkOrders', data).then(res => res.data)
+  return request.post('/feedbackWorkOrders', data).then(unwrap)
 }
 
 /**
  * 新增文件资源（mock 附件上传）
  */
 export function createFileResourceApi(data) {
-  return request.post('/fileResources', data).then(res => res.data)
+  return request.post('/fileResources', data).then(unwrap)
 }
 
 // ==================== 投诉建议 - 撤销 ====================
@@ -66,14 +67,14 @@ export function createFileResourceApi(data) {
  * 仅更新状态为 cancelled，不物理删除
  */
 export function cancelComplaintApi(complaintId, data) {
-  return request.patch(`/complaints/${complaintId}`, data).then(res => res.data)
+  return request.patch(`/complaints/${complaintId}`, data).then(unwrap)
 }
 
 /**
  * 更新反馈工单状态（用于撤销时同步更新关联工单）
  */
 export function updateFeedbackWorkOrderApi(workOrderId, data) {
-  return request.patch(`/feedbackWorkOrders/${workOrderId}`, data).then(res => res.data)
+  return request.patch(`/feedbackWorkOrders/${workOrderId}`, data).then(unwrap)
 }
 
 /**
