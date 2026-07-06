@@ -5,7 +5,8 @@ import { useUserStore } from '@/stores/user'
 import {
   HomeFilled, OfficeBuilding, User, Files, DocumentChecked,
   School, ArrowDown, SwitchButton, DataAnalysis, InfoFilled,
-  ChatDotRound, Bell,
+  ChatDotRound, Bell, QuestionFilled, Notebook, Upload,
+  Reading, Service,
 } from '@element-plus/icons-vue'
 import NotificationDropdown from '@/components/NotificationDropdown.vue'
 
@@ -33,6 +34,31 @@ const menuGroups = [
     ],
   },
   {
+    title: '基础数据',
+    items: [
+      {
+        index: '/school/teaching',
+        title: '教学数据',
+        icon: Reading,
+        children: [
+          { index: '/school/teaching/courses', title: '课程管理' },
+          { index: '/school/teaching/classes', title: '班级管理' },
+          { index: '/school/teaching/enrollments', title: '选课管理' },
+        ],
+      },
+      {
+        index: '/school/service',
+        title: '服务数据',
+        icon: Service,
+        children: [
+          { index: '/school/service/orgs', title: '服务机构' },
+          { index: '/school/service/items', title: '服务项目' },
+        ],
+      },
+      { index: '/school/imports', title: '导入中心', icon: Upload },
+    ],
+  },
+  {
     title: '组织账号',
     items: [
       { index: '/school/org/departments', title: '组织架构', icon: OfficeBuilding },
@@ -47,6 +73,14 @@ const menuGroups = [
         ],
       },
       { index: '/school/school-info', title: '学校信息', icon: InfoFilled },
+    ],
+  },
+  {
+    title: '帮助与运维',
+    items: [
+      { index: '/school/help/tickets', title: '帮助工单', icon: QuestionFilled },
+      { index: '/school/help/content', title: '帮助内容', icon: Notebook },
+      { index: '/school/audit/logs', title: '操作日志', icon: DocumentChecked },
     ],
   },
 ]
@@ -70,7 +104,7 @@ const breadcrumbs = computed(() => {
   return crumbs
 })
 
-const expandedMenus = ref(['/school/users'])
+const expandedMenus = ref(['/school/users', '/school/teaching', '/school/service'])
 
 function toggleMenu(index) {
   const idx = expandedMenus.value.indexOf(index)

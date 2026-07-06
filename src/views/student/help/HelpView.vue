@@ -1,44 +1,48 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { ChatLineSquare, Phone, Message, QuestionFilled } from '@element-plus/icons-vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { ChatLineSquare, Phone, Message, QuestionFilled, Search } from '@element-plus/icons-vue'
+import { useUserStore } from '@/stores/user'
+import { getStudentHelpHomeApi } from '@/api/studentHelp'
 
 defineOptions({ name: 'StudentHelpView' })
 
-const activeCategory = ref('evaluation')
+const userStore = useUserStore()
 
+const activeCategory = ref('all')
+const searchKeyword = ref('')
+const loading = ref(false)
+
+// 分类列表（含"全部"）
 const categories = [
+  { key: 'all', label: '全部', icon: QuestionFilled },
   { key: 'evaluation', label: '评价相关', icon: QuestionFilled },
   { key: 'account', label: '账号相关', icon: ChatLineSquare },
   { key: 'complaint', label: '投诉建议', icon: Message },
   { key: 'system', label: '系统使用', icon: Phone },
 ]
 
-// FAQ 数据
-const faqData = {
-  evaluation: [
-    { q: '如何提交评价？', a: '在评价中心找到对应的评价任务，点击"去评价"按钮进入评价提交页，按题目要求填写评分和文字反馈后提交即可。' },
-    { q: '评价提交后还能修改吗？', a: '如果评价窗口仍在有效期内且未被锁定，您可以在"可修改"状态下点击"修改评价"进行更改。超过修改期限后将无法修改。' },
-    { q: '错过评价时间怎么办？', a: '评价窗口关闭后将无法补评。建议关注首页待办提醒和评价日历，及时处理即将截止的评价任务。' },
-    { q: '评价是匿名的吗？', a: '是的，评价提交后系统会进行匿名处理，被评价方无法查看评价人信息。' },
-  ],
-  account: [
-    { q: '忘记密码怎么办？', a: '请在登录页点击"忘记密码"，通过绑定的邮箱或手机号进行密码重置。如仍无法找回，请联系学校服务支持。' },
-    { q: '如何修改个人信息？', a: '登录后点击右上角头像，选择"个人信息"即可修改昵称、头像等基本资料。学号等关键信息需联系管理员修改。' },
-    { q: '为什么看不到某些评价任务？', a: '教学评价仅对选课学生可见，后勤服务评价面向全校开放。如确认应可见但未显示，请检查是否已登录正确账号。' },
-  ],
-  complaint: [
-    { q: '如何提交投诉或建议？', a: '在导航栏进入"投诉建议"页面，点击"新建投诉"填写标题、分类和详细描述后提交。' },
-    { q: '投诉处理后多久能收到反馈？', a: '一般投诉将在 3 个工作日内给出初步反馈，复杂问题可能需要 5-7 个工作日。您可以在投诉详情页查看处理进度。' },
-    { q: '对处理结果不满意怎么办？', a: '您可以在投诉详情页追加留言说明不满原因，相关部门会进行二次处理。也可联系学校服务支持进行人工跟进。' },
-  ],
-  system: [
-    { q: '系统支持哪些浏览器？', a: '推荐使用 Chrome、Edge、Firefox 等现代浏览器的最新版本。不支持 IE 浏览器。' },
-    { q: '页面显示异常怎么办？', a: '请尝试刷新页面（Ctrl+F5 强制刷新）、清除浏览器缓存，或更换浏览器重试。如问题持续请联系服务支持。' },
-    { q: '如何退出登录？', a: '点击右上角用户头像，在下拉菜单中选择"退出登录"即可。' },
-  ],
+// FAQ 分类映射
+const faqCategoryMap = {
+  evaluation: '评价相关',
+  appeal: '申诉追溯',
+  feedback: '反馈工单',
+  report: '数据报表',
+  notification: '消息通知',
+  account: '账号设置',
+  permission: '权限管理',
+  system: '系统功能',
+  complaint: '投诉建议',
+  user: '用户管理',
+  org: '组织架构',
+  data: '数据统计',
+  form_audit: '表单审核',
 }
 
-// 操作流程
+// 动态数据
+const allFaqs = ref([])
+const allGuides = ref([])
+
+// 操作流程（保留静态，作为使用指南）
 const processSteps = {
   evaluation: [
     { step: 1, title: '查看评价任务', desc: '在评价中心浏览待办评价，了解评价对象和时间范围' },
@@ -54,21 +58,79 @@ const processSteps = {
   ],
 }
 
-const currentFaqs = computed(() => faqData[activeCategory.value] || [])
-const currentProcess = computed(() => processSteps[activeCategory.value] || null)
-
 const contactInfo = [
   { label: '服务热线', value: '400-123-4567', desc: '工作日 8:30 - 17:30' },
   { label: '服务邮箱', value: 'support@campus.edu.cn', desc: '24 小时内回复' },
   { label: '线下服务', value: '行政楼 1 楼服务大厅', desc: '工作日 9:00 - 12:00, 14:00 - 17:00' },
 ]
+
+// 根据分类和搜索过滤 FAQ
+const currentFaqs = computed(() => {
+  let faqs = allFaqs.value
+  if (activeCategory.value !== 'all') {
+    faqs = faqs.filter(f => f.category === activeCategory.value)
+  }
+  return faqs
+})
+
+const currentProcess = computed(() => processSteps[activeCategory.value] || null)
+
+// 加载数据
+async function loadData() {
+  loading.value = true
+  try {
+    const currentUser = {
+      tenantId: userStore.tenantId,
+      userId: userStore.userId,
+    }
+    const params = { keyword: searchKeyword.value }
+    const { guides, faqs } = await getStudentHelpHomeApi(params, currentUser)
+    allFaqs.value = faqs
+    allGuides.value = guides
+  } catch (e) {
+    console.error('加载帮助中心数据失败', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 搜索防抖
+let searchTimer = null
+function handleSearch() {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    loadData()
+  }, 300)
+}
+
+// 切换分类时重新加载
+watch(activeCategory, () => {
+  loadData()
+})
+
+onMounted(() => {
+  loadData()
+})
 </script>
 
 <template>
   <div class="help-page">
     <div class="page-header">
-      <h1 class="page-title">帮助中心</h1>
-      <p class="page-subtitle">常见问题解答与使用指南，帮助您快速解决问题</p>
+      <div class="page-header-top">
+        <div>
+          <h1 class="page-title">帮助中心</h1>
+          <p class="page-subtitle">常见问题解答与使用指南，帮助您快速解决问题</p>
+        </div>
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索问题或关键词"
+          clearable
+          :prefix-icon="Search"
+          style="width: 260px"
+          @input="handleSearch"
+          @clear="loadData"
+        />
+      </div>
     </div>
 
     <div class="help-layout">
@@ -93,16 +155,23 @@ const contactInfo = [
         <!-- FAQ 折叠面板 -->
         <div class="content-card">
           <h3 class="card-title">常见问题</h3>
-          <el-collapse accordion class="faq-collapse">
+          <div v-if="loading" class="faq-loading">
+            <el-skeleton :rows="3" animated />
+          </div>
+          <el-collapse v-else-if="currentFaqs.length" accordion class="faq-collapse">
             <el-collapse-item
-              v-for="(faq, idx) in currentFaqs"
-              :key="idx"
-              :title="faq.q"
-              :name="idx"
+              v-for="faq in currentFaqs"
+              :key="faq.id"
+              :title="faq.question"
+              :name="faq.id"
             >
-              <p class="faq-answer">{{ faq.a }}</p>
+              <p class="faq-answer">{{ faq.answer }}</p>
+              <span v-if="faq.category" class="faq-category-tag">{{ faqCategoryMap[faq.category] || faq.category }}</span>
             </el-collapse-item>
           </el-collapse>
+          <div v-else class="faq-empty">
+            <el-empty description="暂无常见问题" :image-size="80" />
+          </div>
         </div>
 
         <!-- 操作流程卡片 -->
@@ -149,6 +218,13 @@ const contactInfo = [
   gap: var(--space-2);
 }
 
+.page-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
 .page-title {
   font-size: 28px;
   font-weight: 700;
@@ -161,6 +237,7 @@ const contactInfo = [
   font-size: var(--font-sm);
   color: var(--color-text-secondary);
   margin: 0;
+  margin-top: var(--space-1);
 }
 
 /* ===== 两栏布局 ===== */
@@ -260,6 +337,21 @@ const contactInfo = [
   color: var(--color-text-body);
   line-height: var(--line-height-relaxed, 1.7);
   margin: 0;
+}
+
+.faq-category-tag {
+  display: inline-block;
+  margin-top: var(--space-2);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-page-alt);
+  color: var(--color-text-muted);
+  font-size: var(--font-2xs);
+}
+
+.faq-loading,
+.faq-empty {
+  padding: var(--space-4) 0;
 }
 
 /* 操作流程 */

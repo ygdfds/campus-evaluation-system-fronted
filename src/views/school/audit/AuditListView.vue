@@ -7,6 +7,7 @@ import {
   Refresh, Search, DocumentChecked,
   Check, Close, View, Warning,
   OfficeBuilding, Timer, User, Lock,
+  WarnTriangleFilled,
 } from '@element-plus/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import {
@@ -23,6 +24,12 @@ import {
   approveTraceAuthApi,
   rejectTraceAuthApi,
 } from '@/api/traceAuth'
+import {
+  getSchoolRiskReviewListApi,
+  getSchoolRiskReviewSummaryApi,
+  confirmRiskReviewApi,
+  ignoreRiskReviewApi,
+} from '@/api/schoolRiskReview'
 
 defineOptions({ name: 'SchoolAuditListView' })
 
@@ -31,21 +38,27 @@ const route = useRoute()
 const userStore = useUserStore()
 
 // ==================== Tab 切换 ====================
-const activeTab = ref(route.query.tab === 'trace' ? 'trace' : 'form')
+const validTabs = ['form', 'trace-auth', 'risk-review']
+function resolveTab(queryTab) {
+  if (queryTab === 'trace') return 'trace-auth' // 向后兼容
+  if (validTabs.includes(queryTab)) return queryTab
+  return 'form'
+}
+const activeTab = ref(resolveTab(route.query.tab))
 
 function switchTab(tab) {
   activeTab.value = tab
   router.replace({ path: route.path, query: { ...route.query, tab } })
   if (tab === 'form') loadFormData()
-  else loadTraceData()
+  else if (tab === 'trace-auth') loadTraceData()
+  else loadRiskData()
 }
 
 watch(() => route.query.tab, (val) => {
-  const t = val === 'trace' ? 'trace' : 'form'
+  const t = resolveTab(val)
   if (t !== activeTab.value) {
     activeTab.value = t
-    if (t === 'form') loadFormData()
-    else loadTraceData()
+    switchTab(t)
   }
 })
 
@@ -112,6 +125,20 @@ const traceRejectRules = {
 }
 const traceRejectFormRef = ref(null)
 
+// ==================== 风险评价复核 - 状态 ====================
+const riskLoading = ref(false)
+const riskList = ref([])
+const riskSummary = ref({ total: 0, pending: 0, confirmed: 0, ignored: 0, high: 0 })
+
+const riskFilters = ref({ keyword: '', status: 'all', risk_type: 'all', risk_level: 'all' })
+const riskPage = ref(1)
+const riskPageSize = ref(10)
+
+const paginatedRiskList = computed(() => {
+  const start = (riskPage.value - 1) * riskPageSize.value
+  return riskList.value.slice(start, start + riskPageSize.value)
+})
+
 // ==================== 分页计算 ====================
 const paginatedAuditList = computed(() => {
   const start = (formPage.value - 1) * formPageSize.value
@@ -125,7 +152,7 @@ const paginatedTraceList = computed(() => {
 
 // ==================== 计算属性 ====================
 const statusCards = computed(() => {
-  if (activeTab.value === 'trace') {
+  if (activeTab.value === 'trace-auth') {
     return [
       { key: 'total', label: '全部申请', value: traceSummary.value.total, tone: 'default' },
       { key: 'pending', label: '待审批', value: traceSummary.value.pending, tone: 'warning' },
@@ -133,6 +160,15 @@ const statusCards = computed(() => {
       { key: 'rejected', label: '已拒绝', value: traceSummary.value.rejected, tone: 'danger' },
       { key: 'todayApplied', label: '今日申请', value: traceSummary.value.todayApplied, tone: 'info' },
       { key: 'monthAudited', label: '本月审批', value: traceSummary.value.monthAudited, tone: 'info' },
+    ]
+  }
+  if (activeTab.value === 'risk-review') {
+    return [
+      { key: 'total', label: '全部风险', value: riskSummary.value.total, tone: 'default' },
+      { key: 'pending', label: '待复核', value: riskSummary.value.pending, tone: 'warning' },
+      { key: 'confirmed', label: '已确认', value: riskSummary.value.confirmed, tone: 'success' },
+      { key: 'ignored', label: '已忽略', value: riskSummary.value.ignored, tone: 'info' },
+      { key: 'high', label: '高风险', value: riskSummary.value.high, tone: 'danger' },
     ]
   }
   return [
@@ -369,40 +405,95 @@ function formatFullTime(t) {
 // ==================== 统一刷新 ====================
 function handleRefresh() {
   if (activeTab.value === 'form') loadFormData()
-  else loadTraceData()
+  else if (activeTab.value === 'trace-auth') loadTraceData()
+  else loadRiskData()
+}
+
+// ==================== 风险评价复核 - 数据加载 ====================
+async function loadRiskData() {
+  riskLoading.value = true
+  try {
+    const tid = userStore.tenantId
+    const [list, sum] = await Promise.all([
+      getSchoolRiskReviewListApi(tid, riskFilters.value),
+      getSchoolRiskReviewSummaryApi(tid),
+    ])
+    riskList.value = list
+    riskSummary.value = sum
+  } catch (e) {
+    console.error('加载风险复核列表失败', e)
+    ElMessage.error('加载风险复核列表失败')
+  } finally {
+    riskLoading.value = false
+  }
+}
+
+function resetRiskFilters() {
+  riskFilters.value = { keyword: '', status: 'all', risk_type: 'all', risk_level: 'all' }
+  loadRiskData()
+}
+
+const riskLevelTagType = (code) => {
+  const map = { low: 'info', medium: 'warning', high: 'danger' }
+  return map[code] || 'info'
+}
+
+const riskStatusTagType = (code) => {
+  const map = { pending: 'warning', confirmed: 'success', ignored: 'info' }
+  return map[code] || 'info'
+}
+
+async function handleConfirmRisk(task) {
+  try {
+    await ElMessageBox.confirm('确认该风险评价有效？', '确认风险', { confirmButtonText: '确认', cancelButtonText: '取消', type: 'warning' })
+    await confirmRiskReviewApi(userStore.tenantId, userStore.schoolId, task.id, userStore.userInfo?.id, '')
+    ElMessage.success('已确认风险有效')
+    loadRiskData()
+  } catch (e) { if (e !== 'cancel' && e?.toString() !== 'cancel') ElMessage.error('操作失败') }
+}
+
+async function handleIgnoreRisk(task) {
+  try {
+    await ElMessageBox.confirm('确认忽略该风险？', '忽略风险', { confirmButtonText: '确认忽略', cancelButtonText: '取消', type: 'info' })
+    await ignoreRiskReviewApi(userStore.tenantId, userStore.schoolId, task.id, userStore.userInfo?.id, '')
+    ElMessage.success('已忽略该风险')
+    loadRiskData()
+  } catch (e) { if (e !== 'cancel' && e?.toString() !== 'cancel') ElMessage.error('操作失败') }
 }
 
 // ==================== 生命周期 ====================
 onMounted(async () => {
-  // 同时加载两个 Tab 的 summary，确保 badge 显示
   const tid = userStore.tenantId
   try {
-    const [fs, ts] = await Promise.all([
+    const [fs, ts, rs] = await Promise.all([
       getSchoolAuditSummaryApi(tid),
       getTraceAuthSummaryApi(tid),
+      getSchoolRiskReviewSummaryApi(tid),
     ])
     formSummary.value = fs
     traceSummary.value = ts
+    riskSummary.value = rs
   } catch { /* ignore */ }
-  // 加载当前 Tab 的列表数据
-  if (activeTab.value === 'trace') loadTraceData()
+  if (activeTab.value === 'trace-auth') loadTraceData()
+  else if (activeTab.value === 'risk-review') loadRiskData()
   else loadFormData()
 })
 </script>
 
 <template>
   <div class="page">
-    <PageHeader title="审核中心" description="审核本校评价表单发布申请与追溯授权申请">
+    <PageHeader title="审核中心" description="审核本校评价表单发布申请、追溯授权申请与风险评价复核">
       <template #actions>
-        <el-button :icon="Refresh" @click="handleRefresh" :loading="formLoading || traceLoading">刷新</el-button>
+        <el-button :icon="Refresh" @click="handleRefresh" :loading="formLoading || traceLoading || riskLoading">刷新</el-button>
       </template>
     </PageHeader>
 
     <div class="toolbar">
       <div class="toolbar-tabs">
         <el-radio-group :model-value="activeTab" @change="switchTab" size="large">
-          <el-radio-button value="form"><el-icon><DocumentChecked /></el-icon>评价表单审核</el-radio-button>
-          <el-radio-button value="trace"><el-icon><Lock /></el-icon>追溯授权审批<el-badge v-if="traceSummary.pending > 0" :value="traceSummary.pending" type="warning" class="badge" /></el-radio-button>
+          <el-radio-button value="form"><el-icon><DocumentChecked /></el-icon>表单发布审核</el-radio-button>
+          <el-radio-button value="trace-auth"><el-icon><Lock /></el-icon>追溯授权审核<el-badge v-if="traceSummary.pending > 0" :value="traceSummary.pending" type="warning" class="badge" /></el-radio-button>
+          <el-radio-button value="risk-review"><el-icon><WarnTriangleFilled /></el-icon>风险评价复核<el-badge v-if="riskSummary.pending > 0" :value="riskSummary.pending" type="warning" class="badge" /></el-radio-button>
         </el-radio-group>
       </div>
       <div class="toolbar-stats">
@@ -488,7 +579,7 @@ onMounted(async () => {
       </div>
     </template>
 
-    <template v-if="activeTab === 'trace'">
+    <template v-if="activeTab === 'trace-auth'">
       <div class="filters">
         <el-input v-model="traceFilters.keyword" placeholder="搜索申请编号、申诉编号、申请人…" :prefix-icon="Search" clearable @clear="loadTraceData" @keyup.enter="loadTraceData" />
         <el-select v-model="traceFilters.status" @change="loadTraceData"><el-option label="全部状态" value="all" /><el-option label="待审批" value="pending" /><el-option label="已授权" value="approved" /><el-option label="已拒绝" value="rejected" /></el-select>
@@ -550,6 +641,75 @@ onMounted(async () => {
           <el-icon :size="48" color="var(--color-text-placeholder)"><Lock /></el-icon>
           <p>暂无追溯授权申请</p>
           <span>教职工发起追溯授权申请后，将在这里进行审批处理。</span>
+        </div>
+      </div>
+    </template>
+
+    <template v-if="activeTab === 'risk-review'">
+      <div class="filters">
+        <el-input v-model="riskFilters.keyword" placeholder="搜索表单名称、风险描述…" :prefix-icon="Search" clearable @clear="loadRiskData" @keyup.enter="loadRiskData" />
+        <el-select v-model="riskFilters.status" @change="loadRiskData">
+          <el-option label="全部状态" value="all" />
+          <el-option label="待复核" value="pending" />
+          <el-option label="已确认" value="confirmed" />
+          <el-option label="已忽略" value="ignored" />
+        </el-select>
+        <el-select v-model="riskFilters.risk_type" @change="loadRiskData">
+          <el-option label="全部类型" value="all" />
+          <el-option label="敏感词" value="sensitive_words" />
+          <el-option label="极端低分" value="extreme_low_score" />
+          <el-option label="异常提交" value="abnormal_submission" />
+        </el-select>
+        <el-select v-model="riskFilters.risk_level" @change="loadRiskData">
+          <el-option label="全部等级" value="all" />
+          <el-option label="低" value="low" />
+          <el-option label="中" value="medium" />
+          <el-option label="高" value="high" />
+        </el-select>
+        <el-button text type="primary" @click="resetRiskFilters">重置</el-button>
+      </div>
+
+      <el-alert type="warning" :closable="false" show-icon class="alert">
+        <template #title><span>隐私保护：风险评价摘要不显示学生真实身份，仅展示脱敏后的评价信息。</span></template>
+      </el-alert>
+
+      <div class="list" v-loading="riskLoading">
+        <template v-if="riskList.length">
+          <div v-for="item in paginatedRiskList" :key="item.id" class="card">
+            <div class="card-body">
+              <div class="card-hd">
+                <span class="card-title">{{ item.form_name }}</span>
+                <el-tag :type="riskStatusTagType(item.status_code)" size="small" effect="plain">{{ item.status }}</el-tag>
+                <el-tag :type="riskLevelTagType(item.risk_level_code)" size="small" effect="dark">{{ item.risk_level }}风险</el-tag>
+                <el-tag size="small" effect="plain">{{ item.risk_type }}</el-tag>
+              </div>
+              <div class="card-sub">
+                <span>评价编号：#{{ item.submission_id }}</span>
+                <span class="dot">·</span>
+                <span>{{ formatTime(item.created_at) }}</span>
+                <template v-if="item.total_score !== null">
+                  <span class="dot">·</span>
+                  <span>评分：{{ item.total_score }}</span>
+                </template>
+              </div>
+              <div class="card-reason"><span class="note-label">风险描述：</span>{{ item.risk_description.length > 100 ? item.risk_description.slice(0, 100) + '…' : item.risk_description }}</div>
+              <div v-if="item.review_comment" class="card-note"><span class="note-label">复核意见：</span>{{ item.review_comment }}</div>
+            </div>
+            <div class="card-act">
+              <template v-if="item.status_code === 'pending'">
+                <el-button type="primary" size="small" plain :icon="Check" @click="handleConfirmRisk(item)">确认有效</el-button>
+                <el-button type="info" size="small" plain @click="handleIgnoreRisk(item)">忽略风险</el-button>
+              </template>
+            </div>
+          </div>
+          <div class="pagination-bar" v-if="riskList.length > 0">
+            <el-pagination v-model:current-page="riskPage" :page-size="riskPageSize" :total="riskList.length" layout="prev, pager, next" />
+          </div>
+        </template>
+        <div v-else-if="!riskLoading" class="empty">
+          <el-icon :size="48" color="var(--color-text-placeholder)"><WarnTriangleFilled /></el-icon>
+          <p>暂无风险评价复核</p>
+          <span>系统自动检测的风险评价将在这里展示，供管理员复核处理。</span>
         </div>
       </div>
     </template>

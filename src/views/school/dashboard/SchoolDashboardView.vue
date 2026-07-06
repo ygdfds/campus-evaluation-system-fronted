@@ -161,13 +161,13 @@ onMounted(loadData)
               追溯授权申请
               <el-badge v-if="traceTasks.length" :value="traceTasks.length" type="warning" />
             </h3>
-            <el-button text type="primary" size="small" @click="router.push('/school/audit/list?tab=trace')">
+            <el-button text type="primary" size="small" @click="router.push('/school/audit/list?tab=trace-auth')">
               全部 <el-icon><ArrowRight /></el-icon>
             </el-button>
           </div>
           <div class="panel-bd panel-bd--trace">
             <template v-if="traceTasks.length">
-              <div v-for="item in traceTasks" :key="item.id" class="todo-row" @click="router.push('/school/audit/list?tab=trace')">
+              <div v-for="item in traceTasks" :key="item.id" class="todo-row" @click="router.push('/school/audit/list?tab=trace-auth')">
                 <div class="todo-r1">
                   <span class="todo-name">{{ item.appeal_no }}</span>
                   <el-tag size="small" type="warning" effect="plain">{{ item.status }}</el-tag>
