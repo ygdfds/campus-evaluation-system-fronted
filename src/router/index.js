@@ -187,7 +187,7 @@ router.beforeEach((to, from, next) => {
     }
     // 角色权限校验
     const userInfo = JSON.parse(sessionStorage.getItem('campus_user_info') || '{}')
-    const userRole = userInfo.role_type || userInfo.role
+    const userRole = userInfo.roleType || userInfo.role_type || userInfo.role
     // 职工子角色：从 roles 数组中提取 role_code
     const userRoleCodes = Array.isArray(userInfo.roles)
       ? userInfo.roles.map(r => r.role_code).filter(Boolean)
@@ -210,7 +210,7 @@ router.beforeEach((to, from, next) => {
   // 已登录用户访问 guest 页面（登录/注册/入驻等），根据角色跳转到对应首页
   if (to.meta.guest && token) {
     const userInfo = JSON.parse(sessionStorage.getItem('campus_user_info') || '{}')
-    const userRole = userInfo.role_type || userInfo.role
+    const userRole = userInfo.roleType || userInfo.role_type || userInfo.role
     const defaultRoute = roleDashboardMap[userRole]
     next({ name: defaultRoute || 'StudentDashboard' })
     return

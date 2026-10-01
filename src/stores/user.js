@@ -18,7 +18,7 @@ export const useUserStore = defineStore('user', () => {
 
   // 计算属性
   const isLoggedIn = computed(() => !!token.value)
-  const userRole = computed(() => userInfo.value?.role_type || userInfo.value?.role || '')
+  const userRole = computed(() => userInfo.value?.roleType || userInfo.value?.role_type || userInfo.value?.role || '')
   // 角色名称：优先从 roles 数组取第一个，回退到 role_type 映射
   const roleName = computed(() => {
     // 新格式：roles 数组

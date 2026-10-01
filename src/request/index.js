@@ -40,20 +40,18 @@ service.interceptors.response.use(
     console.log(`  Status: ${response.status}`)
     if (res.code && res.code !== 200) {
       ElMessage.error(res.message || '请求失败')
-      // token 过期或无效
-      if (res.code === 401) {
-        clearAuth()
-        router.push('/login')
-      }
+      if (res.code === 401) handleUnauthorized()
       return Promise.reject(new Error(res.message || '请求失败'))
     }
     return res
   },
   (error) => {
     if (error.response?.status === 401) {
-      clearAuth()
-      router.push('/login')
-      ElMessage.error('登录已过期，请重新登录')
+      handleUnauthorized(error.response?.data?.message)
+    } else if (error.response?.status === 403) {
+      ElMessage.error(error.response?.data?.message || '没有操作权限')
+    } else if (error.response?.status === 409 || error.response?.status === 422) {
+      ElMessage.error(error.response?.data?.message || '请求无法处理')
     } else if (!error.config?.silent) {
       ElMessage.error(error.message || '网络错误')
     }
@@ -62,6 +60,19 @@ service.interceptors.response.use(
 )
 
 export default service
+
+let redirectingToLogin = false
+
+function handleUnauthorized(message = '登录已过期，请重新登录') {
+  clearAuth()
+  if (!redirectingToLogin) {
+    redirectingToLogin = true
+    router.push('/login').finally(() => {
+      redirectingToLogin = false
+    })
+  }
+  ElMessage.error(message)
+}
 
 /**
  * 解包响应：兼容 mock server 包装格式 { code, data } 和裸对象
