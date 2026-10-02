@@ -1,44 +1,45 @@
 import request from '@/request'
 
-/**
- * 获取已激活的学校列表
- */
+export function loginApi(username, password, rememberMe = false) {
+  return request.post('/auth/login', { username, password, rememberMe })
+}
+
+export function logoutApi() {
+  return request.post('/auth/logout')
+}
+
+export function getCurrentUserApi(config = {}) {
+  return request.get('/auth/me', config)
+}
+
+export function getPermissionsApi(config = {}) {
+  return request.get('/auth/permissions', config)
+}
+
+export function getAuthRoutesApi(config = {}) {
+  return request.get('/auth/routes', config)
+}
+
+export function getCaptchaApi(config = {}) {
+  return request.get('/auth/captcha', config)
+}
+
+export function changePasswordApi(payload) {
+  return request.post('/auth/change-password', payload)
+}
+
 export function getSchoolsApi() {
   return request.get('/auth/schools')
 }
 
-/**
- * 验证身份（学号/工号 + 姓名）
- * @param {number} schoolId - 学校ID
- * @param {string} studentNo - 学号/工号
- * @param {string} realName - 真实姓名
- */
-export function verifyIdentityApi(schoolId, studentNo, realName) {
-  return request.post('/auth/verify-identity', { schoolId, studentNo, realName })
+export function registerApi() {
+  return Promise.reject(new Error('Self-service registration is disabled in phase A. Use school onboarding.'))
 }
 
-/**
- * 用户登录（账号唯一，自动识别所属学校）
- * @param {string} username - 用户名
- * @param {string} password - 密码
- */
-export function loginApi(username, password) {
-  return request.post('/auth/login', { username, password })
+export function verifyIdentityApi() {
+  return Promise.reject(new Error('Identity verification is only enabled for onboarding or account activation.'))
 }
 
-/**
- * 用户注册
- * @param {object} userData - 注册信息
- */
-export function registerApi(userData) {
-  return request.post('/auth/register', userData)
-}
-
-/**
- * 忘记密码
- * @param {string} username - 用户名
- * @param {string} newPassword - 新密码
- */
-export function forgotPasswordApi(username, newPassword) {
-  return request.post('/auth/forgot-password', { username, newPassword })
+export function forgotPasswordApi() {
+  return Promise.reject(new Error('Password recovery is disabled. Contact the school administrator to reset password.'))
 }

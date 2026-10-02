@@ -1,170 +1,132 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { getToken } from '@/utils/auth'
+import { useUserStore } from '@/stores/user'
 import AuthLayoutView from '@/views/auth/AuthLayoutView.vue'
 import SystemAdminLoginForm from '@/components/SystemAdminLoginForm.vue'
 import SchoolAdminLoginForm from '@/components/SchoolAdminLoginForm.vue'
 import UserLoginForm from '@/components/UserLoginForm.vue'
-import RegisterForm from '@/components/RegisterForm.vue'
-import ForgotPasswordForm from '@/components/ForgotPasswordForm.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    {
-      path: '/',
-      redirect: '/login',
-    },
-    // ==================== 认证模块 ====================
+    { path: '/', redirect: '/login' },
     {
       path: '/',
       component: AuthLayoutView,
       children: [
-        {
-          path: 'login',
-          name: 'Login',
-          component: UserLoginForm,
-          meta: { title: '用户登录', guest: true },
-        },
-        {
-          path: 'login/school',
-          name: 'SchoolLogin',
-          component: SchoolAdminLoginForm,
-          meta: { title: '学校管理端登录', guest: true },
-        },
-        {
-          path: 'login/sys',
-          name: 'SysAdminLogin',
-          component: SystemAdminLoginForm,
-          meta: { title: '系统维护', guest: true },
-        },
-        {
-          path: 'register',
-          name: 'Register',
-          component: RegisterForm,
-          meta: { title: '注册', guest: true },
-        },
-        {
-          path: 'forgot-password',
-          name: 'ForgotPassword',
-          component: ForgotPasswordForm,
-          meta: { title: '忘记密码', guest: true },
-        },
+        { path: 'login', name: 'Login', component: UserLoginForm, meta: { title: 'Login', guest: true } },
+        { path: 'login/school', name: 'SchoolLogin', component: SchoolAdminLoginForm, meta: { title: 'School login', guest: true } },
+        { path: 'login/sys', name: 'SysAdminLogin', component: SystemAdminLoginForm, meta: { title: 'System login', guest: true } },
+        { path: 'register', name: 'Register', redirect: '/onboarding', meta: { title: 'School onboarding', guest: true } },
+        { path: 'forgot-password', name: 'ForgotPassword', redirect: '/login', meta: { title: 'Login', guest: true } },
       ],
     },
-    // 学校入驻申请（独立页面）
     {
       path: '/onboarding',
       name: 'Onboarding',
       component: () => import('@/views/auth/OnboardingView.vue'),
-      meta: { title: '学校入驻申请', guest: true },
+      meta: { title: 'School onboarding', guest: true },
     },
-    // ==================== 系统管理端 ====================
     {
       path: '/admin',
       name: 'PlatformLayout',
       component: () => import('@/views/admin/PlatformLayoutView.vue'),
-      meta: { title: '系统管理', requiresAuth: true, roles: ['system_admin'] },
+      meta: { title: 'System admin', requiresAuth: true, roles: ['system_admin'] },
       children: [
-        { path: 'dashboard', name: 'AdminDashboard', component: () => import('@/views/admin/dashboard/DashboardView.vue'), meta: { title: '平台概览' } },
-        { path: 'tenants/list', name: 'AdminTenantList', component: () => import('@/views/admin/tenants/TenantListView.vue'), meta: { title: '租户列表' } },
-        { path: 'tenants/lifecycle', name: 'AdminTenantLifecycle', component: () => import('@/views/admin/tenants/TenantLifecycleView.vue'), meta: { title: '租户生命周期' } },
-        { path: 'tenants/:tenantId', name: 'AdminTenantDetail', component: () => import('@/views/admin/tenants/TenantDetailView.vue'), meta: { title: '租户详情' } },
-        { path: 'plans', name: 'AdminPlanList', component: () => import('@/views/admin/plans/PlanManagementView.vue'), meta: { title: '套餐管理' } },
-        { path: 'onboarding/audit', name: 'AdminOnboardingAudit', component: () => import('@/views/admin/onboarding/AuditListView.vue'), meta: { title: '入驻审核' } },
-        { path: 'users/roles', name: 'AdminRoleManagement', component: () => import('@/views/admin/roles/RolePermissionView.vue'), meta: { title: '角色管理' } },
-        { path: 'system', name: 'AdminSystemSettings', component: () => import('@/views/admin/settings/SystemSettingsView.vue'), meta: { title: '系统设置' } },
-        { path: 'monitoring', name: 'AdminMonitoring', component: () => import('@/views/admin/monitoring/MonitoringDashboardView.vue'), meta: { title: '监控告警' } },
-        { path: 'audit/logs', name: 'AdminAuditLogs', component: () => import('@/views/admin/audit/AuditLogView.vue'), meta: { title: '审计日志' } },
-        { path: 'reports', name: 'AdminReports', component: () => import('@/views/admin/reports/ReportDashboardView.vue'), meta: { title: '统计报表' } },
-        { path: 'documents', name: 'AdminDocuments', component: () => import('@/views/admin/documents/CredentialListView.vue'), meta: { title: '凭证材料' } },
-        { path: 'support', name: 'AdminSupport', component: () => import('@/views/admin/support/SupportCenterView.vue'), meta: { title: '工单帮助' } },
+        { path: 'dashboard', name: 'AdminDashboard', component: () => import('@/views/admin/dashboard/DashboardView.vue'), meta: { title: 'Dashboard' } },
+        { path: 'tenants/list', name: 'AdminTenantList', component: () => import('@/views/admin/tenants/TenantListView.vue'), meta: { title: 'Tenants' } },
+        { path: 'tenants/lifecycle', name: 'AdminTenantLifecycle', component: () => import('@/views/admin/tenants/TenantLifecycleView.vue'), meta: { title: 'Tenant lifecycle' } },
+        { path: 'tenants/:tenantId', name: 'AdminTenantDetail', component: () => import('@/views/admin/tenants/TenantDetailView.vue'), meta: { title: 'Tenant detail' } },
+        { path: 'plans', name: 'AdminPlanList', component: () => import('@/views/admin/plans/PlanManagementView.vue'), meta: { title: 'Plans' } },
+        { path: 'onboarding/audit', name: 'AdminOnboardingAudit', component: () => import('@/views/admin/onboarding/AuditListView.vue'), meta: { title: 'Onboarding audit' } },
+        { path: 'users/roles', name: 'AdminRoleManagement', component: () => import('@/views/admin/roles/RolePermissionView.vue'), meta: { title: 'Roles' } },
+        { path: 'system', name: 'AdminSystemSettings', component: () => import('@/views/admin/settings/SystemSettingsView.vue'), meta: { title: 'System settings' } },
+        { path: 'monitoring', name: 'AdminMonitoring', component: () => import('@/views/admin/monitoring/MonitoringDashboardView.vue'), meta: { title: 'Monitoring' } },
+        { path: 'audit/logs', name: 'AdminAuditLogs', component: () => import('@/views/admin/audit/AuditLogView.vue'), meta: { title: 'Audit logs' } },
+        { path: 'reports', name: 'AdminReports', component: () => import('@/views/admin/reports/ReportDashboardView.vue'), meta: { title: 'Reports' } },
+        { path: 'documents', name: 'AdminDocuments', component: () => import('@/views/admin/documents/CredentialListView.vue'), meta: { title: 'Documents' } },
+        { path: 'support', name: 'AdminSupport', component: () => import('@/views/admin/support/SupportCenterView.vue'), meta: { title: 'Support' } },
       ],
     },
-    // ==================== 学校管理端 ====================
     {
       path: '/school',
       name: 'SchoolLayout',
       component: () => import('@/views/school/SchoolLayoutView.vue'),
-      meta: { title: '学校管理', requiresAuth: true, roles: ['school_admin'] },
+      meta: { title: 'School admin', requiresAuth: true, roles: ['school_admin'] },
       children: [
-        { path: 'dashboard', name: 'SchoolDashboard', component: () => import('@/views/school/dashboard/SchoolDashboardView.vue'), meta: { title: '学校概览' } },
-        { path: 'org/departments', name: 'SchoolDeptList', component: () => import('@/views/school/org/DepartmentListView.vue'), meta: { title: '组织架构' } },
-        { path: 'users/staff', name: 'SchoolStaffList', component: () => import('@/views/school/users/StaffListView.vue'), meta: { title: '教职工管理' } },
-        { path: 'users/student', name: 'SchoolStudentList', component: () => import('@/views/school/users/StudentListView.vue'), meta: { title: '学生管理' } },
-        { path: 'admins', name: 'SchoolAdminList', component: () => import('@/views/school/admins/AdminListView.vue'), meta: { title: '管理员管理' } },
-        { path: 'form/list', name: 'SchoolFormList', component: () => import('@/views/school/form/FormListView.vue'), meta: { title: '表单列表' } },
-        { path: 'announcements', name: 'SchoolAnnouncementList', component: () => import('@/views/school/announcement/AnnouncementListView.vue'), meta: { title: '公告管理' } },
-        { path: 'audit/list', name: 'SchoolAuditList', component: () => import('@/views/school/audit/AuditListView.vue'), meta: { title: '审核列表' } },
-        { path: 'data/overview', name: 'SchoolDataOverview', component: () => import('@/views/school/data/DataOverviewView.vue'), meta: { title: '数据概览' } },
-        { path: 'complaint/stats', name: 'SchoolComplaintStats', component: () => import('@/views/school/complaint/ComplaintStatsView.vue'), meta: { title: '投诉建议' } },
-        { path: 'complaint/detail', name: 'SchoolComplaintDetail', component: () => import('@/views/school/complaint/ComplaintDetailView.vue'), meta: { title: '投诉详情' } },
-        { path: 'help/tickets', name: 'SchoolHelpTickets', component: () => import('@/views/school/help/HelpTicketListView.vue'), meta: { title: '帮助工单' } },
-        { path: 'help/content', name: 'SchoolHelpContent', component: () => import('@/views/school/help/HelpContentManageView.vue'), meta: { title: '帮助内容' } },
-        { path: 'audit/logs', name: 'SchoolOperationLogs', component: () => import('@/views/school/audit/SchoolOperationLogView.vue'), meta: { title: '操作日志' } },
-        { path: 'imports', name: 'SchoolImportCenter', component: () => import('@/views/school/imports/ImportCenterView.vue'), meta: { title: '导入中心' } },
-        { path: 'teaching/courses', name: 'SchoolCourses', component: () => import('@/views/school/teaching/CourseManagementView.vue'), meta: { title: '课程管理' } },
-        { path: 'teaching/classes', name: 'SchoolClasses', component: () => import('@/views/school/teaching/ClassManagementView.vue'), meta: { title: '班级管理' } },
-        { path: 'teaching/enrollments', name: 'SchoolEnrollments', component: () => import('@/views/school/teaching/EnrollmentManagementView.vue'), meta: { title: '选课管理' } },
-        { path: 'service/orgs', name: 'SchoolServiceOrgs', component: () => import('@/views/school/service/ServiceOrgManagementView.vue'), meta: { title: '服务机构' } },
-        { path: 'service/items', name: 'SchoolServiceItems', component: () => import('@/views/school/service/ServiceItemManagementView.vue'), meta: { title: '服务项目' } },
-        { path: 'school-info', name: 'SchoolInfo', component: () => import('@/views/school/info/SchoolInfoView.vue'), meta: { title: '学校信息' } },
+        { path: 'dashboard', name: 'SchoolDashboard', component: () => import('@/views/school/dashboard/SchoolDashboardView.vue'), meta: { title: 'Dashboard' } },
+        { path: 'org/departments', name: 'SchoolDeptList', component: () => import('@/views/school/org/DepartmentListView.vue'), meta: { title: 'Departments' } },
+        { path: 'users/staff', name: 'SchoolStaffList', component: () => import('@/views/school/users/StaffListView.vue'), meta: { title: 'Staff' } },
+        { path: 'users/student', name: 'SchoolStudentList', component: () => import('@/views/school/users/StudentListView.vue'), meta: { title: 'Students' } },
+        { path: 'admins', name: 'SchoolAdminList', component: () => import('@/views/school/admins/AdminListView.vue'), meta: { title: 'Admins' } },
+        { path: 'form/list', name: 'SchoolFormList', component: () => import('@/views/school/form/FormListView.vue'), meta: { title: 'Forms' } },
+        { path: 'announcements', name: 'SchoolAnnouncementList', component: () => import('@/views/school/announcement/AnnouncementListView.vue'), meta: { title: 'Announcements' } },
+        { path: 'audit/list', name: 'SchoolAuditList', component: () => import('@/views/school/audit/AuditListView.vue'), meta: { title: 'Audits' } },
+        { path: 'data/overview', name: 'SchoolDataOverview', component: () => import('@/views/school/data/DataOverviewView.vue'), meta: { title: 'Data overview' } },
+        { path: 'complaint/stats', name: 'SchoolComplaintStats', component: () => import('@/views/school/complaint/ComplaintStatsView.vue'), meta: { title: 'Complaint stats' } },
+        { path: 'complaint/detail', name: 'SchoolComplaintDetail', component: () => import('@/views/school/complaint/ComplaintDetailView.vue'), meta: { title: 'Complaint detail' } },
+        { path: 'help/tickets', name: 'SchoolHelpTickets', component: () => import('@/views/school/help/HelpTicketListView.vue'), meta: { title: 'Help tickets' } },
+        { path: 'help/content', name: 'SchoolHelpContent', component: () => import('@/views/school/help/HelpContentManageView.vue'), meta: { title: 'Help content' } },
+        { path: 'audit/logs', name: 'SchoolOperationLogs', component: () => import('@/views/school/audit/SchoolOperationLogView.vue'), meta: { title: 'Operation logs' } },
+        { path: 'imports', name: 'SchoolImportCenter', component: () => import('@/views/school/imports/ImportCenterView.vue'), meta: { title: 'Imports' } },
+        { path: 'teaching/courses', name: 'SchoolCourses', component: () => import('@/views/school/teaching/CourseManagementView.vue'), meta: { title: 'Courses' } },
+        { path: 'teaching/classes', name: 'SchoolClasses', component: () => import('@/views/school/teaching/ClassManagementView.vue'), meta: { title: 'Classes' } },
+        { path: 'teaching/enrollments', name: 'SchoolEnrollments', component: () => import('@/views/school/teaching/EnrollmentManagementView.vue'), meta: { title: 'Enrollments' } },
+        { path: 'service/orgs', name: 'SchoolServiceOrgs', component: () => import('@/views/school/service/ServiceOrgManagementView.vue'), meta: { title: 'Service orgs' } },
+        { path: 'service/items', name: 'SchoolServiceItems', component: () => import('@/views/school/service/ServiceItemManagementView.vue'), meta: { title: 'Service items' } },
+        { path: 'school-info', name: 'SchoolInfo', component: () => import('@/views/school/info/SchoolInfoView.vue'), meta: { title: 'School info' } },
       ],
     },
-    // ==================== 教职工端 ====================
     {
       path: '/staff',
       name: 'StaffLayout',
       component: () => import('@/views/TopNavLayoutView.vue'),
-      meta: { title: '教职工端', requiresAuth: true, roles: ['staff'] },
+      meta: { title: 'Staff', requiresAuth: true, roles: ['staff'] },
       children: [
-        { path: 'dashboard', name: 'StaffDashboard', component: () => import('@/views/staff/dashboard/DashboardView.vue'), meta: { title: '教职工工作台' } },
-        { path: 'evaluation/forms', name: 'StaffEvalForms', component: () => import('@/views/staff/evaluation/FormsView.vue'), meta: { title: '评价管理' } },
-        { path: 'feedback', name: 'StaffFeedback', component: () => import('@/views/staff/feedback/FeedbackView.vue'), meta: { title: '反馈处理' } },
-        { path: 'reports', name: 'StaffReports', component: () => import('@/views/staff/reports/ReportsView.vue'), meta: { title: '数据看板' } },
-        { path: 'appeals', name: 'StaffAppeals', component: () => import('@/views/staff/appeals/StaffAppealsView.vue'), meta: { title: '申诉处理' } },
-        { path: 'notifications', name: 'StaffNotifications', component: () => import('@/views/staff/notifications/StaffNotificationsView.vue'), meta: { title: '消息通知', hideStaffNav: true } },
-        { path: 'help', name: 'StaffHelp', component: () => import('@/views/staff/help/StaffHelpView.vue'), meta: { title: '帮助中心' } },
-        { path: 'profile', name: 'StaffProfile', component: () => import('@/views/staff/profile/StaffProfileView.vue'), meta: { title: '个人信息', hideStaffNav: true } },
+        { path: 'dashboard', name: 'StaffDashboard', component: () => import('@/views/staff/dashboard/DashboardView.vue'), meta: { title: 'Dashboard' } },
+        { path: 'evaluation/forms', name: 'StaffEvalForms', component: () => import('@/views/staff/evaluation/FormsView.vue'), meta: { title: 'Evaluation forms' } },
+        { path: 'feedback', name: 'StaffFeedback', component: () => import('@/views/staff/feedback/FeedbackView.vue'), meta: { title: 'Feedback' } },
+        { path: 'reports', name: 'StaffReports', component: () => import('@/views/staff/reports/ReportsView.vue'), meta: { title: 'Reports' } },
+        { path: 'appeals', name: 'StaffAppeals', component: () => import('@/views/staff/appeals/StaffAppealsView.vue'), meta: { title: 'Appeals' } },
+        { path: 'notifications', name: 'StaffNotifications', component: () => import('@/views/staff/notifications/StaffNotificationsView.vue'), meta: { title: 'Notifications', hideStaffNav: true } },
+        { path: 'help', name: 'StaffHelp', component: () => import('@/views/staff/help/StaffHelpView.vue'), meta: { title: 'Help' } },
+        { path: 'profile', name: 'StaffProfile', component: () => import('@/views/staff/profile/StaffProfileView.vue'), meta: { title: 'Profile', hideStaffNav: true } },
       ],
     },
-    // ==================== 学生端 ====================
     {
       path: '/student',
       name: 'StudentLayout',
       component: () => import('@/views/TopNavLayoutView.vue'),
-      meta: { title: '学生端', requiresAuth: true, roles: ['student'] },
+      meta: { title: 'Student', requiresAuth: true, roles: ['student'] },
       children: [
-        { path: 'dashboard', name: 'StudentDashboard', component: () => import('@/views/student/dashboard/DashboardView.vue'), meta: { title: '我的概览' } },
-        { path: 'announcements', name: 'StudentAnnouncementList', component: () => import('@/views/student/announcement/AnnouncementListView.vue'), meta: { title: '校园公告' } },
-        { path: 'announcements/:id', name: 'StudentAnnouncementDetail', component: () => import('@/views/student/announcement/AnnouncementDetailView.vue'), meta: { title: '公告详情' } },
-        { path: 'evaluations', name: 'StudentEvaluationTasks', component: () => import('@/views/student/evaluation/TasksView.vue'), meta: { title: '评价中心', showGlobalSearch: false } },
-        { path: 'evaluations/:taskId/submit', name: 'StudentEvalSubmit', component: () => import('@/views/student/evaluation/SubmitView.vue'), meta: { title: '提交评价' } },
-        { path: 'my-evaluations', name: 'StudentEvalHistory', component: () => import('@/views/student/evaluation/HistoryView.vue'), meta: { title: '我的评价' } },
+        { path: 'dashboard', name: 'StudentDashboard', component: () => import('@/views/student/dashboard/DashboardView.vue'), meta: { title: 'Dashboard' } },
+        { path: 'announcements', name: 'StudentAnnouncementList', component: () => import('@/views/student/announcement/AnnouncementListView.vue'), meta: { title: 'Announcements' } },
+        { path: 'announcements/:id', name: 'StudentAnnouncementDetail', component: () => import('@/views/student/announcement/AnnouncementDetailView.vue'), meta: { title: 'Announcement detail' } },
+        { path: 'evaluations', name: 'StudentEvaluationTasks', component: () => import('@/views/student/evaluation/TasksView.vue'), meta: { title: 'Evaluations', showGlobalSearch: false } },
+        { path: 'evaluations/:taskId/submit', name: 'StudentEvalSubmit', component: () => import('@/views/student/evaluation/SubmitView.vue'), meta: { title: 'Submit evaluation' } },
+        { path: 'my-evaluations', name: 'StudentEvalHistory', component: () => import('@/views/student/evaluation/HistoryView.vue'), meta: { title: 'My evaluations' } },
         { path: 'evaluation/history', redirect: { name: 'StudentEvalHistory' } },
-        { path: 'complaint', name: 'StudentComplaint', component: () => import('@/views/student/complaint/ComplaintView.vue'), meta: { title: '投诉建议' } },
-        { path: 'profile', name: 'StudentProfile', component: () => import('@/views/student/profile/StudentProfileView.vue'), meta: { title: '个人信息' } },
-        { path: 'help', name: 'StudentHelp', component: () => import('@/views/student/help/HelpView.vue'), meta: { title: '帮助中心' } },
-        { path: 'notifications', name: 'StudentNotifications', component: () => import('@/views/student/notification/NotificationCenterView.vue'), meta: { title: '消息通知' } },
+        { path: 'complaint', name: 'StudentComplaint', component: () => import('@/views/student/complaint/ComplaintView.vue'), meta: { title: 'Complaint' } },
+        { path: 'profile', name: 'StudentProfile', component: () => import('@/views/student/profile/StudentProfileView.vue'), meta: { title: 'Profile' } },
+        { path: 'help', name: 'StudentHelp', component: () => import('@/views/student/help/HelpView.vue'), meta: { title: 'Help' } },
+        { path: 'notifications', name: 'StudentNotifications', component: () => import('@/views/student/notification/NotificationCenterView.vue'), meta: { title: 'Notifications' } },
       ],
     },
-    // ==================== 个人信息（所有角色） ====================
     {
       path: '/profile',
       name: 'Profile',
       component: () => import('@/views/profile/ProfileView.vue'),
-      meta: { title: '个人信息', requiresAuth: true },
+      meta: { title: 'Profile', requiresAuth: true },
     },
-    // ==================== 404 ====================
     {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
       component: () => import('@/views/NotFoundView.vue'),
-      meta: { title: '页面不存在' },
+      meta: { title: 'Not found' },
     },
   ],
 })
 
-// 角色对应的默认首页
 const roleDashboardMap = {
   system_admin: 'AdminDashboard',
   school_admin: 'SchoolDashboard',
@@ -172,48 +134,46 @@ const roleDashboardMap = {
   student: 'StudentDashboard',
 }
 
-// 路由守卫
-router.beforeEach((to, from, next) => {
-  // 设置页面标题
-  document.title = `${to.meta.title || ''} - 校园服务质量在线评测系统`
+router.beforeEach(async (to, from, next) => {
+  document.title = `${to.meta.title || ''} - Campus Evaluation System`
 
   const token = getToken()
+  const userStore = useUserStore()
 
-  // 需要登录的页面
+  if (to.meta.guest && token) {
+    try {
+      await userStore.confirmSession()
+      next({ name: roleDashboardMap[userStore.userRole] || 'StudentDashboard' })
+    } catch (error) {
+      await userStore.logout({ localOnly: true })
+      next()
+    }
+    return
+  }
+
   if (to.meta.requiresAuth) {
     if (!token) {
       next({ name: 'Login', query: { redirect: to.fullPath } })
       return
     }
-    // 角色权限校验
-    const userInfo = JSON.parse(sessionStorage.getItem('campus_user_info') || '{}')
-    const userRole = userInfo.roleType || userInfo.role_type || userInfo.role
-    // 职工子角色：从 roles 数组中提取 role_code
-    const userRoleCodes = Array.isArray(userInfo.roles)
-      ? userInfo.roles.map(r => r.role_code).filter(Boolean)
-      : []
-    if (to.meta.roles && to.meta.roles.length > 0) {
-      // 检查主角色是否匹配
-      const roleMatch = to.meta.roles.includes(userRole)
-      // 职工端：允许拥有管理子角色的用户访问
+
+    try {
+      await userStore.confirmSession()
+    } catch (error) {
+      await userStore.logout({ localOnly: true })
+      next({ name: 'Login', query: { redirect: to.fullPath } })
+      return
+    }
+
+    if (Array.isArray(to.meta.roles) && to.meta.roles.length > 0) {
+      const roleMatch = to.meta.roles.includes(userStore.userRole)
       const staffPortalRoles = ['teaching_admin', 'service_admin', 'feedback_handler', 'form_publisher', 'course_owner', 'service_window_manager']
-      const staffSubRoleMatch = to.meta.roles.includes('staff') && userRoleCodes.some(c => staffPortalRoles.includes(c))
+      const staffSubRoleMatch = to.meta.roles.includes('staff') && userStore.roles.some(role => staffPortalRoles.includes(role))
       if (!roleMatch && !staffSubRoleMatch) {
-        // 无权访问，跳转到角色对应的首页
-        const defaultRoute = roleDashboardMap[userRole]
-        next({ name: defaultRoute || 'StudentDashboard' })
+        next({ name: roleDashboardMap[userStore.userRole] || 'StudentDashboard' })
         return
       }
     }
-  }
-
-  // 已登录用户访问 guest 页面（登录/注册/入驻等），根据角色跳转到对应首页
-  if (to.meta.guest && token) {
-    const userInfo = JSON.parse(sessionStorage.getItem('campus_user_info') || '{}')
-    const userRole = userInfo.roleType || userInfo.role_type || userInfo.role
-    const defaultRoute = roleDashboardMap[userRole]
-    next({ name: defaultRoute || 'StudentDashboard' })
-    return
   }
 
   next()

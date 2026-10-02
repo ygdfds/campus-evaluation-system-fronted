@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { getCurrentUserApi, logoutApi } from '@/api/auth'
 import {
   getToken,
   setToken,
@@ -10,75 +11,93 @@ import {
   clearAuth,
 } from '@/utils/auth'
 
+const roleLabelMap = {
+  system_admin: 'System administrator',
+  school_admin: 'School administrator',
+  staff: 'Staff',
+  student: 'Student',
+}
+
 export const useUserStore = defineStore('user', () => {
-  // 状态
   const token = ref(getToken() || '')
   const userInfo = ref(getUserInfo() || null)
   const tenant = ref(getTenant() || null)
+  const sessionChecked = ref(false)
 
-  // 计算属性
   const isLoggedIn = computed(() => !!token.value)
-  const userRole = computed(() => userInfo.value?.roleType || userInfo.value?.role_type || userInfo.value?.role || '')
-  // 角色名称：优先从 roles 数组取第一个，回退到 role_type 映射
-  const roleName = computed(() => {
-    // 新格式：roles 数组
-    const roles = userInfo.value?.roles
-    if (Array.isArray(roles) && roles.length > 0) {
-      return roles.map(r => r.role_name).join('、')
-    }
-    // 旧格式：直接字段
-    if (userInfo.value?.role_name) return userInfo.value.role_name
-    // 回退：role_type 映射为中文
-    const roleTypeMap = {
-      system_admin: '系统管理员',
-      school_admin: '学校管理员',
-      staff: '教职工',
-      student: '学生',
-    }
-    return roleTypeMap[userRole.value] || userRole.value || ''
-  })
-  const realName = computed(() => userInfo.value?.real_name || userInfo.value?.realName || '')
-  const tenantId = computed(() => userInfo.value?.tenant_id || tenant.value?.tenantId || tenant.value?.tenant_id || null)
-  const schoolId = computed(() => userInfo.value?.school_id || tenant.value?.schoolId || tenant.value?.school_id || null)
+  const roles = computed(() => normalizeRoles(userInfo.value?.roles))
+  const permissions = computed(() => Array.isArray(userInfo.value?.permissions) ? userInfo.value.permissions : [])
+  const userRole = computed(() => userInfo.value?.roleType || userInfo.value?.role_type || userInfo.value?.userType || roles.value[0] || '')
+  const roleName = computed(() => roles.value.map(role => roleLabelMap[role] || role).join(', ') || roleLabelMap[userRole.value] || userRole.value || '')
+  const realName = computed(() => userInfo.value?.realName || userInfo.value?.real_name || '')
+  const tenantId = computed(() => userInfo.value?.tenantId || userInfo.value?.tenant_id || tenant.value?.tenantId || tenant.value?.tenant_id || null)
+  const schoolId = computed(() => userInfo.value?.schoolId || userInfo.value?.school_id || tenant.value?.schoolId || tenant.value?.school_id || null)
   const schoolName = computed(() => tenant.value?.schoolName || tenant.value?.school_name || '')
 
-  // 登录
   function login(loginData) {
-    token.value = loginData.token
-    // 兼容新旧格式：新格式用 user，旧格式用 userInfo
-    const user = loginData.user || loginData.userInfo
-    userInfo.value = user
-    tenant.value = {
-      tenantId: loginData.tenant_id || loginData.tenantId,
-      tenant_id: loginData.tenant_id || loginData.tenantId,
-      schoolId: loginData.school_id || loginData.schoolId,
-      school_id: loginData.school_id || loginData.schoolId,
-      schoolName: loginData.school_name || loginData.schoolName,
-      school_name: loginData.school_name || loginData.schoolName,
+    applyAuthPayload(loginData)
+  }
+
+  async function confirmSession(options = {}) {
+    if (!token.value) return null
+    if (sessionChecked.value && !options.force) return userInfo.value
+    const res = await getCurrentUserApi({ silent: true })
+    const currentUser = res.data || res
+    applyUser(currentUser)
+    sessionChecked.value = true
+    return userInfo.value
+  }
+
+  async function logout(options = {}) {
+    if (token.value && !options.localOnly) {
+      await logoutApi().catch(() => {})
     }
-    setToken(loginData.token)
-    setUserInfo(user)
+    resetAuth()
+  }
+
+  function updateUserInfo(info) {
+    applyUser({ ...userInfo.value, ...info })
+  }
+
+  function applyAuthPayload(payload = {}) {
+    const authToken = payload.token
+    if (!authToken) throw new Error('Login response does not include token')
+    token.value = authToken
+    setToken(authToken)
+    applyUser(normalizeUser(payload.user || payload.userInfo || payload))
+    sessionChecked.value = false
+  }
+
+  function applyUser(user) {
+    const normalized = normalizeUser(user)
+    userInfo.value = normalized
+    tenant.value = {
+      tenantId: normalized.tenantId,
+      tenant_id: normalized.tenantId,
+      schoolId: normalized.schoolId,
+      school_id: normalized.schoolId,
+      schoolName: normalized.schoolName,
+      school_name: normalized.schoolName,
+    }
+    setUserInfo(normalized)
     setTenant(tenant.value)
   }
 
-  // 登出
-  function logout() {
+  function resetAuth() {
     token.value = ''
     userInfo.value = null
     tenant.value = null
+    sessionChecked.value = false
     clearAuth()
-  }
-
-  // 更新用户信息
-  function updateUserInfo(info) {
-    userInfo.value = { ...userInfo.value, ...info }
-    setUserInfo(userInfo.value)
   }
 
   return {
     token,
     userInfo,
     tenant,
+    sessionChecked,
+    roles,
+    permissions,
     isLoggedIn,
     userRole,
     roleName,
@@ -87,7 +106,36 @@ export const useUserStore = defineStore('user', () => {
     schoolId,
     schoolName,
     login,
+    confirmSession,
     logout,
     updateUserInfo,
   }
 })
+
+function normalizeUser(raw = {}) {
+  return {
+    ...raw,
+    userId: raw.userId || raw.user_id || raw.id,
+    username: raw.username,
+    realName: raw.realName || raw.real_name,
+    userType: raw.userType || raw.user_type || raw.roleType || raw.role_type,
+    roleType: raw.roleType || raw.role_type || raw.userType || raw.user_type || raw.role,
+    tenantId: raw.tenantId || raw.tenant_id || null,
+    schoolId: raw.schoolId || raw.school_id || null,
+    schoolName: raw.schoolName || raw.school_name || '',
+    avatarUrl: raw.avatarUrl || raw.avatar_url || null,
+    roles: normalizeRoles(raw.roles),
+    permissions: Array.isArray(raw.permissions) ? raw.permissions : [],
+    mustChangePassword: Boolean(raw.mustChangePassword || raw.must_change_password),
+  }
+}
+
+function normalizeRoles(value) {
+  if (!Array.isArray(value)) return []
+  return value
+    .map(role => {
+      if (typeof role === 'string') return role
+      return role?.roleCode || role?.role_code || role?.code
+    })
+    .filter(Boolean)
+}
