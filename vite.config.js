@@ -4,6 +4,8 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
+const backendTarget = process.env.VITE_DEV_SERVER_TARGET || 'http://localhost:8080'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -18,7 +20,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: backendTarget,
         changeOrigin: true,
       },
     },

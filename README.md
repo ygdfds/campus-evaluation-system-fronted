@@ -1,7 +1,5 @@
 # campus-evaluation-fronted
 
-This template should help get you started developing with Vue 3 in Vite.
-
 ## Recommended IDE Setup
 
 [VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
@@ -15,6 +13,9 @@ See [Vite Configuration Reference](https://vite.dev/config/).
 ```sh
 npm install
 ```
+
+Copy `.env.example` to `.env.local` when you need local overrides.
+By default the Vite dev proxy sends `/api` requests to `http://localhost:8080`.
 
 ### Compile and Hot-Reload for Development
 
