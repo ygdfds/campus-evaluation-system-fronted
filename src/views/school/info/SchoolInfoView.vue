@@ -1,17 +1,21 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import {
   OfficeBuilding, Calendar, CircleCheck,
   Location, Connection, Document,
 } from '@element-plus/icons-vue'
-import { getSchoolProfileApi } from '@/api/school'
+import { getSchoolProfileApi, updateSchoolProfileApi } from '@/api/school'
+import { uploadFileApi } from '@/api/files'
 
 defineOptions({ name: 'SchoolInfoView' })
 
 const userStore = useUserStore()
 const loading = ref(true)
 const schoolInfo = ref(null)
+const editVisible = ref(false)
+const editForm = ref({})
 
 // 状态映射
 const statusMap = {
@@ -34,14 +38,40 @@ function formatDate(dateStr) {
 async function loadData() {
   loading.value = true
   try {
-    const tenantId = userStore.tenantId
-    if (!tenantId) return
-    schoolInfo.value = await getSchoolProfileApi(tenantId)
+    schoolInfo.value = (await getSchoolProfileApi()).data
   } catch (err) {
     console.error('获取学校信息失败:', err)
   } finally {
     loading.value = false
   }
+}
+
+function openEdit() {
+  editForm.value = {
+    name: schoolInfo.value.schoolName,
+    address: schoolInfo.value.address,
+    website: schoolInfo.value.website,
+    intro: schoolInfo.value.description,
+    logoFileId: schoolInfo.value.logoFileId,
+    coverFileId: schoolInfo.value.coverFileId,
+  }
+  editVisible.value = true
+}
+
+async function uploadImage(file, key) {
+  try {
+    const response = await uploadFileApi(file.raw, 'school-profile')
+    const data = response.data || response
+    editForm.value[key] = data.id
+  } catch {}
+}
+
+async function saveEdit() {
+  try {
+    schoolInfo.value = (await updateSchoolProfileApi(editForm.value)).data
+    editVisible.value = false
+    ElMessage.success('学校资料已保存')
+  } catch {}
 }
 
 onMounted(loadData)
@@ -58,6 +88,7 @@ onMounted(loadData)
     <template v-if="schoolInfo">
       <!-- 顶部横幅区 -->
       <section class="banner-section">
+        <div class="section-actions"><el-button type="primary" @click="openEdit">编辑资料</el-button></div>
         <div class="banner-cover">
           <div class="banner-placeholder">
             <el-icon :size="48" color="#fff"><OfficeBuilding /></el-icon>
@@ -150,6 +181,17 @@ onMounted(loadData)
     </template>
 
     <el-empty v-else-if="!loading" description="未找到学校信息" :image-size="100" />
+    <el-dialog v-model="editVisible" title="编辑学校资料" width="560px">
+      <el-form label-position="top">
+        <el-form-item label="学校名称"><el-input v-model="editForm.name" /></el-form-item>
+        <el-form-item label="地址"><el-input v-model="editForm.address" /></el-form-item>
+        <el-form-item label="官网"><el-input v-model="editForm.website" /></el-form-item>
+        <el-form-item label="简介"><el-input v-model="editForm.intro" type="textarea" :rows="4" /></el-form-item>
+        <el-form-item label="Logo"><el-upload :auto-upload="false" :show-file-list="false" accept="image/*" :on-change="file => uploadImage(file, 'logoFileId')"><el-button>选择 Logo</el-button></el-upload></el-form-item>
+        <el-form-item label="封面"><el-upload :auto-upload="false" :show-file-list="false" accept="image/*" :on-change="file => uploadImage(file, 'coverFileId')"><el-button>选择封面</el-button></el-upload></el-form-item>
+      </el-form>
+      <template #footer><el-button @click="editVisible = false">取消</el-button><el-button type="primary" @click="saveEdit">保存</el-button></template>
+    </el-dialog>
   </div>
 </template>
 
@@ -187,6 +229,12 @@ onMounted(loadData)
   box-shadow: var(--shadow-card);
   overflow: hidden;
   margin-bottom: var(--space-4);
+}
+
+.section-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-4) 0;
 }
 
 .banner-cover {

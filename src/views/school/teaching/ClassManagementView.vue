@@ -1,89 +1,101 @@
 <script setup>
-import { ref } from 'vue'
-import { Plus, InfoFilled } from '@element-plus/icons-vue'
+import { onMounted, ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
+import { getClassListApi, createClassApi, updateClassApi, deleteClassApi, getTeachingOrgOptionsApi } from '@/api/schoolTeaching'
 
 defineOptions({ name: 'ClassManagementView' })
+const loading = ref(false)
+const rows = ref([])
+const total = ref(0)
+const page = ref(1)
+const keyword = ref('')
+const orgs = ref([])
+const dialogVisible = ref(false)
+const editing = ref(null)
+const form = ref({ teachingOrgId: null, gradeName: '', className: '', status: 'active' })
 
-const searchText = ref('')
-
-const placeholderClasses = [
-  { code: '2024-CS-01', name: '计算机2401班', department: '计算机学院', major: '计算机科学与技术', grade: '2024级', students: 42, advisor: '张明' },
-  { code: '2024-CS-02', name: '计算机2402班', department: '计算机学院', major: '计算机科学与技术', grade: '2024级', students: 40, advisor: '李华' },
-  { code: '2023-MA-01', name: '数学2301班', department: '数学学院', major: '应用数学', grade: '2023级', students: 38, advisor: '王芳' },
-  { code: '2023-ENG-01', name: '英语2301班', department: '外国语学院', major: '英语', grade: '2023级', students: 35, advisor: '陈静' },
-  { code: '2022-PH-01', name: '物理2201班', department: '物理学院', major: '应用物理', grade: '2022级', students: 30, advisor: '刘强' },
-]
+async function load() {
+  loading.value = true
+  try {
+    const result = await getClassListApi({ keyword: keyword.value, pageNum: page.value, pageSize: 20 })
+    rows.value = result.records
+    total.value = result.total
+  } catch {
+    rows.value = []
+  } finally {
+    loading.value = false
+  }
+}
+async function openCreate() {
+  editing.value = null
+  form.value = { teachingOrgId: null, gradeName: '', className: '', status: 'active' }
+  dialogVisible.value = true
+}
+async function openEdit(row) {
+  editing.value = row
+  form.value = { ...row }
+  dialogVisible.value = true
+}
+async function save() {
+  if (!form.value.teachingOrgId || !form.value.className) return ElMessage.warning('请填写教学组织和班级名称')
+  try {
+    if (editing.value) await updateClassApi(editing.value.id, form.value)
+    else await createClassApi(form.value)
+    ElMessage.success('班级已保存')
+    dialogVisible.value = false
+    await load()
+  } catch {}
+}
+async function remove(row) {
+  try {
+    await ElMessageBox.confirm('存在选课关联的班级不能删除，确认继续？', '确认删除', { type: 'warning' })
+    await deleteClassApi(row.id)
+    ElMessage.success('班级已删除')
+    await load()
+  } catch {}
+}
+onMounted(async () => {
+  orgs.value = await getTeachingOrgOptionsApi().catch(() => [])
+  await load()
+})
 </script>
 
 <template>
   <div class="page-container">
-    <PageHeader title="班级管理" description="管理学校各院系班级信息，包括班级编号、所属专业、年级、班主任等。" />
-
+    <PageHeader title="班级管理" description="维护班级、年级和所属教学组织。">
+      <template #actions><el-button type="primary" @click="openCreate">新增班级</el-button></template>
+    </PageHeader>
     <div class="content-card">
-      <div class="card-header">
-        <div class="filter-bar">
-          <el-input v-model="searchText" placeholder="搜索班级名称 / 编号" clearable prefix-icon="Search" style="width: 280px" />
-        </div>
-        <el-button type="primary" disabled>
-          <el-icon><Plus /></el-icon>新增班级
-        </el-button>
+      <div class="toolbar">
+        <el-input v-model="keyword" clearable placeholder="搜索班级名称" style="max-width: 320px" @keyup.enter="page = 1; load()" @clear="page = 1; load()" />
+        <el-button @click="load">查询</el-button>
       </div>
-
-      <el-table :data="placeholderClasses" stripe class="data-table">
-        <el-table-column prop="code" label="班级编号" width="140" />
-        <el-table-column prop="name" label="班级名称" min-width="150" />
-        <el-table-column prop="department" label="所属院系" width="130" />
-        <el-table-column prop="major" label="专业" width="160" />
-        <el-table-column prop="grade" label="年级" width="90" align="center" />
-        <el-table-column prop="students" label="人数" width="80" align="center" />
-        <el-table-column prop="advisor" label="班主任" width="90" align="center" />
-        <el-table-column label="操作" width="120" align="center">
-          <template #default>
-            <el-button text type="primary" size="small" disabled>编辑</el-button>
-          </template>
-        </el-table-column>
+      <el-table v-loading="loading" :data="rows" stripe>
+        <el-table-column prop="className" label="班级名称" min-width="180" />
+        <el-table-column prop="teachingOrgId" label="教学组织" width="120" />
+        <el-table-column prop="gradeName" label="年级" width="120" />
+        <el-table-column prop="status" label="状态" width="100"><template #default="{ row }"><el-tag :type="row.status === 'active' ? 'success' : 'info'">{{ row.status }}</el-tag></template></el-table-column>
+        <el-table-column label="操作" width="160"><template #default="{ row }"><el-button link type="primary" @click="openEdit(row)">编辑</el-button><el-button link type="danger" @click="remove(row)">删除</el-button></template></el-table-column>
+        <template #empty><el-empty description="暂无班级数据" /></template>
       </el-table>
-
-      <div class="placeholder-notice">
-        <el-icon :size="18"><InfoFilled /></el-icon>
-        <div>
-          <p class="notice-title">模块说明</p>
-          <p class="notice-desc">班级管理模块用于维护学校各院系教学班级的组织架构，包括班级编号、所属专业、年级、班主任、学生人数等基础信息。班级数据是评价任务按班级维度统计分析、选课数据关联的重要基础。当前为示例展示，待后端接口接入后即可完整使用。</p>
-        </div>
-      </div>
+      <el-pagination v-model:current-page="page" :total="total" layout="total, prev, pager, next" @current-change="load" />
     </div>
+    <el-dialog v-model="dialogVisible" :title="editing ? '编辑班级' : '新增班级'" width="500px">
+      <el-form label-position="top">
+        <el-form-item label="教学组织"><el-select v-model="form.teachingOrgId" style="width:100%"><el-option v-for="item in orgs" :key="item.id" :label="item.name" :value="item.id" /></el-select></el-form-item>
+        <el-form-item label="年级"><el-input v-model="form.gradeName" /></el-form-item>
+        <el-form-item label="班级名称"><el-input v-model="form.className" /></el-form-item>
+        <el-form-item label="状态"><el-select v-model="form.status"><el-option label="启用" value="active" /><el-option label="停用" value="disabled" /></el-select></el-form-item>
+      </el-form>
+      <template #footer><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" @click="save">保存</el-button></template>
+    </el-dialog>
   </div>
 </template>
 
 <style scoped>
 .page-container { max-width: 1200px; }
-.content-card {
-  margin-top: var(--space-4);
-  padding: var(--space-5);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-lighter);
-  border-radius: var(--radius-xl);
-}
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
-}
-.filter-bar { display: flex; align-items: center; gap: var(--space-3); }
-.data-table { width: 100%; }
-.placeholder-notice {
-  display: flex;
-  gap: var(--space-3);
-  margin-top: var(--space-5);
-  padding: var(--space-4);
-  background: var(--color-primary-50);
-  border: 1px solid var(--color-primary-100);
-  border-radius: var(--radius-lg);
-  color: var(--color-primary-700);
-}
-.placeholder-notice .el-icon { flex-shrink: 0; margin-top: 2px; color: var(--color-primary-500); }
-.notice-title { margin: 0 0 4px; font-weight: var(--font-weight-semibold); font-size: var(--font-sm); }
-.notice-desc { margin: 0; font-size: var(--font-xs); line-height: 1.6; color: var(--color-primary-600); }
+.content-card { margin-top: var(--space-4); padding: var(--space-5); background: var(--color-bg-card); border: 1px solid var(--color-border-lighter); border-radius: var(--radius-card); }
+.toolbar { display:flex; gap:var(--space-2); margin-bottom:var(--space-4); }
+.el-pagination { justify-content:flex-end; margin-top:var(--space-4); }
 </style>

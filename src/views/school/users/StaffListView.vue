@@ -163,6 +163,7 @@ async function openEditDrawer(row) {
     const detail = await getSchoolStaffDetailApi(tenantId.value, row.id)
     if (detail) {
       drawerForm.value = {
+        _id: detail.id,
         real_name: detail.real_name || '',
         role_type: detail.role_type || 'staff',
         no_work: detail.no_work || '',

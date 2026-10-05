@@ -160,13 +160,14 @@ async function openEditDrawer(row) {
     const detail = await getSchoolStudentDetailApi(tenantId.value, row.id)
     if (detail) {
       drawerForm.value = {
+        _id: detail.id,
         real_name: detail.real_name || '',
         no_student: detail.no_student || '',
         gender: detail.gender || '',
         phone: detail.account?.phone || '',
         email: detail.account?.email || '',
         department_name: detail.department_name || '',
-        class_name: detail.class_name || '',
+        class_name: detail.class_id || '',
         must_change_password: detail.account?.must_change_password || false,
       }
     }

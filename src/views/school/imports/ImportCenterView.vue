@@ -2,15 +2,15 @@
 import { ref, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Refresh, Search, View, Download, Upload, Check, CircleClose, Document } from '@element-plus/icons-vue'
+import { Refresh, Search, View, Download, Upload, CircleClose, Document } from '@element-plus/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import {
   getSchoolImportBatchesApi,
   getSchoolImportErrorsApi,
-  confirmSchoolImportApi,
   cancelSchoolImportApi,
   uploadSchoolImportApi,
   getSchoolImportSummaryApi,
+  downloadSchoolImportTemplateApi,
 } from '@/api/schoolImports'
 
 defineOptions({ name: 'SchoolImportCenterView' })
@@ -38,19 +38,15 @@ const errorLoading = ref(false)
 
 // 上传弹窗
 const uploadVisible = ref(false)
-const uploadForm = ref({ import_type: 'student', file_name: '' })
+const uploadForm = ref({ import_type: 'student', file: null, file_name: '' })
 
 const importTypes = [
   { value: 'student', label: '学生' },
   { value: 'staff', label: '教职工' },
-  { value: 'course', label: '课程' },
-  { value: 'class', label: '班级' },
-  { value: 'enrollment', label: '选课' },
-  { value: 'service_item', label: '服务项目' },
 ]
 
 const statusTagType = (code) => {
-  const map = { pending: 'warning', importing: 'info', success: 'success', partial_failed: 'warning', failed: 'danger', cancelled: 'info' }
+  const map = { processing: 'info', success: 'success', partial_failed: 'warning', failed: 'danger', cancelled: 'info' }
   return map[code] || 'info'
 }
 
@@ -93,15 +89,6 @@ async function openDetail(batch) {
   }
 }
 
-async function handleConfirm(batch) {
-  try {
-    await ElMessageBox.confirm('确认执行该批次导入？', '确认导入', { type: 'warning' })
-    await confirmSchoolImportApi(userStore.tenantId, userStore.schoolId, batch.id, userStore.userInfo?.id)
-    ElMessage.success('导入完成')
-    loadData()
-  } catch (e) { if (e !== 'cancel' && e?.toString() !== 'cancel') ElMessage.error('导入失败') }
-}
-
 async function handleCancel(batch) {
   try {
     await ElMessageBox.confirm('确认取消该导入批次？', '取消导入', { type: 'warning' })
@@ -112,25 +99,37 @@ async function handleCancel(batch) {
 }
 
 function openUpload() {
-  uploadForm.value = { import_type: 'student', file_name: '' }
+  uploadForm.value = { import_type: 'student', file: null, file_name: '' }
   uploadVisible.value = true
 }
 
 async function submitUpload() {
-  if (!uploadForm.value.file_name?.trim()) {
-    ElMessage.warning('请输入模拟文件名')
+  if (!uploadForm.value.file) {
+    ElMessage.warning('请选择 CSV 文件')
     return
   }
   try {
-    await uploadSchoolImportApi(userStore.tenantId, userStore.schoolId, uploadForm.value.import_type, uploadForm.value.file_name.trim(), userStore.userInfo?.id)
-    ElMessage.success('上传成功（模拟），请在列表中确认导入')
+    await uploadSchoolImportApi(userStore.tenantId, userStore.schoolId, uploadForm.value.import_type, uploadForm.value.file)
+    ElMessage.success('导入处理完成，请查看批次结果')
     uploadVisible.value = false
     loadData()
   } catch { ElMessage.error('上传失败') }
 }
 
 function handleDownloadTemplate(type) {
-  ElMessage.success(`已下载模板文件：${importTypes.find(t => t.value === type)?.label || type}导入模板.xlsx`)
+  downloadSchoolImportTemplateApi(type)
+}
+
+function handleImportFileChange(uploadFile) {
+  const file = uploadFile.raw
+  if (!file?.name?.toLowerCase().endsWith('.csv')) {
+    ElMessage.warning('请上传 CSV 文件')
+    uploadForm.value.file = null
+    uploadForm.value.file_name = ''
+    return
+  }
+  uploadForm.value.file = file
+  uploadForm.value.file_name = file.name
 }
 
 function formatTime(t) {
@@ -153,7 +152,7 @@ onMounted(() => loadData())
 
     <div class="summary-bar">
       <div class="s"><em>{{ summary.total }}</em>全部批次</div>
-      <div class="s s-w"><em>{{ summary.pending }}</em>待确认</div>
+      <div class="s s-w"><em>{{ summary.pending }}</em>处理中</div>
       <div class="s s-ok"><em>{{ summary.success }}</em>成功</div>
       <div class="s s-err"><em>{{ summary.failed }}</em>失败/异常</div>
     </div>
@@ -166,7 +165,7 @@ onMounted(() => loadData())
       </el-select>
       <el-select v-model="filters.status" @change="loadData">
         <el-option label="全部状态" value="all" />
-        <el-option label="待确认" value="pending" />
+        <el-option label="处理中" value="processing" />
         <el-option label="成功" value="success" />
         <el-option label="部分失败" value="partial_failed" />
         <el-option label="失败" value="failed" />
@@ -199,8 +198,7 @@ onMounted(() => loadData())
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button text type="primary" size="small" :icon="View" @click="openDetail(row)">详情</el-button>
-            <el-button v-if="row.status_code === 'pending'" text type="primary" size="small" :icon="Check" @click="handleConfirm(row)">确认</el-button>
-            <el-button v-if="row.status_code === 'pending'" text type="danger" size="small" :icon="CircleClose" @click="handleCancel(row)">取消</el-button>
+            <el-button v-if="row.status_code === 'processing'" text type="danger" size="small" :icon="CircleClose" @click="handleCancel(row)">取消</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -258,12 +256,15 @@ onMounted(() => loadData())
             <el-option v-for="t in importTypes" :key="t.value" :label="t.label" :value="t.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="模拟文件名">
-          <el-input v-model="uploadForm.file_name" placeholder="例如：2026春季新生数据.xlsx" />
+        <el-form-item label="CSV 文件">
+          <el-upload :auto-upload="false" :show-file-list="false" accept=".csv" :on-change="handleImportFileChange">
+            <el-button :icon="Upload">选择文件</el-button>
+          </el-upload>
+          <span class="file-name">{{ uploadForm.file_name || '未选择文件' }}</span>
         </el-form-item>
         <div class="template-hint">
           <el-button text type="primary" size="small" :icon="Download" @click="handleDownloadTemplate(uploadForm.import_type)">下载导入模板</el-button>
-          <span>请先下载模板，按要求填写后上传。</span>
+          <span>请先下载 CSV 模板，按要求填写后上传。</span>
         </div>
       </el-form>
       <template #footer>

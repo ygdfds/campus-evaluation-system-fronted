@@ -1,94 +1,90 @@
 <script setup>
-import { ref } from 'vue'
-import { Plus, InfoFilled } from '@element-plus/icons-vue'
+import { onMounted, ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
+import { getEnrollmentListApi, createEnrollmentApi, deleteEnrollmentApi, getCourseOptionsApi, getClassOptionsApi } from '@/api/schoolTeaching'
 
 defineOptions({ name: 'EnrollmentManagementView' })
+const loading = ref(false)
+const rows = ref([])
+const total = ref(0)
+const page = ref(1)
+const studentId = ref('')
+const dialogVisible = ref(false)
+const courses = ref([])
+const classes = ref([])
+const form = ref({ courseId: null, studentId: null, classGroupId: null, status: 'active' })
 
-const searchText = ref('')
-
-const placeholderEnrollments = [
-  { studentName: '王小明', studentId: '2024001', courseName: '计算机科学导论', courseCode: 'CS101', semester: '2024-2025秋', status: '已确认' },
-  { studentName: '李雪梅', studentId: '2024002', courseName: '高等数学（二）', courseCode: 'MATH201', semester: '2024-2025秋', status: '已确认' },
-  { studentName: '张伟', studentId: '2023015', courseName: '大学英语（三）', courseCode: 'ENG301', semester: '2024-2025秋', status: '已确认' },
-  { studentName: '刘佳', studentId: '2023008', courseName: '大学物理实验', courseCode: 'PHY102', semester: '2024-2025春', status: '待确认' },
-  { studentName: '陈思', studentId: '2022022', courseName: '艺术鉴赏', courseCode: 'ART100', semester: '2024-2025春', status: '已退选' },
-]
+async function load() {
+  loading.value = true
+  try {
+    const result = await getEnrollmentListApi({ studentId: studentId.value || undefined, pageNum: page.value, pageSize: 20 })
+    rows.value = result.records
+    total.value = result.total
+  } catch {
+    rows.value = []
+  } finally {
+    loading.value = false
+  }
+}
+async function openCreate() {
+  form.value = { courseId: null, studentId: null, classGroupId: null, status: 'active' }
+  courses.value = await getCourseOptionsApi().catch(() => [])
+  classes.value = await getClassOptionsApi().catch(() => [])
+  dialogVisible.value = true
+}
+async function save() {
+  if (!form.value.courseId || !form.value.studentId) return ElMessage.warning('请填写课程和学生用户 ID')
+  try {
+    await createEnrollmentApi(form.value)
+    ElMessage.success('选课关系已保存')
+    dialogVisible.value = false
+    await load()
+  } catch {}
+}
+async function remove(row) {
+  try {
+    await ElMessageBox.confirm('确认删除该选课关系？', '确认删除', { type: 'warning' })
+    await deleteEnrollmentApi(row.id)
+    ElMessage.success('选课关系已删除')
+    await load()
+  } catch {}
+}
+onMounted(load)
 </script>
 
 <template>
   <div class="page-container">
-    <PageHeader title="选课管理" description="管理学生选课记录，关联课程与学生的选课关系，作为评价任务分配的数据基础。" />
-
+    <PageHeader title="选课管理" description="维护真实的课程、学生和班级关系。">
+      <template #actions><el-button type="primary" @click="openCreate">新增选课</el-button></template>
+    </PageHeader>
     <div class="content-card">
-      <div class="card-header">
-        <div class="filter-bar">
-          <el-input v-model="searchText" placeholder="搜索学生姓名 / 学号 / 课程" clearable prefix-icon="Search" style="width: 280px" />
-        </div>
-        <el-button type="primary" disabled>
-          <el-icon><Plus /></el-icon>导入选课
-        </el-button>
-      </div>
-
-      <el-table :data="placeholderEnrollments" stripe class="data-table">
-        <el-table-column prop="studentId" label="学号" width="110" />
-        <el-table-column prop="studentName" label="学生姓名" width="100" />
-        <el-table-column prop="courseCode" label="课程编号" width="110" />
-        <el-table-column prop="courseName" label="课程名称" min-width="170" />
-        <el-table-column prop="semester" label="学期" width="130" align="center" />
-        <el-table-column prop="status" label="状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.status === '已确认' ? 'success' : row.status === '待确认' ? 'warning' : 'info'" size="small">
-              {{ row.status }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" align="center">
-          <template #default>
-            <el-button text type="primary" size="small" disabled>查看</el-button>
-          </template>
-        </el-table-column>
+      <div class="toolbar"><el-input v-model="studentId" clearable placeholder="按学生用户 ID 查询" style="max-width: 260px" @keyup.enter="page = 1; load()" /><el-button @click="load">查询</el-button></div>
+      <el-table v-loading="loading" :data="rows" stripe>
+        <el-table-column prop="studentId" label="学生用户 ID" width="150" />
+        <el-table-column prop="courseId" label="课程 ID" width="120" />
+        <el-table-column prop="classGroupId" label="班级 ID" width="120" />
+        <el-table-column prop="status" label="状态" width="100"><template #default="{ row }"><el-tag :type="row.status === 'active' ? 'success' : 'info'">{{ row.status }}</el-tag></template></el-table-column>
+        <el-table-column prop="createdAt" label="创建时间" min-width="180" />
+        <el-table-column label="操作" width="100"><template #default="{ row }"><el-button link type="danger" @click="remove(row)">删除</el-button></template></el-table-column>
+        <template #empty><el-empty description="暂无选课数据" /></template>
       </el-table>
-
-      <div class="placeholder-notice">
-        <el-icon :size="18"><InfoFilled /></el-icon>
-        <div>
-          <p class="notice-title">模块说明</p>
-          <p class="notice-desc">选课管理模块用于维护学生与课程之间的选课关系，包括选课记录、学期、状态等信息。选课数据是系统生成评价任务的核心依据——只有已确认选课的学生才会收到对应课程的评价任务。支持通过导入中心批量导入选课数据。当前为示例展示，待后端接口接入后即可完整使用。</p>
-        </div>
-      </div>
+      <el-pagination v-model:current-page="page" :total="total" layout="total, prev, pager, next" @current-change="load" />
     </div>
+    <el-dialog v-model="dialogVisible" title="新增选课" width="500px">
+      <el-form label-position="top">
+        <el-form-item label="课程"><el-select v-model="form.courseId" style="width:100%"><el-option v-for="item in courses" :key="item.id" :label="`${item.label} (${item.extra || ''})`" :value="item.id" /></el-select></el-form-item>
+        <el-form-item label="学生用户 ID"><el-input-number v-model="form.studentId" :min="1" style="width:100%" /></el-form-item>
+        <el-form-item label="班级"><el-select v-model="form.classGroupId" clearable style="width:100%"><el-option v-for="item in classes" :key="item.id" :label="item.label" :value="item.id" /></el-select></el-form-item>
+      </el-form>
+      <template #footer><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" @click="save">保存</el-button></template>
+    </el-dialog>
   </div>
 </template>
 
 <style scoped>
-.page-container { max-width: 1200px; }
-.content-card {
-  margin-top: var(--space-4);
-  padding: var(--space-5);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-lighter);
-  border-radius: var(--radius-xl);
-}
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
-}
-.filter-bar { display: flex; align-items: center; gap: var(--space-3); }
-.data-table { width: 100%; }
-.placeholder-notice {
-  display: flex;
-  gap: var(--space-3);
-  margin-top: var(--space-5);
-  padding: var(--space-4);
-  background: var(--color-primary-50);
-  border: 1px solid var(--color-primary-100);
-  border-radius: var(--radius-lg);
-  color: var(--color-primary-700);
-}
-.placeholder-notice .el-icon { flex-shrink: 0; margin-top: 2px; color: var(--color-primary-500); }
-.notice-title { margin: 0 0 4px; font-weight: var(--font-weight-semibold); font-size: var(--font-sm); }
-.notice-desc { margin: 0; font-size: var(--font-xs); line-height: 1.6; color: var(--color-primary-600); }
+.page-container { max-width:1200px; }
+.content-card { margin-top:var(--space-4); padding:var(--space-5); background:var(--color-bg-card); border:1px solid var(--color-border-lighter); border-radius:var(--radius-card); }
+.toolbar { display:flex; gap:var(--space-2); margin-bottom:var(--space-4); }
+.el-pagination { justify-content:flex-end; margin-top:var(--space-4); }
 </style>
