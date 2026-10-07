@@ -4,7 +4,7 @@ import request from '@/request'
  * 获取入驻套餐列表
  */
 export function getOnboardingPlansApi() {
-  return request.get('/tenant-plans')
+  return request.get('/platform/public/plans')
 }
 
 /**
@@ -12,7 +12,17 @@ export function getOnboardingPlansApi() {
  * @param {object} data - 申请信息
  */
 export function submitOnboardingApi(data) {
-  return request.post('/schools/onboarding', data)
+  return request.post('/platform/public/onboarding/applications', {
+    planId: data.planId,
+    schoolFullName: data.schoolFullName || data.schoolName,
+    schoolName: data.schoolName || data.schoolFullName,
+    schoolCreditCode: data.schoolCreditCode || data.creditCode,
+    contactName: data.contactName,
+    contactPhone: data.contactPhone,
+    contactEmail: data.contactEmail,
+    submitReason: data.submitReason || data.reason,
+    reason: data.reason || data.submitReason,
+  })
 }
 
 /**

@@ -10,11 +10,9 @@ import ActionButton from '@/components/admin/ActionButton.vue'
 import {
   cancelTenantApi,
   changeTenantPlanApi,
-  createTenantApi,
   freezeTenantApi,
   getTenantLifecycleApi,
   getTenantPlansApi,
-  resetTenantAdminApi,
   SYSTEM_STATUS_MAP,
 } from '@/api/system'
 
@@ -24,16 +22,8 @@ const router = useRouter()
 const loading = ref(false)
 const tenants = ref([])
 const planOptions = ref([])
-const tenantDialogVisible = ref(false)
 const planDialogVisible = ref(false)
 const currentTenant = ref(null)
-const tenantForm = ref({
-  tenantId: '',
-  schoolName: '',
-  planName: '',
-  expireAt: '',
-  adminName: '',
-})
 const planForm = ref({ planName: '' })
 
 const fetchTenants = async () => {
@@ -44,22 +34,6 @@ const fetchTenants = async () => {
   } finally {
     loading.value = false
   }
-}
-
-const openCreateDialog = () => {
-  tenantForm.value = { tenantId: '', schoolName: '', planName: '', expireAt: '', adminName: '' }
-  tenantDialogVisible.value = true
-}
-
-const createTenant = async () => {
-  if (!tenantForm.value.tenantId || !tenantForm.value.schoolName || !tenantForm.value.planName) {
-    ElMessage.warning('请填写租户 ID、学校名称和套餐')
-    return
-  }
-  await createTenantApi(tenantForm.value)
-  ElMessage.success('租户已创建')
-  tenantDialogVisible.value = false
-  fetchTenants()
 }
 
 const openPlanDialog = (row) => {
@@ -97,11 +71,6 @@ const cancelTenant = async (row) => {
   }
 }
 
-const resetAdmin = async (row) => {
-  await resetTenantAdminApi(row.tenantId)
-  ElMessage.success('学校管理员密码已重置为 admin123')
-}
-
 const viewDetail = (row) => {
   router.push({ name: 'AdminTenantDetail', params: { tenantId: row.tenantId } })
 }
@@ -109,7 +78,6 @@ const viewDetail = (row) => {
 const handleTenantCommand = (command, tenant) => {
   const commandMap = {
     plan: openPlanDialog,
-    reset: resetAdmin,
     freeze: freezeTenant,
     cancel: cancelTenant,
   }
@@ -127,9 +95,6 @@ onMounted(() => {
 <template>
   <div class="page-container">
     <PageHeader title="租户生命周期管理" subtitle="全量展示所有入驻学校租户">
-      <template #actions>
-        <el-button type="primary" @click="openCreateDialog">新建租户</el-button>
-      </template>
     </PageHeader>
 
     <PageSection>
@@ -161,7 +126,6 @@ onMounted(() => {
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="plan">套餐调整</el-dropdown-item>
-                    <el-dropdown-item command="reset">重置管理员</el-dropdown-item>
                     <el-dropdown-item command="freeze" divided>冻结</el-dropdown-item>
                     <el-dropdown-item command="cancel">注销</el-dropdown-item>
                   </el-dropdown-menu>
@@ -172,32 +136,6 @@ onMounted(() => {
         </el-table-column>
       </el-table>
     </PageSection>
-
-    <el-dialog v-model="tenantDialogVisible" title="新建租户" width="520px">
-      <el-form :model="tenantForm" label-width="100px">
-        <el-form-item label="租户ID" required>
-          <el-input v-model="tenantForm.tenantId" placeholder="例：T004" />
-        </el-form-item>
-        <el-form-item label="学校名称" required>
-          <el-input v-model="tenantForm.schoolName" placeholder="请输入学校名称" />
-        </el-form-item>
-        <el-form-item label="套餐" required>
-          <el-select v-model="tenantForm.planName" class="full-control">
-            <el-option v-for="plan in planOptions" :key="plan.id" :label="plan.planName" :value="plan.planName" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="到期时间">
-          <el-date-picker v-model="tenantForm.expireAt" type="date" format="YYYY-MM-DD" value-format="YYYY-MM-DD" />
-        </el-form-item>
-        <el-form-item label="管理员姓名">
-          <el-input v-model="tenantForm.adminName" placeholder="请输入管理员姓名" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="tenantDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="createTenant">确定</el-button>
-      </template>
-    </el-dialog>
 
     <el-dialog v-model="planDialogVisible" title="套餐升级 / 降级" width="420px">
       <el-form :model="planForm" label-width="90px">

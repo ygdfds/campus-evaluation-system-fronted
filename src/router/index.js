@@ -40,12 +40,9 @@ const router = createRouter({
         { path: 'plans', name: 'AdminPlanList', component: () => import('@/views/admin/plans/PlanManagementView.vue'), meta: { title: 'Plans' } },
         { path: 'onboarding/audit', name: 'AdminOnboardingAudit', component: () => import('@/views/admin/onboarding/AuditListView.vue'), meta: { title: 'Onboarding audit' } },
         { path: 'users/roles', name: 'AdminRoleManagement', component: () => import('@/views/admin/roles/RolePermissionView.vue'), meta: { title: 'Roles' } },
-        { path: 'system', name: 'AdminSystemSettings', component: () => import('@/views/admin/settings/SystemSettingsView.vue'), meta: { title: 'System settings' } },
         { path: 'monitoring', name: 'AdminMonitoring', component: () => import('@/views/admin/monitoring/MonitoringDashboardView.vue'), meta: { title: 'Monitoring' } },
         { path: 'audit/logs', name: 'AdminAuditLogs', component: () => import('@/views/admin/audit/AuditLogView.vue'), meta: { title: 'Audit logs' } },
         { path: 'reports', name: 'AdminReports', component: () => import('@/views/admin/reports/ReportDashboardView.vue'), meta: { title: 'Reports' } },
-        { path: 'documents', name: 'AdminDocuments', component: () => import('@/views/admin/documents/CredentialListView.vue'), meta: { title: 'Documents' } },
-        { path: 'support', name: 'AdminSupport', component: () => import('@/views/admin/support/SupportCenterView.vue'), meta: { title: 'Support' } },
       ],
     },
     {

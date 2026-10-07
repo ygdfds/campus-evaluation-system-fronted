@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import { getReportDashboardApi } from '@/api/system'
@@ -19,6 +20,10 @@ const maxSectionValue = (section) => {
   return Math.max(...(section.items || []).map((item) => item.value), 1)
 }
 
+const exportReport = () => {
+  ElMessage.info('报表导出暂未开放')
+}
+
 onMounted(() => {
   fetchReportData()
 })
@@ -33,7 +38,7 @@ onMounted(() => {
     
     <!-- 操作按钮 -->
     <PageSection>
-      <el-button type="success">导出Excel</el-button>
+      <el-button type="success" @click="exportReport">导出Excel</el-button>
     </PageSection>
 
     <PageSection v-for="section in reportSections" :key="section.key" :title="section.title">

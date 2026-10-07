@@ -1,11 +1,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import StatCard from '@/components/common/StatCard.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
-import ActionButton from '@/components/admin/ActionButton.vue'
 import { getMonitoringAlertsApi, getMonitoringStatsApi, SYSTEM_STATUS_MAP } from '@/api/system'
 
 defineOptions({ name: 'AdminMonitoringDashboardView' })
@@ -26,11 +24,6 @@ const fetchMonitoringData = async () => {
   } finally {
     loading.value = false
   }
-}
-
-const markAlertHandled = (row) => {
-  row.status = 'resolved'
-  ElMessage.success('告警已标记为已处理')
 }
 
 onMounted(() => {
@@ -68,13 +61,6 @@ onMounted(() => {
         <el-table-column prop="status" label="处理状态" width="100">
           <template #default="{ row }">
             <StatusTag :status="row.status" :status-map="SYSTEM_STATUS_MAP" />
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
-          <template #default="{ row }">
-            <ActionButton action="warning" @click="markAlertHandled(row)">
-              处理
-            </ActionButton>
           </template>
         </el-table-column>
       </el-table>

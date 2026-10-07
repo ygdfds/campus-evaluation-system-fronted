@@ -1,11 +1,9 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
-import ActionButton from '@/components/admin/ActionButton.vue'
 import { getTenantDetailApi, SYSTEM_STATUS_MAP } from '@/api/system'
 
 defineOptions({ name: 'AdminTenantDetailView' })
@@ -27,10 +25,6 @@ const fetchDetail = async () => {
   } finally {
     loading.value = false
   }
-}
-
-const saveAdmin = () => {
-  ElMessage.success('管理员账号信息已保存')
 }
 
 onMounted(() => {
@@ -55,13 +49,7 @@ onMounted(() => {
       </el-descriptions>
     </PageSection>
 
-    <PageSection title="本校超级管理员账号">
-      <template #header>
-        <div class="card-header">
-          <span>本校超级管理员账号</span>
-          <el-button type="primary" @click="saveAdmin">新增账号</el-button>
-        </div>
-      </template>
+    <PageSection title="学校管理员账号">
       <el-table :data="detail.admins" stripe style="width: 100%">
         <el-table-column prop="username" label="账号" width="160" />
         <el-table-column prop="realName" label="姓名" width="140" />
@@ -69,12 +57,6 @@ onMounted(() => {
         <el-table-column prop="status" label="状态" width="120">
           <template #default="{ row }">
             <StatusTag :status="row.status" :status-map="SYSTEM_STATUS_MAP" />
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="180">
-          <template #default>
-            <ActionButton>编辑</ActionButton>
-            <ActionButton action="danger">删除</ActionButton>
           </template>
         </el-table-column>
       </el-table>
@@ -107,9 +89,4 @@ onMounted(() => {
   gap: var(--space-5);
 }
 
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
 </style>

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
@@ -76,13 +76,22 @@ const submitAudit = async () => {
     return
   }
   try {
-    await auditOnboardingApi(
+    const response = await auditOnboardingApi(
       currentApplication.value.id,
       currentAction.value,
       auditForm.value.reason,
       auditForm.value.planId
     )
-    ElMessage.success('审核成功')
+    const result = response.data || {}
+    if (result.temporaryPassword) {
+      await ElMessageBox.alert(
+        `学校管理员账号：${result.initialAdminUsername}\n一次性初始密码：${result.temporaryPassword}`,
+        '审批通过，初始账号已创建',
+        { confirmButtonText: '已记录' }
+      )
+    } else {
+      ElMessage.success('审核成功')
+    }
     auditDialogVisible.value = false
     fetchData()
   } catch {
@@ -192,11 +201,18 @@ onMounted(() => {
               通过
             </ActionButton>
             <ActionButton
-              v-if="row.status === 'pending'"
+              v-if="['pending', 'resubmit_required'].includes(row.status)"
               action="danger"
               @click="openAuditDialog(row, 'rejected')"
             >
               驳回
+            </ActionButton>
+            <ActionButton
+              v-if="['pending', 'resubmit_required'].includes(row.status)"
+              action="warning"
+              @click="openAuditDialog(row, 'resubmit_required')"
+            >
+              要求补充
             </ActionButton>
           </template>
         </el-table-column>
@@ -211,19 +227,18 @@ onMounted(() => {
         <el-descriptions-item label="联系电话">{{ currentApplication?.contactPhone }}</el-descriptions-item>
       </el-descriptions>
       <el-table :data="materials" class="dialog-table" stripe>
-        <el-table-column prop="fileName" label="材料名称" min-width="180" />
-        <el-table-column prop="fileSize" label="文件大小" width="100" />
-        <el-table-column prop="uploadedAt" label="上传时间" width="170" />
-        <el-table-column label="操作" width="120">
-          <template #default>
-            <ActionButton>预览</ActionButton>
-            <ActionButton>下载</ActionButton>
-          </template>
-        </el-table-column>
+        <el-table-column prop="materialType" label="材料类型" min-width="160" />
+        <el-table-column prop="fileId" label="文件编号" width="120" />
+        <el-table-column prop="status" label="状态" width="120" />
+        <el-table-column prop="createdAt" label="提交时间" width="180" />
       </el-table>
     </el-dialog>
 
-    <el-dialog v-model="auditDialogVisible" :title="currentAction === 'approved' ? '审核通过' : '审核驳回'" width="520px">
+    <el-dialog
+      v-model="auditDialogVisible"
+      :title="currentAction === 'approved' ? '审核通过' : currentAction === 'resubmit_required' ? '要求补充材料' : '审核驳回'"
+      width="520px"
+    >
       <el-form :model="auditForm" label-width="90px">
         <el-form-item v-if="currentAction === 'approved'" label="分配套餐" required>
           <el-select v-model="auditForm.planId" class="full-control" placeholder="请选择套餐">

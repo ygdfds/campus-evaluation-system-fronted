@@ -9,7 +9,6 @@ import {
   createTenantPlanApi,
   deleteTenantPlanApi,
   getAdminStatusOptionsApi,
-  getPlanPermissionModulesApi,
   getTenantPlansApi,
   updateTenantPlanApi,
   SYSTEM_STATUS_MAP,
@@ -34,11 +33,6 @@ const planForm = ref({
   durationDays: 365,
   price: 0,
 })
-
-// Permission dialog state
-const permDialogVisible = ref(false)
-const selectedPlanName = ref('')
-const permissionModules = ref([])
 
 const fetchPlans = async () => {
   loading.value = true
@@ -90,9 +84,8 @@ const handleSave = async () => {
   }
 }
 
-const handleConfigPermissions = (row) => {
-  selectedPlanName.value = row.planName
-  permDialogVisible.value = true
+const handleConfigPermissions = () => {
+  ElMessage.info('套餐菜单权限配置暂未开放，请在套餐功能 JSON 中管理能力')
 }
 
 const handleDelete = async (row) => {
@@ -105,17 +98,8 @@ const handleDelete = async (row) => {
 }
 
 const initOptions = async () => {
-  const [statusResponse, permissionResponse] = await Promise.all([
-    getAdminStatusOptionsApi('plan'),
-    getPlanPermissionModulesApi(),
-  ])
+  const statusResponse = await getAdminStatusOptionsApi('plan')
   statusOptions.value = statusResponse.data?.list || []
-  permissionModules.value = permissionResponse.data?.list || []
-}
-
-const savePermissions = () => {
-  ElMessage.success('权限配置已保存')
-  permDialogVisible.value = false
 }
 
 onMounted(() => {
@@ -194,24 +178,6 @@ onMounted(() => {
     </el-dialog>
 
     <!-- 权限配置对话框 -->
-    <el-dialog :model-value="permDialogVisible" @update:model-value="(v) => permDialogVisible = v" title="菜单权限配置" width="580px">
-      <p class="dialog-tip">当前为套餐 <strong>{{ selectedPlanName }}</strong> 配置以下菜单的访问权限：</p>
-      <div class="permission-list">
-        <el-checkbox
-          v-for="module in permissionModules"
-          :key="module.id"
-          v-model="module.checked"
-          :disabled="module.disabled"
-          class="permission-item"
-        >
-          {{ module.title }}（{{ module.description }}）
-        </el-checkbox>
-      </div>
-      <template #footer>
-        <el-button @click="permDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="savePermissions">保存</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -222,20 +188,5 @@ onMounted(() => {
   margin-left: var(--space-3);
   color: var(--color-text-placeholder);
   font-size: var(--font-xs);
-}
-.dialog-tip {
-  margin-bottom: var(--space-3);
-  color: var(--color-text-regular);
-}
-.permission-list {
-  max-height: 400px;
-  overflow-y: auto;
-  border: var(--border-light);
-  border-radius: var(--radius-sm);
-  padding: var(--space-3);
-}
-.permission-item {
-  display: flex;
-  padding: var(--space-2) 0;
 }
 </style>

@@ -7,10 +7,8 @@ import StatusTag from '@/components/common/StatusTag.vue'
 import ActionButton from '@/components/admin/ActionButton.vue'
 import {
   createSystemAdminApi,
-  deleteSystemAdminApi,
   getAdminStatusOptionsApi,
   getSystemAdminsApi,
-  resetSystemAdminPasswordApi,
   toggleSystemAdminStatusApi,
   updateSystemAdminApi,
   SYSTEM_STATUS_MAP,
@@ -91,25 +89,8 @@ const handleToggleStatus = async (row) => {
   const action = row.status === 'active' ? '禁用' : '启用'
   try {
     await ElMessageBox.confirm(`确定${action}管理员「${row.realName}」吗？`, `确认${action}`)
-    await toggleSystemAdminStatusApi(row.id)
+    await toggleSystemAdminStatusApi(row.id, row.status === 'active' ? 'disabled' : 'active')
     ElMessage.success(`已${action}`)
-    fetchAccounts()
-  } catch { /* cancel or error */ }
-}
-
-const handleResetPassword = async (row) => {
-  try {
-    await ElMessageBox.confirm(`确定重置管理员「${row.realName}」的密码吗？新密码将为 admin123`, '确认重置密码', { type: 'warning' })
-    await resetSystemAdminPasswordApi(row.id)
-    ElMessage.success('密码已重置为 admin123')
-  } catch { /* cancel or error */ }
-}
-
-const handleDelete = async (row) => {
-  try {
-    await ElMessageBox.confirm(`确定删除管理员「${row.realName}」吗？此操作不可恢复。`, '确认删除', { type: 'warning' })
-    await deleteSystemAdminApi(row.id)
-    ElMessage.success('删除成功')
     fetchAccounts()
   } catch { /* cancel or error */ }
 }
@@ -163,14 +144,12 @@ onMounted(() => {
             <StatusTag :status="row.status" :status-map="SYSTEM_STATUS_MAP" />
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="170" fixed="right">
           <template #default="{ row }">
             <ActionButton @click="openEditDialog(row)">编辑</ActionButton>
             <ActionButton :action="row.status === 'active' ? 'danger' : 'primary'" @click="handleToggleStatus(row)">
               {{ row.status === 'active' ? '禁用' : '启用' }}
             </ActionButton>
-            <ActionButton action="warning" @click="handleResetPassword(row)">重置密码</ActionButton>
-            <ActionButton action="danger" @click="handleDelete(row)">删除</ActionButton>
           </template>
         </el-table-column>
       </el-table>

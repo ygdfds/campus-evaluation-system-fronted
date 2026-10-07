@@ -5,6 +5,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import ActionButton from '@/components/admin/ActionButton.vue'
 import {
+  assignSystemAdminRolesApi,
   createSystemRoleApi,
   deleteSystemRoleApi,
   getAdminDataScopeOptionsApi,
@@ -27,7 +28,7 @@ const activeCollapse = ref(1) // 当前展开的折叠面板
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const editingId = ref(null)
-const roleForm = ref({ roleName: '', description: '', dataScope: '' })
+const roleForm = ref({ roleCode: '', roleName: '', description: '', dataScope: '' })
 
 // Permission dialog state
 const permDialogVisible = ref(false)
@@ -35,6 +36,7 @@ const selectedRoleId = ref(null)
 const selectedRoleName = ref('')
 const menuPermissions = ref([])
 const checkedKeys = ref([])
+const permissionTreeRef = ref(null)
 const dataScopeOptions = ref([])
 
 // Fetch roles from both built-in (users table) and custom tables
@@ -58,7 +60,7 @@ const fetchRoles = async () => {
 const openAddDialog = () => {
   isEdit.value = false
   editingId.value = null
-  roleForm.value = { roleName: '', description: '', dataScope: 'all' }
+  roleForm.value = { roleCode: '', roleName: '', description: '', dataScope: 'all' }
   dialogVisible.value = true
 }
 
@@ -69,7 +71,7 @@ const openEditDialog = (row) => {
   }
   isEdit.value = true
   editingId.value = row.id
-  roleForm.value = { roleName: row.roleName, description: row.description, dataScope: row.dataScope }
+  roleForm.value = { roleCode: row.roleCode, roleName: row.roleName, description: row.description, dataScope: row.dataScope }
   dialogVisible.value = true
 }
 
@@ -79,6 +81,7 @@ const handleSave = async () => {
   try {
     const payload = {
       roleName: roleForm.value.roleName,
+      roleCode: roleForm.value.roleCode,
       description: roleForm.value.description,
       dataScope: roleForm.value.dataScope
     }
@@ -115,7 +118,7 @@ const handleConfigPermissions = async (row) => {
   try {
     const response = await getMenuPermissionsApi()
     menuPermissions.value = response.data?.list || []
-    checkedKeys.value = getRoleDefaultPermissionKeys(row.roleName, menuPermissions.value)
+    checkedKeys.value = getRoleDefaultPermissionKeys(row.roleName, menuPermissions.value, row)
   } catch {
     menuPermissions.value = []
     checkedKeys.value = []
@@ -123,13 +126,34 @@ const handleConfigPermissions = async (row) => {
   permDialogVisible.value = true
 }
 
-const handleSavePermissions = () => {
-  ElMessage.success(`角色「${selectedRoleName.value}」的权限已保存`)
-  permDialogVisible.value = false
+const handleSavePermissions = async () => {
+  const keys = permissionTreeRef.value?.getCheckedKeys?.(false) || checkedKeys.value
+  const permissionCodes = keys.filter((key) => String(key).includes('.'))
+  try {
+    await updateSystemRoleApi(selectedRoleId.value, {
+      roleName: selectedRoleName.value,
+      permissionCodes,
+    })
+    ElMessage.success(`角色「${selectedRoleName.value}」的权限已保存`)
+    permDialogVisible.value = false
+    fetchRoles()
+  } catch {
+    ElMessage.error('权限保存失败')
+  }
 }
 
-const saveAccountRole = (row) => {
-  ElMessage.success(`已更新账号「${row.realName}」的角色`)
+const saveAccountRole = async (row) => {
+  const role = roles.value.find((item) => item.roleName === row.roleName)
+  if (!role) {
+    ElMessage.warning('请选择有效角色')
+    return
+  }
+  try {
+    await assignSystemAdminRolesApi(row.id, [role.id])
+    ElMessage.success(`已更新账号「${row.realName}」的角色`)
+  } catch {
+    ElMessage.error('账号角色保存失败')
+  }
 }
 
 const initOptions = async () => {
@@ -248,6 +272,7 @@ onMounted(() => {
     <el-dialog :model-value="permDialogVisible" @update:model-value="(v) => permDialogVisible = v" :title="`为【${selectedRoleName}】配置权限`" width="600px">
       <div v-if="menuPermissions.length > 0">
         <el-tree
+          ref="permissionTreeRef"
           :data="menuPermissions"
           show-checkbox
           node-key="id"

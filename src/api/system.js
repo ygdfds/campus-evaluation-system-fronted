@@ -1,3 +1,31 @@
+import request from '@/request'
+
+export const SYSTEM_STATUS_MAP = {
+  active: { label: '启用', type: 'success' },
+  disabled: { label: '停用', type: 'info' },
+  inactive: { label: '停用', type: 'info' },
+  locked: { label: '锁定', type: 'warning' },
+  pending: { label: '待审核', type: 'warning' },
+  approved: { label: '已通过', type: 'success' },
+  rejected: { label: '已驳回', type: 'danger' },
+  resubmit_required: { label: '需补充材料', type: 'warning' },
+  valid: { label: '有效', type: 'success' },
+  expired: { label: '已过期', type: 'danger' },
+  revoked: { label: '已撤销', type: 'info' },
+  processing: { label: '处理中', type: 'warning' },
+  resolved: { label: '已解决', type: 'success' },
+  closed: { label: '已关闭', type: 'info' },
+  draft: { label: '草稿', type: 'info' },
+  published: { label: '已发布', type: 'success' },
+  archived: { label: '已归档', type: 'info' },
+  onboarded: { label: '已入驻', type: 'success' },
+  frozen: { label: '已冻结', type: 'warning' },
+  unavailable: { label: '未开放', type: 'info' },
+  unopened: { label: '未开放', type: 'info' },
+  up: { label: '正常', type: 'success' },
+  down: { label: '异常', type: 'danger' },
+}
+
 const adminMenuItems = [
   { index: '/admin/dashboard', title: '平台概览', icon: 'HomeFilled', group: '工作台' },
   {
@@ -12,765 +40,497 @@ const adminMenuItems = [
   },
   { index: '/admin/onboarding/audit', title: '入驻审核', icon: 'DocumentChecked', group: '租户运营' },
   { index: '/admin/users/roles', title: '角色管理', icon: 'User', group: '系统配置' },
-  { index: '/admin/system', title: '系统设置', icon: 'Setting', group: '系统配置' },
   {
     index: '/admin/ops',
     title: '平台运维',
     icon: 'Monitor',
     group: '平台运维',
     children: [
-      { index: '/admin/monitoring', title: '监控告警' },
+      { index: '/admin/monitoring', title: '健康监控' },
       { index: '/admin/audit/logs', title: '审计日志' },
       { index: '/admin/reports', title: '统计报表' },
     ],
   },
-  {
-    index: '/admin/services',
-    title: '服务支持',
-    icon: 'Files',
-    group: '平台运维',
-    children: [
-      { index: '/admin/documents', title: '凭证材料' },
-      { index: '/admin/support', title: '工单帮助' },
-    ],
-  },
-]
-
-const adminDashboardCards = [
-  { key: 'activeSchools', title: '入驻学校', icon: 'School', color: 'primary' },
-  { key: 'pendingApps', title: '待审核申请', icon: 'DocumentChecked', color: 'warning' },
-  { key: 'activeTenants', title: '活跃租户', icon: 'User', color: 'success' },
-  { key: 'totalUsers', title: '平台用户', icon: 'DataAnalysis', color: 'primary' },
 ]
 
 const statusOptionsMap = {
   binary: [
     { value: '', label: '全部状态' },
     { value: 'active', label: '启用' },
-    { value: 'inactive', label: '禁用' },
+    { value: 'disabled', label: '停用' },
+    { value: 'locked', label: '锁定' },
   ],
   plan: [
     { value: '', label: '全部状态' },
     { value: 'active', label: '启用中' },
-    { value: 'inactive', label: '已下架' },
+    { value: 'disabled', label: '已下架' },
   ],
   onboarding: [
     { value: '', label: '全部状态' },
     { value: 'pending', label: '待审核' },
     { value: 'approved', label: '已通过' },
     { value: 'rejected', label: '已驳回' },
+    { value: 'resubmit_required', label: '需补充材料' },
   ],
   credential: [
     { value: '', label: '全部状态' },
-    { value: 'valid', label: '有效' },
-    { value: 'expired', label: '已过期' },
-    { value: 'pending', label: '待审核' },
-    { value: 'revoked', label: '已撤销' },
+    { value: 'unavailable', label: '未开放' },
   ],
   ticket: [
     { value: '', label: '全部状态' },
-    { value: 'pending', label: '待处理' },
-    { value: 'processing', label: '处理中' },
-    { value: 'resolved', label: '已解决' },
-    { value: 'closed', label: '已关闭' },
+    { value: 'unavailable', label: '未开放' },
   ],
   document: [
     { value: '', label: '全部状态' },
-    { value: 'draft', label: '草稿' },
-    { value: 'published', label: '已发布' },
-    { value: 'archived', label: '已归档' },
+    { value: 'unavailable', label: '未开放' },
   ],
-}
-
-export const SYSTEM_STATUS_MAP = {
-  active: { label: '启用', type: 'success' },
-  inactive: { label: '禁用', type: 'info' },
-  pending: { label: '待审核', type: 'warning' },
-  approved: { label: '已通过', type: 'success' },
-  rejected: { label: '已驳回', type: 'danger' },
-  valid: { label: '有效', type: 'success' },
-  expired: { label: '已过期', type: 'danger' },
-  revoked: { label: '已撤销', type: 'info' },
-  processing: { label: '处理中', type: 'warning' },
-  resolved: { label: '已解决', type: 'success' },
-  closed: { label: '已关闭', type: 'info' },
-  draft: { label: '草稿', type: 'info' },
-  published: { label: '已发布', type: 'success' },
-  archived: { label: '已归档', type: 'info' },
-  onboarded: { label: '已入驻', type: 'success' },
-  frozen: { label: '已冻结', type: 'warning' },
-  cancelled: { label: '已注销', type: 'info' },
 }
 
 const dataScopeOptions = [
   { value: 'all', label: '全部数据' },
-  { value: 'assigned', label: '指定租户' },
-  { value: 'self', label: '仅自己创建' },
+  { value: 'platform', label: '平台数据' },
 ]
-
-const planPermissionModules = [
-  {
-    id: 'dashboard',
-    title: '平台概览',
-    description: '查看、刷新',
-    checked: true,
-    disabled: true,
-  },
-  {
-    id: 'tenant',
-    title: '租户管理',
-    description: '查看列表、查看套餐、编辑、分配',
-    checked: true,
-    disabled: true,
-  },
-  {
-    id: 'onboarding',
-    title: '入驻审核',
-    description: '查看所有申请、审核通过、审核驳回、查看材料',
-    checked: true,
-    disabled: true,
-  },
-  {
-    id: 'account',
-    title: '用户管理',
-    description: '查看列表、新增账号、编辑账号、启用/禁用、重置密码、删除',
-    checked: true,
-    disabled: true,
-  },
-  {
-    id: 'role',
-    title: '角色管理',
-    description: '查看列表、新增角色、编辑角色、配置权限、删除',
-    checked: true,
-    disabled: true,
-  },
-  {
-    id: 'settings',
-    title: '系统设置',
-    description: '查看、编辑、重置配置',
-    checked: true,
-    disabled: true,
-  },
-  {
-    id: 'plan',
-    title: '套餐管理',
-    description: '查看列表、编辑套餐、下架套餐、创建套餐、配置权限',
-    checked: true,
-    disabled: false,
-  },
-  {
-    id: 'monitoring',
-    title: '监控中心',
-    description: '只读',
-    checked: false,
-    disabled: true,
-  },
-  {
-    id: 'reports',
-    title: '报表中心',
-    description: '查看、导出',
-    checked: false,
-    disabled: true,
-  },
-  {
-    id: 'documents',
-    title: '凭证管理',
-    description: '只读',
-    checked: false,
-    disabled: true,
-  },
-  {
-    id: 'support',
-    title: '客服支持',
-    description: '查看工单、回复反馈',
-    checked: false,
-    disabled: true,
-  },
-]
-
-const roleDefaultPermissionKeys = {
-  系统管理员: 'all',
-  学生: [41, 46, 71, 75],
-  教职工: [71, 72],
-}
-
-const systemSettingsDefaults = {
-  onboardingNotificationTemplate: '',
-  expirationWarningTemplate: '',
-  sensitiveWords: '',
-  extremeLowScoreThreshold: 2,
-  manualReviewEnabled: true,
-  maxFileSize: 10,
-  attachmentExpiryDays: 30,
-}
 
 const operationTypeOptions = [
-  { value: 'tenant_create', label: '租户创建' },
-  { value: 'tenant_update', label: '租户更新' },
-  { value: 'tenant_delete', label: '租户删除' },
-  { value: 'plan_update', label: '套餐变更' },
-  { value: 'admin_create', label: '管理员创建' },
-  { value: 'admin_update', label: '管理员更新' },
-  { value: 'system_config', label: '系统配置' },
+  { value: '', label: '全部操作' },
+  { value: 'UPDATE', label: '更新' },
+  { value: 'CREATE', label: '创建' },
+  { value: 'DELETE', label: '删除' },
+  { value: 'LOGIN', label: '登录' },
 ]
 
-const credentialTypeOptions = [
-  { value: 'business_license', label: '营业执照' },
-  { value: 'school_permit', label: '办学许可' },
-  { value: 'legal_person_id', label: '法人身份证' },
-]
-
-const monitoringStats = [
-  { title: '新增租户', value: 0, unit: '个', trend: 'up' },
-  { title: '到期预警', value: 0, unit: '个', trend: 'down' },
-  { title: '冻结租户', value: 0, unit: '个', trend: 'neutral' },
-  { title: '系统异常', value: 0, unit: '条', trend: 'up' },
-]
-
-const onboardingMaterials = [
-  { id: 1, type: 'business_license', fileName: '复旦大学营业执照.pdf', fileSize: '1.8MB', uploadedAt: '2026-05-20 08:12:00' },
-  { id: 2, type: 'legal_person_id', fileName: '法人身份证明.pdf', fileSize: '960KB', uploadedAt: '2026-05-20 08:13:00' },
-  { id: 3, type: 'school_permit', fileName: '办学许可证明.pdf', fileSize: '1.2MB', uploadedAt: '2026-05-20 08:15:00' },
-]
-
-const tenantLifecycleRecords = [
-  {
-    id: 1,
-    tenantId: 'T001',
-    schoolName: '清华大学',
-    planName: '基础版',
-    expireAt: '2027-06-30',
-    status: 'active',
-    adminName: '赵主任',
-    adminUsername: 'school_admin',
-    storageQuota: '100GB',
-    formQuota: 30,
-    concurrencyQuota: 500,
-    createdAt: '2026-01-12 09:00:00',
-  },
-  {
-    id: 2,
-    tenantId: 'T002',
-    schoolName: '北京大学',
-    planName: '专业版',
-    expireAt: '2026-12-31',
-    status: 'active',
-    adminName: '钱主任',
-    adminUsername: 'pku_admin',
-    storageQuota: '500GB',
-    formQuota: 80,
-    concurrencyQuota: 2000,
-    createdAt: '2026-02-18 10:30:00',
-  },
-  {
-    id: 3,
-    tenantId: 'T003',
-    schoolName: '中国人民大学',
-    planName: '旗舰版',
-    expireAt: '2026-09-15',
-    status: 'frozen',
-    adminName: '周老师',
-    adminUsername: 'ruc_admin',
-    storageQuota: '1TB',
-    formQuota: 200,
-    concurrencyQuota: 5000,
-    createdAt: '2026-03-02 14:00:00',
-  },
-]
-
-const credentialRecords = [
-  {
-    id: 1,
-    tenantId: 'T001',
-    schoolName: '清华大学',
-    credentialType: 'business_license',
-    fileName: '营业执照.pdf',
-    uploadTime: '2026-01-12 09:20:00',
-    expirationDate: '2027-01-11',
-    status: 'valid',
-  },
-  {
-    id: 2,
-    tenantId: 'T002',
-    schoolName: '北京大学',
-    credentialType: 'school_permit',
-    fileName: '办学许可证.pdf',
-    uploadTime: '2026-02-18 10:45:00',
-    expirationDate: '2026-08-18',
-    status: 'valid',
-  },
-  {
-    id: 3,
-    tenantId: 'T003',
-    schoolName: '中国人民大学',
-    credentialType: 'legal_person_id',
-    fileName: '法人身份证.pdf',
-    uploadTime: '2026-03-02 14:20:00',
-    expirationDate: '2026-06-30',
-    status: 'expired',
-  },
-]
-
-const supportTickets = [
-  {
-    id: 1,
-    ticketId: 'TK202606001',
-    schoolName: '清华大学',
-    title: '套餐升级后资源未生效',
-    status: 'processing',
-    createdAt: '2026-06-20 11:20:00',
-  },
-  {
-    id: 2,
-    ticketId: 'TK202606002',
-    schoolName: '北京大学',
-    title: '帮助文档中缺少表单导出说明',
-    status: 'pending',
-    createdAt: '2026-06-21 15:35:00',
-  },
-]
-
-const helpDocuments = [
-  { id: 1, title: '学校管理员开通指引', category: '入驻配置', status: 'published', updatedAt: '2026-06-10 09:30:00' },
-  { id: 2, title: '评价表单发布流程', category: '业务操作', status: 'draft', updatedAt: '2026-06-18 14:10:00' },
-]
-
-const auditLogRecords = [
-  {
-    id: 1,
-    operatorName: '系统管理员',
-    schoolName: '清华大学',
-    operationType: 'tenant_update',
-    description: '调整清华大学租户资源配额',
-    ipAddress: '10.0.0.12',
-    createdAt: '2026-06-20 09:10:00',
-  },
-  {
-    id: 2,
-    operatorName: '王建国',
-    schoolName: '北京大学',
-    operationType: 'plan_update',
-    description: '将北京大学套餐升级为专业版',
-    ipAddress: '10.0.0.18',
-    createdAt: '2026-06-21 16:25:00',
-  },
-]
-
-const monitoringAlerts = [
-  { id: 1, alertType: '存储超限', description: '北京大学对象存储使用率超过 90%', severity: '高', createdAt: '2026-06-22 08:30:00', status: 'pending' },
-  { id: 2, alertType: '敏感评价', description: '清华大学评价追溯服务发现高风险敏感词', severity: '中', createdAt: '2026-06-22 13:15:00', status: 'processing' },
-  { id: 3, alertType: '服务异常', description: '表单配置服务响应时间超过阈值', severity: '高', createdAt: '2026-06-23 10:05:00', status: 'resolved' },
-]
-
-const adminStats = {
-  activeSchools: 2,
-  pendingApps: 1,
-  activeTenants: 2,
-  totalUsers: 6,
+function unwrap(res) {
+  return res?.data ?? res
 }
 
-const onboardingApplicationRecords = [
-  {
-    id: 1,
-    schoolName: '复旦大学',
-    contactName: '王建国',
-    contactPhone: '13900001111',
-    planName: '专业版',
-    planId: 2,
-    status: 'pending',
-    creditCode: '91310000MA1FL8XX3N',
-    createdAt: '2026-06-20 09:00:00',
-  },
-  {
-    id: 2,
-    schoolName: '浙江大学',
-    contactName: '李明华',
-    contactPhone: '13800002222',
-    planName: '基础版',
-    planId: 1,
-    status: 'approved',
-    creditCode: '91330000MA2H0XX65K',
-    createdAt: '2026-06-15 14:30:00',
-  },
-  {
-    id: 3,
-    schoolName: '南京大学',
-    contactName: '赵文静',
-    contactPhone: '13700003333',
-    planName: '旗舰版',
-    planId: 3,
-    status: 'rejected',
-    creditCode: '91320000MA1WXX908P',
-    createdAt: '2026-06-10 10:15:00',
-  },
-]
+function pageRecords(res) {
+  const data = unwrap(res)
+  return data?.records || data?.list || (Array.isArray(data) ? data : [])
+}
 
-const systemAdminRecords = [
-  { id: 1, username: 'admin', realName: '系统管理员', roleName: '系统管理员', email: 'admin@platform.cn', phone: '13800000000', status: 'active', createdAt: '2025-01-01 00:00:00' },
-]
+function listResponse(list) {
+  return Promise.resolve({ data: { list } })
+}
 
-const systemRoleRecords = [
-  { id: 1, roleName: '系统管理员', description: '拥有平台全部管理权限', dataScope: 'all', createdAt: '2025-01-01 00:00:00' },
-]
+function dataResponse(data) {
+  return Promise.resolve({ data })
+}
 
-const menuPermissionRecords = [
-  {
-    id: 'dashboard', label: '平台概览',
-    children: [
-      { id: 'dashboard:view', label: '查看概览' },
-    ],
-  },
-  {
-    id: 'tenant', label: '租户管理',
-    children: [
-      { id: 'tenant:view', label: '查看租户' },
-      { id: 'tenant:lifecycle', label: '生命周期管理' },
-      { id: 'tenant:plan', label: '套餐管理' },
-    ],
-  },
-  {
-    id: 'onboarding', label: '入驻审核',
-    children: [
-      { id: 'onboarding:view', label: '查看申请' },
-      { id: 'onboarding:audit', label: '审核操作' },
-    ],
-  },
-  {
-    id: 'role', label: '角色管理',
-    children: [
-      { id: 'role:view', label: '查看角色' },
-      { id: 'role:edit', label: '编辑角色' },
-      { id: 'role:permission', label: '配置权限' },
-    ],
-  },
-  {
-    id: 'settings', label: '系统设置',
-    children: [
-      { id: 'settings:view', label: '查看配置' },
-      { id: 'settings:edit', label: '编辑配置' },
-    ],
-  },
-  {
-    id: 'ops', label: '平台运维',
-    children: [
-      { id: 'ops:monitoring', label: '监控告警' },
-      { id: 'ops:audit-log', label: '审计日志' },
-      { id: 'ops:reports', label: '统计报表' },
-    ],
-  },
-]
-
-const tenantPlanRecords = [
-  { id: 1, planName: '基础版', description: '满足基本评价需求', maxForms: 30, maxUsers: 500, storageQuota: '100GB', status: 'active', price: '免费' },
-  { id: 2, planName: '专业版', description: '适合中大规模学校', maxForms: 80, maxUsers: 2000, storageQuota: '500GB', status: 'active', price: '¥2,000/年' },
-  { id: 3, planName: '旗舰版', description: '全功能无限制', maxForms: 200, maxUsers: 5000, storageQuota: '1TB', status: 'active', price: '¥5,000/年' },
-]
+function unopened(feature) {
+  return Promise.reject(new Error(`${feature}未开放`))
+}
 
 function clone(data) {
   return JSON.parse(JSON.stringify(data))
 }
 
-export function getAdminMenuApi() {
-  return Promise.resolve({ data: { list: clone(adminMenuItems) } })
+function normalizeStatus(status) {
+  if (status === 'inactive') return 'disabled'
+  if (status === 'cancelled') return 'disabled'
+  return status || 'active'
 }
 
-export function getAdminDashboardStatsApi() {
-  return Promise.resolve({
-    data: {
-      list: adminDashboardCards.map((card) => ({
-        ...card,
-        value: adminStats[card.key] || 0,
-      })),
-    },
+function storageToNumber(value) {
+  if (typeof value === 'number') return value
+  const match = String(value || '').match(/\d+/)
+  return match ? Number(match[0]) : 0
+}
+
+function priceNumber(value) {
+  if (typeof value === 'number') return value
+  const match = String(value || '').replace(/,/g, '').match(/\d+(\.\d+)?/)
+  return match ? Number(match[0]) : 0
+}
+
+function codeFromName(name) {
+  return `plan_${String(name || Date.now()).trim().toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`
+}
+
+function mapPlan(plan) {
+  const featureMap = plan.featureMap || {}
+  const storageQuota = plan.storageQuota || featureMap.storageQuota || '0GB'
+  const priceText = plan.priceText || (Number(plan.price || 0) === 0 ? '免费' : `¥${plan.price}/年`)
+  return {
+    ...plan,
+    status: normalizeStatus(plan.status),
+    price: priceText,
+    priceValue: priceNumber(plan.price),
+    duration: String(plan.maxUsers ?? featureMap.maxUsers ?? 0),
+    storageLimit: storageToNumber(storageQuota),
+    storageQuota,
+    durationDays: Number(featureMap.durationDays || plan.durationDays || 365),
+    maxUsers: Number(plan.maxUsers ?? featureMap.maxUsers ?? 0),
+    maxForms: Number(plan.maxForms ?? featureMap.maxForms ?? 0),
+  }
+}
+
+function buildPlanPayload(data) {
+  const features = {
+    maxUsers: Number(data.maxUsers ?? 0),
+    maxForms: Number(data.maxForms ?? 0),
+    storageQuota: `${Number(data.storageLimit ?? storageToNumber(data.storageQuota) ?? 0)}GB`,
+    durationDays: Number(data.durationDays ?? 365),
+  }
+  return {
+    planCode: data.planCode || codeFromName(data.planName),
+    planName: data.planName,
+    description: data.description || data.features || '',
+    price: Number(data.priceValue ?? data.price ?? 0),
+    status: normalizeStatus(data.status),
+    features,
+  }
+}
+
+function mapTenant(tenant) {
+  const quota = tenant.quota || tenant.quotas || {}
+  return {
+    ...tenant,
+    id: tenant.id,
+    tenantId: String(tenant.tenantId ?? tenant.id),
+    status: normalizeStatus(tenant.status),
+    adminName: tenant.adminName || tenant.adminUsername || '',
+    storageQuota: tenant.storageQuota || quota.storageQuota || '',
+    formQuota: tenant.formQuota || quota.maxForms || tenant.maxForms || 0,
+    concurrencyQuota: tenant.concurrencyQuota || quota.concurrencyQuota || 0,
+  }
+}
+
+function mapRole(role) {
+  return {
+    ...role,
+    roleCode: role.roleCode,
+    roleName: role.roleName,
+    description: role.description || role.roleCode || '',
+    dataScope: role.dataScope || role.scopeType || 'platform',
+    builtin: role.roleCode === 'system_admin',
+  }
+}
+
+function groupPermissions(list) {
+  const groups = new Map()
+  list.forEach((item) => {
+    const code = item.permissionCode || item.permission_code || item.id
+    const [moduleCode] = String(code).split('.')
+    if (!groups.has(moduleCode)) {
+      groups.set(moduleCode, { id: moduleCode, label: moduleCode, children: [] })
+    }
+    groups.get(moduleCode).children.push({
+      id: code,
+      label: item.permissionName || code,
+    })
   })
+  return Array.from(groups.values())
+}
+
+export function getAdminMenuApi() {
+  return listResponse(clone(adminMenuItems))
+}
+
+export async function getAdminDashboardStatsApi() {
+  const summary = unwrap(await request.get('/platform/reports/summary'))
+  return listResponse([
+    { key: 'activeSchools', title: '入驻学校', icon: 'School', color: 'primary', value: summary.activeSchoolCount || 0 },
+    { key: 'pendingApps', title: '待审核申请', icon: 'DocumentChecked', color: 'warning', value: summary.pendingOnboardingCount || 0 },
+    { key: 'activeTenants', title: '租户总数', icon: 'User', color: 'success', value: summary.tenantCount || 0 },
+    { key: 'totalUsers', title: '平台用户', icon: 'DataAnalysis', color: 'primary', value: summary.userCount || 0 },
+  ])
 }
 
 export function getAdminStatusOptionsApi(scope) {
-  return Promise.resolve({ data: { list: clone(statusOptionsMap[scope] || []) } })
+  return listResponse(clone(statusOptionsMap[scope] || []))
 }
 
 export function getAdminDataScopeOptionsApi() {
-  return Promise.resolve({ data: { list: clone(dataScopeOptions) } })
+  return listResponse(clone(dataScopeOptions))
 }
 
-export function getPlanPermissionModulesApi() {
-  return Promise.resolve({ data: { list: clone(planPermissionModules) } })
+export async function getPlanPermissionModulesApi() {
+  const permissions = pageRecords(await request.get('/platform/permissions'))
+  return listResponse(groupPermissions(permissions).map((module) => ({
+    id: module.id,
+    title: module.label,
+    description: module.children.map((child) => child.label).join('、'),
+    checked: true,
+    disabled: true,
+  })))
 }
 
 export function getSystemSettingsApi() {
-  return Promise.resolve({ data: clone(systemSettingsDefaults) })
+  return dataResponse({ message: '系统设置未开放', status: 'unavailable' })
 }
 
-export function saveSystemSettingsApi(data) {
-  return Promise.resolve({ data: clone(data) })
+export function saveSystemSettingsApi() {
+  return unopened('系统设置')
 }
 
 export function getOperationTypeOptionsApi() {
-  return Promise.resolve({ data: { list: clone(operationTypeOptions) } })
+  return listResponse(clone(operationTypeOptions))
 }
 
-export function getAuditLogsApi() {
-  return Promise.resolve({ data: { list: clone(auditLogRecords) } })
+export async function getAuditLogsApi(params = {}) {
+  const records = pageRecords(await request.get('/platform/audit/logs', { params }))
+  return listResponse(records.map((item) => ({
+    ...item,
+    operatorName: item.operatorName || item.userId || 'system',
+    description: item.content || item.targetName || item.operationType,
+    ipAddress: item.ip,
+  })))
 }
 
 export function getCredentialTypeOptionsApi() {
-  return Promise.resolve({ data: { list: clone(credentialTypeOptions) } })
+  return listResponse([{ value: 'unavailable', label: '资料/凭证管理未开放' }])
 }
 
 export function getCredentialListApi() {
-  return Promise.resolve({ data: { list: clone(credentialRecords) } })
+  return listResponse([])
 }
 
-export function updateCredentialExpirationApi(id, expirationDate) {
-  const credential = credentialRecords.find((item) => item.id === id)
-  if (credential) {
-    credential.expirationDate = expirationDate
-    credential.status = new Date(expirationDate) >= new Date(new Date().toDateString()) ? 'valid' : 'expired'
-  }
-  return Promise.resolve({ data: clone(credential || { id, expirationDate }) })
+export function updateCredentialExpirationApi() {
+  return unopened('资料/凭证管理')
 }
 
-export function getMonitoringStatsApi() {
-  const frozenCount = tenantLifecycleRecords.filter((item) => item.status === 'frozen').length
-  return Promise.resolve({
-    data: {
-      list: clone(monitoringStats).map((item) => {
-        if (item.title === '新增租户') return { ...item, value: 3 }
-        if (item.title === '到期预警') return { ...item, value: 2 }
-        if (item.title === '冻结租户') return { ...item, value: frozenCount }
-        if (item.title === '系统异常') return { ...item, value: monitoringAlerts.length }
-        return item
-      }),
-    },
-  })
+export async function getMonitoringStatsApi() {
+  const health = unwrap(await request.get('/platform/monitoring/health'))
+  return listResponse([
+    { title: '数据库', value: health.database?.status || 'unknown', unit: '', trend: health.database?.status === 'up' ? 'up' : 'down' },
+    { title: 'Redis', value: health.redis?.status || 'unopened', unit: '', trend: 'neutral' },
+    { title: '文件存储', value: health.fileStorage?.status || 'unopened', unit: '', trend: 'neutral' },
+    { title: '链路追踪', value: health.skyWalking?.status || 'unopened', unit: '', trend: 'neutral' },
+  ])
 }
 
-export function getMonitoringAlertsApi() {
-  return Promise.resolve({ data: { list: clone(monitoringAlerts) } })
+export async function getMonitoringAlertsApi() {
+  const health = unwrap(await request.get('/platform/monitoring/health'))
+  return listResponse(Object.entries(health)
+    .filter(([, value]) => value?.status !== 'up')
+    .map(([key, value], index) => ({
+      id: index + 1,
+      alertType: key,
+      description: value?.message || '服务状态异常',
+      severity: value?.status === 'down' ? '高' : '低',
+      createdAt: '',
+      status: value?.status || 'unavailable',
+    })))
 }
 
 export function getSupportTicketsApi() {
-  return Promise.resolve({ data: { list: clone(supportTickets) } })
+  return listResponse([])
 }
 
-export function updateSupportTicketApi(id, data) {
-  const ticket = supportTickets.find((item) => item.id === id)
-  if (ticket) {
-    Object.assign(ticket, data)
-  }
-  return Promise.resolve({ data: clone(ticket || { id, ...data }) })
+export function updateSupportTicketApi() {
+  return unopened('工单管理')
 }
 
 export function getHelpDocumentsApi() {
-  return Promise.resolve({ data: { list: clone(helpDocuments) } })
+  return listResponse([])
 }
 
-export function createHelpDocumentApi(data) {
-  const document = {
-    id: Date.now(),
-    title: data.title,
-    category: data.category,
-    status: data.status || 'draft',
-    updatedAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
-  }
-  helpDocuments.unshift(document)
-  return Promise.resolve({ data: clone(document) })
+export function createHelpDocumentApi() {
+  return unopened('帮助文档')
 }
 
-export function updateHelpDocumentApi(id, data) {
-  const document = helpDocuments.find((item) => item.id === id)
-  if (document) {
-    Object.assign(document, {
-      ...data,
-      updatedAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
-    })
-  }
-  return Promise.resolve({ data: clone(document || { id, ...data }) })
+export function updateHelpDocumentApi() {
+  return unopened('帮助文档')
 }
 
-export function getReportDashboardApi() {
-  return Promise.resolve({
-    data: {
-      sections: [
-        {
-          key: 'monthlyTenants',
-          title: '月度新增 / 到期租户统计',
-          items: [
-            { label: '4月新增', value: 8 },
-            { label: '5月新增', value: 12 },
-            { label: '6月新增', value: 15 },
-            { label: '6月到期', value: 3 },
-          ],
-        },
-        {
-          key: 'ticketStats',
-          title: '工单处理量统计',
-          items: [
-            { label: '待处理', value: 4 },
-            { label: '处理中', value: 7 },
-            { label: '已解决', value: 26 },
-            { label: '已关闭', value: 18 },
-          ],
-        },
-        {
-          key: 'resourceUsage',
-          title: '系统资源占用情况',
-          items: [
-            { label: '对象存储', value: 72 },
-            { label: '导入队列', value: 38 },
-            { label: '评价并发', value: 56 },
-            { label: '日志索引', value: 64 },
-          ],
-        },
-      ],
-    },
-  })
-}
-
-export function getOnboardingMaterialsApi() {
-  return Promise.resolve({ data: { list: clone(onboardingMaterials) } })
-}
-
-export function getTenantLifecycleApi() {
-  return Promise.resolve({ data: { list: clone(tenantLifecycleRecords) } })
-}
-
-export function getTenantDetailApi(tenantId) {
-  const tenant = tenantLifecycleRecords.find((item) => item.tenantId === tenantId)
-  return Promise.resolve({
-    data: {
-      tenant: clone(tenant || tenantLifecycleRecords[0]),
-      admins: [
-        { id: 1, username: tenant?.adminUsername || 'school_admin', realName: tenant?.adminName || '学校管理员', phone: '13800000001', status: 'active' },
-      ],
-      quotas: {
-        formQuota: tenant?.formQuota || 30,
-        storageQuota: tenant?.storageQuota || '100GB',
-        concurrencyQuota: tenant?.concurrencyQuota || 500,
+export async function getReportDashboardApi() {
+  const summary = unwrap(await request.get('/platform/reports/summary'))
+  return dataResponse({
+    sections: [
+      {
+        key: 'tenantStats',
+        title: '租户统计',
+        items: [
+          { label: '租户总数', value: summary.tenantCount || 0 },
+          { label: '活跃学校', value: summary.activeSchoolCount || 0 },
+          { label: '待审核入驻', value: summary.pendingOnboardingCount || 0 },
+        ],
       },
-      auditLogs: clone(auditLogRecords.filter((item) => !tenant || item.schoolName === tenant.schoolName)),
-    },
+      {
+        key: 'userStats',
+        title: '用户统计',
+        items: [
+          { label: '用户总数', value: summary.userCount || 0 },
+        ],
+      },
+    ],
   })
 }
 
-export function createTenantApi(data) {
-  return Promise.resolve({ data })
+export async function getOnboardingMaterialsApi(id) {
+  return listResponse(pageRecords(await request.get(`/platform/onboarding/applications/${id}/materials`)))
 }
 
-export function freezeTenantApi(tenantId) {
-  return Promise.resolve({ data: { tenantId, status: 'frozen' } })
+export async function getTenantLifecycleApi(params = {}) {
+  const records = pageRecords(await request.get('/platform/tenants', {
+    params: { pageNum: 1, pageSize: 500, ...params },
+  }))
+  return listResponse(records.map(mapTenant))
 }
 
-export function cancelTenantApi(tenantId) {
-  return Promise.resolve({ data: { tenantId, status: 'cancelled' } })
+export async function getTenantDetailApi(tenantId) {
+  const detail = unwrap(await request.get(`/platform/tenants/${tenantId}`))
+  const tenant = mapTenant(detail.tenant || {})
+  return dataResponse({
+    ...detail,
+    tenant,
+    quotas: detail.quota || detail.quotas || {},
+  })
+}
+
+export function createTenantApi() {
+  return unopened('手工创建租户')
+}
+
+export function freezeTenantApi(tenantId, reason = '平台冻结') {
+  return request.put(`/platform/tenants/${tenantId}/status`, { status: 'frozen', reason })
+}
+
+export function cancelTenantApi(tenantId, reason = '平台停用') {
+  return request.put(`/platform/tenants/${tenantId}/status`, { status: 'disabled', reason })
 }
 
 export function changeTenantPlanApi(tenantId, planName) {
-  return Promise.resolve({ data: { tenantId, planName } })
+  return request.put(`/platform/tenants/${tenantId}/plan`, { planName })
 }
 
-export function resetTenantAdminApi(tenantId) {
-  return Promise.resolve({ data: { tenantId, password: 'admin123' } })
+export function resetTenantAdminApi() {
+  return unopened('租户管理员密码重置')
 }
 
-export function getTenantsApi() {
-  const tenants = [
-    { id: 1, tenantId: 'T001', schoolName: '清华大学', status: 'onboarded', planName: '基础版', adminName: '赵主任', createdAt: '2026-01-12 09:00:00' },
-    { id: 2, tenantId: 'T002', schoolName: '北京大学', status: 'onboarded', planName: '专业版', adminName: '钱主任', createdAt: '2026-02-18 10:30:00' },
-  ]
-  return Promise.resolve({ data: { list: tenants } })
+export async function getTenantsApi(params = {}) {
+  const records = pageRecords(await request.get('/platform/tenants', {
+    params: {
+      pageNum: params.pageNum || params.page || 1,
+      pageSize: params.pageSize || 500,
+      keyword: params.keyword || params.schoolName || params.tenantName,
+      status: params.status,
+    },
+  }))
+  return listResponse(records.map(mapTenant))
 }
 
 export function normalizeTenantStatus(status) {
-  return status === '已入驻' ? 'onboarded' : 'pending'
+  return normalizeStatus(status)
 }
 
-export function getOnboardingApplicationsApi(params) {
-  let list = clone(onboardingApplicationRecords)
-  if (params?.status) list = list.filter(i => i.status === params.status)
-  if (params?.schoolName) list = list.filter(i => i.schoolName.includes(params.schoolName))
-  return Promise.resolve({ data: { list } })
+export async function getOnboardingApplicationsApi(params = {}) {
+  const records = pageRecords(await request.get('/platform/onboarding/applications', {
+    params: {
+      pageNum: params.pageNum || params.page || 1,
+      pageSize: params.pageSize || 500,
+      keyword: params.keyword || params.schoolName,
+      status: params.status,
+    },
+  }))
+  return listResponse(records)
 }
 
 export function auditOnboardingApi(id, action, reason, planId) {
-  return Promise.resolve({ data: { id, action, reason, planId } })
+  return request.put(`/platform/onboarding/applications/${id}/audit`, { action, reason, planId })
 }
 
-export function getSystemAdminsApi(params) {
-  let list = clone(systemAdminRecords)
-  if (params?.username) list = list.filter(i => i.username.includes(params.username))
-  if (params?.realName) list = list.filter(i => i.realName.includes(params.realName))
-  if (params?.status) list = list.filter(i => i.status === params.status)
-  return Promise.resolve({ data: { list } })
+export async function getSystemAdminsApi(params = {}) {
+  const records = pageRecords(await request.get('/platform/admin-users', {
+    params: {
+      pageNum: params.pageNum || params.page || 1,
+      pageSize: params.pageSize || 500,
+      username: params.username,
+      realName: params.realName,
+      status: params.status,
+    },
+  }))
+  return listResponse(records.map((item) => ({ ...item, roleName: item.roleName || '系统管理员' })))
 }
 
 export function createSystemAdminApi(data) {
-  return Promise.resolve({ data: { id: Date.now(), ...data, status: 'active' } })
+  return request.post('/platform/admin-users', data)
 }
 
 export function updateSystemAdminApi(id, data) {
-  return Promise.resolve({ data: { id, ...data } })
+  return request.put(`/platform/admin-users/${id}`, data)
 }
 
-export function toggleSystemAdminStatusApi(id) {
-  return Promise.resolve({ data: { id } })
+export function toggleSystemAdminStatusApi(id, status = 'disabled') {
+  return request.put(`/platform/admin-users/${id}/status`, { status })
 }
 
-export function resetSystemAdminPasswordApi(id) {
-  return Promise.resolve({ data: { id } })
+export function assignSystemAdminRolesApi(id, roleIds) {
+  return request.put(`/platform/admin-users/${id}/roles`, { roleIds })
 }
 
-export function deleteSystemAdminApi(id) {
-  return Promise.resolve({ data: { id } })
+export function resetSystemAdminPasswordApi() {
+  return unopened('平台管理员密码重置')
 }
 
-export function getSystemRolesApi() {
-  return Promise.resolve({ data: { list: clone(systemRoleRecords) } })
+export function deleteSystemAdminApi() {
+  return unopened('平台管理员删除')
+}
+
+export async function getSystemRolesApi() {
+  return listResponse(pageRecords(await request.get('/platform/roles')).map(mapRole))
 }
 
 export function getCustomRolesApi() {
-  return Promise.resolve({ data: { list: [] } })
+  return listResponse([])
 }
 
 export function createSystemRoleApi(data) {
-  return Promise.resolve({ data: { id: Date.now(), ...data } })
+  return request.post('/platform/roles', {
+    roleCode: data.roleCode || `platform_${Date.now()}`,
+    roleName: data.roleName,
+    permissionCodes: data.permissionCodes || [],
+  })
 }
 
 export function updateSystemRoleApi(id, data) {
-  return Promise.resolve({ data: { id, ...data } })
+  const payload = {
+    roleCode: data.roleCode,
+    roleName: data.roleName,
+    permissionCodes: data.permissionCodes,
+  }
+  if (Array.isArray(data.permissionCodes)) {
+    return request.put(`/platform/roles/${id}/permissions`, payload)
+  }
+  return request.put(`/platform/roles/${id}`, payload)
 }
 
 export function deleteSystemRoleApi(id) {
-  return Promise.resolve({ data: { id } })
+  return request.delete(`/platform/roles/${id}`)
 }
 
-export function getMenuPermissionsApi() {
-  return Promise.resolve({ data: { list: clone(menuPermissionRecords) } })
+export async function getMenuPermissionsApi() {
+  return listResponse(groupPermissions(pageRecords(await request.get('/platform/permissions'))))
 }
 
-export function getRoleDefaultPermissionKeys(roleName, permissions) {
-  const defaultValue = roleDefaultPermissionKeys[roleName]
-  if (defaultValue === 'all') {
-    return permissions.flatMap((item) => [
-      item.id,
-      ...(item.children || []).map((child) => child.id),
-    ])
+export function getRoleDefaultPermissionKeys(roleName, permissions, role = {}) {
+  if (Array.isArray(role.permissionKeys)) return role.permissionKeys
+  if (roleName === '系统管理员' || role.roleCode === 'system_admin') {
+    return permissions.flatMap((item) => [item.id, ...(item.children || []).map((child) => child.id)])
   }
-  return defaultValue || []
+  return []
 }
 
-export function getTenantPlansApi() {
-  return Promise.resolve({ data: { list: clone(tenantPlanRecords) } })
+export async function getTenantPlansApi(params = {}) {
+  const records = pageRecords(await request.get('/platform/plans', {
+    params: {
+      pageNum: params.pageNum || params.page || 1,
+      pageSize: params.pageSize || 500,
+      keyword: params.keyword || params.planName,
+      status: params.status,
+    },
+  }))
+  return listResponse(records.map(mapPlan))
 }
 
-export function createTenantPlanApi(data) {
-  return Promise.resolve({ data: { id: Date.now(), ...data } })
+export async function createTenantPlanApi(data) {
+  return dataResponse(mapPlan(unwrap(await request.post('/platform/plans', buildPlanPayload(data)))))
 }
 
-export function updateTenantPlanApi(id, data) {
-  return Promise.resolve({ data: { id, ...data } })
+export async function updateTenantPlanApi(id, data) {
+  return dataResponse(mapPlan(unwrap(await request.put(`/platform/plans/${id}`, buildPlanPayload(data)))))
 }
 
 export function deleteTenantPlanApi(id) {
-  return Promise.resolve({ data: { id } })
+  return request.put(`/platform/plans/${id}/status`, { status: 'disabled' })
 }

@@ -39,7 +39,7 @@ const resetSearch = () => {
 }
 
 const exportLogs = () => {
-  ElMessage.success('审计日志已导出')
+  ElMessage.info('审计日志导出暂未开放')
 }
 
 onMounted(() => {

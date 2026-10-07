@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import * as echarts from 'echarts'
 import { School, User, DocumentChecked, DataAnalysis } from '@element-plus/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -7,10 +7,7 @@ import PageSection from '@/components/common/PageSection.vue'
 import StatCard from '@/components/common/StatCard.vue'
 import {
   getAdminDashboardStatsApi,
-  getCredentialListApi,
   getOnboardingApplicationsApi,
-  getReportDashboardApi,
-  getSupportTicketsApi,
   getTenantLifecycleApi,
 } from '@/api/system'
 
@@ -21,9 +18,6 @@ const stats = ref([])
 const tenantChartRef = ref(null)
 const trendChartRef = ref(null)
 const onboardingChartRef = ref(null)
-const credentialChartRef = ref(null)
-const ticketChartRef = ref(null)
-const resourceChartRef = ref(null)
 const charts = {}
 
 const iconMap = {
@@ -45,20 +39,6 @@ const onboardingStatusMap = {
   pending: '待审核',
   approved: '已通过',
   rejected: '已驳回',
-}
-
-const credentialStatusMap = {
-  valid: '有效',
-  expired: '已过期',
-  pending: '待审核',
-  revoked: '已撤销',
-}
-
-const ticketStatusMap = {
-  pending: '待处理',
-  processing: '处理中',
-  resolved: '已解决',
-  closed: '已关闭',
 }
 
 const chartColors = ['#009688', '#5c8df6', '#f2a541', '#e76f51', '#8d99ae']
@@ -211,66 +191,23 @@ function renderBarChart(key, elementRef, title, data) {
   })
 }
 
-function renderResourceChart(section) {
-  const chart = getChart('resource', resourceChartRef)
-  if (!chart) return
-  const items = section?.items || []
-  chart.setOption({
-    color: ['#009688'],
-    tooltip: {},
-    radar: {
-      radius: '58%',
-      indicator: items.map((item) => ({ name: item.label, max: 100 })),
-      splitLine: { lineStyle: { color: '#e3e6ea' } },
-      splitArea: { areaStyle: { color: ['#ffffff', '#f7faf9'] } },
-      axisName: { color: '#606266' },
-    },
-    series: [
-      {
-        name: '资源占用',
-        type: 'radar',
-        areaStyle: { opacity: 0.16 },
-        lineStyle: { width: 2 },
-        data: [{ value: items.map((item) => item.value), name: '占用率' }],
-      },
-    ],
-  })
-}
-
 function resizeCharts() {
   Object.values(charts).forEach((chart) => chart?.resize())
 }
 
 const fetchCharts = async () => {
   try {
-    const [
-      tenantsResponse,
-      applicationsResponse,
-      credentialsResponse,
-      ticketsResponse,
-      reportResponse,
-    ] = await Promise.all([
+    const [tenantsResponse, applicationsResponse] = await Promise.all([
       getTenantLifecycleApi(),
       getOnboardingApplicationsApi(),
-      getCredentialListApi(),
-      getSupportTicketsApi(),
-      getReportDashboardApi(),
     ])
 
     const tenants = tenantsResponse.data?.list || []
     const applications = applicationsResponse.data?.list || []
-    const credentials = credentialsResponse.data?.list || []
-    const tickets = ticketsResponse.data?.list || []
-    const reportSections = reportResponse.data?.sections || []
-    const resourceSection = reportSections.find((section) => section.key === 'resourceUsage')
 
-    await nextTick()
     renderPieChart('tenant', tenantChartRef, '租户分布', countBy(tenants, 'status', tenantStatusMap))
     renderTrendChart(buildMonthlyTrend(tenants, applications))
     renderBarChart('onboarding', onboardingChartRef, '入驻审核', countBy(applications, 'status', onboardingStatusMap))
-    renderPieChart('credential', credentialChartRef, '凭证状态', countBy(credentials, 'status', credentialStatusMap))
-    renderBarChart('ticket', ticketChartRef, '工单状态', countBy(tickets, 'status', ticketStatusMap))
-    renderResourceChart(resourceSection)
   } catch (error) {
     console.error('获取平台概览图表数据失败', error)
   }
@@ -310,15 +247,6 @@ onBeforeUnmount(() => {
       </PageSection>
       <PageSection title="入驻审核状态">
         <div ref="onboardingChartRef" class="chart-panel" />
-      </PageSection>
-      <PageSection title="凭证材料状态">
-        <div ref="credentialChartRef" class="chart-panel" />
-      </PageSection>
-      <PageSection title="工单处理状态">
-        <div ref="ticketChartRef" class="chart-panel" />
-      </PageSection>
-      <PageSection title="资源占用概览">
-        <div ref="resourceChartRef" class="chart-panel" />
       </PageSection>
     </div>
   </div>
