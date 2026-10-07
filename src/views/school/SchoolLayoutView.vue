@@ -16,7 +16,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-const menuGroups = [
+const rawMenuGroups = [
   {
     title: '工作台',
     items: [
@@ -85,7 +85,36 @@ const menuGroups = [
   },
 ]
 
-const flatItems = computed(() => menuGroups.flatMap(group => group.items.flatMap(item => item.children || item)))
+const menuGroups = computed(() => {
+  const permissions = userStore.permissions || []
+  const allowAll = userStore.userRole === 'school_admin' && permissions.length === 0
+  return rawMenuGroups
+    .map(group => ({
+      ...group,
+      items: group.items
+        .map(item => ({ ...item, children: item.children?.filter(child => canViewPath(child.index, permissions, allowAll)) }))
+        .filter(item => canViewPath(item.index, permissions, allowAll)),
+    }))
+    .filter(group => group.items.length)
+})
+
+const flatItems = computed(() => menuGroups.value.flatMap(group => group.items.flatMap(item => item.children || item)))
+
+function canViewPath(path, permissions, allowAll) {
+  if (allowAll) return true
+  const required = pathPermission(path)
+  return !required || permissions.includes(required)
+}
+
+function pathPermission(path) {
+  if (path === '/school/dashboard') return 'school.dashboard.view'
+  if (path.startsWith('/school/org') || path.startsWith('/school/teaching') || path.startsWith('/school/service') || path === '/school/school-info') return 'school.org.manage'
+  if (path.startsWith('/school/users') || path === '/school/admins' || path === '/school/imports') return 'school.user.manage'
+  if (path.startsWith('/school/audit/list') || path.startsWith('/school/form') || path.startsWith('/school/complaint') || path.startsWith('/school/audit/logs')) return 'school.audit.manage'
+  if (path.startsWith('/school/announcements')) return 'school.announcement.manage'
+  if (path.startsWith('/school/help')) return 'school.help.manage'
+  return null
+}
 
 function isMenuActive(path) {
   return route.path === path || route.path.startsWith(path + '/')

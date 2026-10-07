@@ -1,4 +1,5 @@
 import request from '@/request'
+import { useUserStore } from '@/stores/user'
 
 export const SYSTEM_STATUS_MAP = {
   active: { label: '启用', type: 'success' },
@@ -33,22 +34,24 @@ const adminMenuItems = [
     title: '租户管理',
     icon: 'School',
     group: '租户运营',
+    permission: 'admin.tenant.manage',
     children: [
-      { index: '/admin/tenants/lifecycle', title: '生命周期' },
-      { index: '/admin/plans', title: '套餐管理' },
+      { index: '/admin/tenants/lifecycle', title: '生命周期', permission: 'admin.tenant.manage' },
+      { index: '/admin/plans', title: '套餐管理', permission: 'admin.plan.manage' },
     ],
   },
-  { index: '/admin/onboarding/audit', title: '入驻审核', icon: 'DocumentChecked', group: '租户运营' },
-  { index: '/admin/users/roles', title: '角色管理', icon: 'User', group: '系统配置' },
+  { index: '/admin/onboarding/audit', title: '入驻审核', icon: 'DocumentChecked', group: '租户运营', permission: 'admin.onboarding.audit' },
+  { index: '/admin/users/roles', title: '角色管理', icon: 'User', group: '系统配置', permission: 'admin.role.manage' },
   {
     index: '/admin/ops',
     title: '平台运维',
     icon: 'Monitor',
     group: '平台运维',
+    permission: 'admin.monitor.view',
     children: [
-      { index: '/admin/monitoring', title: '健康监控' },
-      { index: '/admin/audit/logs', title: '审计日志' },
-      { index: '/admin/reports', title: '统计报表' },
+      { index: '/admin/monitoring', title: '健康监控', permission: 'admin.monitor.view' },
+      { index: '/admin/audit/logs', title: '审计日志', permission: 'admin.audit.view' },
+      { index: '/admin/reports', title: '统计报表', permission: 'admin.monitor.view' },
     ],
   },
 ]
@@ -223,7 +226,19 @@ function groupPermissions(list) {
 }
 
 export function getAdminMenuApi() {
-  return listResponse(clone(adminMenuItems))
+  const userStore = useUserStore()
+  const permissions = userStore.permissions || []
+  const allowAll = userStore.userRole === 'system_admin' && permissions.length === 0
+  const menus = clone(adminMenuItems)
+    .map(item => ({ ...item, children: item.children?.filter(child => canUseMenu(child, permissions, allowAll)) }))
+    .filter(item => canUseMenu(item, permissions, allowAll))
+  return listResponse(menus)
+}
+
+function canUseMenu(item, permissions, allowAll = false) {
+  if (allowAll || !item.permission) return true
+  if (item.children?.length) return item.children.some(child => canUseMenu(child, permissions, allowAll))
+  return permissions.includes(item.permission)
 }
 
 export async function getAdminDashboardStatsApi() {

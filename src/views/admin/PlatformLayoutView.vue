@@ -9,6 +9,8 @@ defineOptions({ name: 'PlatformLayoutView' })
 
 const collapsed = ref(false)
 const menuItems = ref([])
+const menuLoading = ref(false)
+const menuError = ref('')
 
 const iconMap = {
   HomeFilled,
@@ -25,11 +27,20 @@ function toggleSidebar() {
 }
 
 onMounted(async () => {
-  const response = await getAdminMenuApi()
-  menuItems.value = (response.data?.list || []).map((item) => ({
-    ...item,
-    icon: iconMap[item.icon],
-  }))
+  menuLoading.value = true
+  menuError.value = ''
+  try {
+    const response = await getAdminMenuApi()
+    menuItems.value = (response.data?.list || []).map((item) => ({
+      ...item,
+      icon: iconMap[item.icon],
+    }))
+  } catch (error) {
+    menuError.value = error.message || '菜单加载失败'
+    menuItems.value = []
+  } finally {
+    menuLoading.value = false
+  }
 })
 
 const menuGroups = computed(() => {
@@ -52,10 +63,20 @@ const menuGroups = computed(() => {
 <template>
   <el-container class="platform-layout">
     <SidebarNav
+      v-loading="menuLoading"
       title="校园服务质量在线评测系统"
       :menu-items="menuItems"
       :menu-groups="menuGroups"
       :collapsed="collapsed"
+    />
+    <el-alert
+      v-if="menuError"
+      class="menu-error"
+      type="error"
+      :title="menuError"
+      show-icon
+      closable
+      @close="menuError = ''"
     />
     <el-container class="main-container">
       <TopHeader :collapsed="collapsed" @toggle-sidebar="toggleSidebar" />

@@ -24,6 +24,10 @@ export const useUserStore = defineStore('user', () => {
   const tenant = ref(getTenant() || null)
   const sessionChecked = ref(false)
 
+  if (typeof window !== 'undefined') {
+    window.addEventListener('campus:auth-expired', resetAuth)
+  }
+
   const isLoggedIn = computed(() => !!token.value)
   const roles = computed(() => normalizeRoles(userInfo.value?.roles))
   const permissions = computed(() => Array.isArray(userInfo.value?.permissions) ? userInfo.value.permissions : [])

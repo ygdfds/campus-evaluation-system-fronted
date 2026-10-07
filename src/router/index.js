@@ -28,21 +28,27 @@ const router = createRouter({
       meta: { title: 'School onboarding', guest: true },
     },
     {
+      path: '/403',
+      name: 'Forbidden',
+      component: () => import('@/views/ForbiddenView.vue'),
+      meta: { title: 'Forbidden' },
+    },
+    {
       path: '/admin',
       name: 'PlatformLayout',
       component: () => import('@/views/admin/PlatformLayoutView.vue'),
       meta: { title: 'System admin', requiresAuth: true, roles: ['system_admin'] },
       children: [
         { path: 'dashboard', name: 'AdminDashboard', component: () => import('@/views/admin/dashboard/DashboardView.vue'), meta: { title: 'Dashboard' } },
-        { path: 'tenants/list', name: 'AdminTenantList', component: () => import('@/views/admin/tenants/TenantListView.vue'), meta: { title: 'Tenants' } },
-        { path: 'tenants/lifecycle', name: 'AdminTenantLifecycle', component: () => import('@/views/admin/tenants/TenantLifecycleView.vue'), meta: { title: 'Tenant lifecycle' } },
-        { path: 'tenants/:tenantId', name: 'AdminTenantDetail', component: () => import('@/views/admin/tenants/TenantDetailView.vue'), meta: { title: 'Tenant detail' } },
-        { path: 'plans', name: 'AdminPlanList', component: () => import('@/views/admin/plans/PlanManagementView.vue'), meta: { title: 'Plans' } },
-        { path: 'onboarding/audit', name: 'AdminOnboardingAudit', component: () => import('@/views/admin/onboarding/AuditListView.vue'), meta: { title: 'Onboarding audit' } },
-        { path: 'users/roles', name: 'AdminRoleManagement', component: () => import('@/views/admin/roles/RolePermissionView.vue'), meta: { title: 'Roles' } },
-        { path: 'monitoring', name: 'AdminMonitoring', component: () => import('@/views/admin/monitoring/MonitoringDashboardView.vue'), meta: { title: 'Monitoring' } },
-        { path: 'audit/logs', name: 'AdminAuditLogs', component: () => import('@/views/admin/audit/AuditLogView.vue'), meta: { title: 'Audit logs' } },
-        { path: 'reports', name: 'AdminReports', component: () => import('@/views/admin/reports/ReportDashboardView.vue'), meta: { title: 'Reports' } },
+        { path: 'tenants/list', name: 'AdminTenantList', component: () => import('@/views/admin/tenants/TenantListView.vue'), meta: { title: 'Tenants', permissions: ['admin.tenant.manage'] } },
+        { path: 'tenants/lifecycle', name: 'AdminTenantLifecycle', component: () => import('@/views/admin/tenants/TenantLifecycleView.vue'), meta: { title: 'Tenant lifecycle', permissions: ['admin.tenant.manage'] } },
+        { path: 'tenants/:tenantId', name: 'AdminTenantDetail', component: () => import('@/views/admin/tenants/TenantDetailView.vue'), meta: { title: 'Tenant detail', permissions: ['admin.tenant.manage'] } },
+        { path: 'plans', name: 'AdminPlanList', component: () => import('@/views/admin/plans/PlanManagementView.vue'), meta: { title: 'Plans', permissions: ['admin.plan.manage'] } },
+        { path: 'onboarding/audit', name: 'AdminOnboardingAudit', component: () => import('@/views/admin/onboarding/AuditListView.vue'), meta: { title: 'Onboarding audit', permissions: ['admin.onboarding.audit'] } },
+        { path: 'users/roles', name: 'AdminRoleManagement', component: () => import('@/views/admin/roles/RolePermissionView.vue'), meta: { title: 'Roles', permissions: ['admin.role.manage'] } },
+        { path: 'monitoring', name: 'AdminMonitoring', component: () => import('@/views/admin/monitoring/MonitoringDashboardView.vue'), meta: { title: 'Monitoring', permissions: ['admin.monitor.view'] } },
+        { path: 'audit/logs', name: 'AdminAuditLogs', component: () => import('@/views/admin/audit/AuditLogView.vue'), meta: { title: 'Audit logs', permissions: ['admin.audit.view'] } },
+        { path: 'reports', name: 'AdminReports', component: () => import('@/views/admin/reports/ReportDashboardView.vue'), meta: { title: 'Reports', permissions: ['admin.monitor.view'] } },
       ],
     },
     {
@@ -51,27 +57,27 @@ const router = createRouter({
       component: () => import('@/views/school/SchoolLayoutView.vue'),
       meta: { title: 'School admin', requiresAuth: true, roles: ['school_admin'] },
       children: [
-        { path: 'dashboard', name: 'SchoolDashboard', component: () => import('@/views/school/dashboard/SchoolDashboardView.vue'), meta: { title: 'Dashboard' } },
-        { path: 'org/departments', name: 'SchoolDeptList', component: () => import('@/views/school/org/DepartmentListView.vue'), meta: { title: 'Departments' } },
-        { path: 'users/staff', name: 'SchoolStaffList', component: () => import('@/views/school/users/StaffListView.vue'), meta: { title: 'Staff' } },
-        { path: 'users/student', name: 'SchoolStudentList', component: () => import('@/views/school/users/StudentListView.vue'), meta: { title: 'Students' } },
-        { path: 'admins', name: 'SchoolAdminList', component: () => import('@/views/school/admins/AdminListView.vue'), meta: { title: 'Admins' } },
-        { path: 'form/list', name: 'SchoolFormList', component: () => import('@/views/school/form/FormListView.vue'), meta: { title: 'Forms' } },
-        { path: 'announcements', name: 'SchoolAnnouncementList', component: () => import('@/views/school/announcement/AnnouncementListView.vue'), meta: { title: 'Announcements' } },
-        { path: 'audit/list', name: 'SchoolAuditList', component: () => import('@/views/school/audit/AuditListView.vue'), meta: { title: 'Audits' } },
-        { path: 'data/overview', name: 'SchoolDataOverview', component: () => import('@/views/school/data/DataOverviewView.vue'), meta: { title: 'Data overview' } },
-        { path: 'complaint/stats', name: 'SchoolComplaintStats', component: () => import('@/views/school/complaint/ComplaintStatsView.vue'), meta: { title: 'Complaint stats' } },
-        { path: 'complaint/detail', name: 'SchoolComplaintDetail', component: () => import('@/views/school/complaint/ComplaintDetailView.vue'), meta: { title: 'Complaint detail' } },
-        { path: 'help/tickets', name: 'SchoolHelpTickets', component: () => import('@/views/school/help/HelpTicketListView.vue'), meta: { title: 'Help tickets' } },
-        { path: 'help/content', name: 'SchoolHelpContent', component: () => import('@/views/school/help/HelpContentManageView.vue'), meta: { title: 'Help content' } },
-        { path: 'audit/logs', name: 'SchoolOperationLogs', component: () => import('@/views/school/audit/SchoolOperationLogView.vue'), meta: { title: 'Operation logs' } },
-        { path: 'imports', name: 'SchoolImportCenter', component: () => import('@/views/school/imports/ImportCenterView.vue'), meta: { title: 'Imports' } },
-        { path: 'teaching/courses', name: 'SchoolCourses', component: () => import('@/views/school/teaching/CourseManagementView.vue'), meta: { title: 'Courses' } },
-        { path: 'teaching/classes', name: 'SchoolClasses', component: () => import('@/views/school/teaching/ClassManagementView.vue'), meta: { title: 'Classes' } },
-        { path: 'teaching/enrollments', name: 'SchoolEnrollments', component: () => import('@/views/school/teaching/EnrollmentManagementView.vue'), meta: { title: 'Enrollments' } },
-        { path: 'service/orgs', name: 'SchoolServiceOrgs', component: () => import('@/views/school/service/ServiceOrgManagementView.vue'), meta: { title: 'Service orgs' } },
-        { path: 'service/items', name: 'SchoolServiceItems', component: () => import('@/views/school/service/ServiceItemManagementView.vue'), meta: { title: 'Service items' } },
-        { path: 'school-info', name: 'SchoolInfo', component: () => import('@/views/school/info/SchoolInfoView.vue'), meta: { title: 'School info' } },
+        { path: 'dashboard', name: 'SchoolDashboard', component: () => import('@/views/school/dashboard/SchoolDashboardView.vue'), meta: { title: 'Dashboard', permissions: ['school.dashboard.view'] } },
+        { path: 'org/departments', name: 'SchoolDeptList', component: () => import('@/views/school/org/DepartmentListView.vue'), meta: { title: 'Departments', permissions: ['school.org.manage'] } },
+        { path: 'users/staff', name: 'SchoolStaffList', component: () => import('@/views/school/users/StaffListView.vue'), meta: { title: 'Staff', permissions: ['school.user.manage'] } },
+        { path: 'users/student', name: 'SchoolStudentList', component: () => import('@/views/school/users/StudentListView.vue'), meta: { title: 'Students', permissions: ['school.user.manage'] } },
+        { path: 'admins', name: 'SchoolAdminList', component: () => import('@/views/school/admins/AdminListView.vue'), meta: { title: 'Admins', permissions: ['school.user.manage'] } },
+        { path: 'form/list', name: 'SchoolFormList', component: () => import('@/views/school/form/FormListView.vue'), meta: { title: 'Forms', permissions: ['school.audit.manage'] } },
+        { path: 'announcements', name: 'SchoolAnnouncementList', component: () => import('@/views/school/announcement/AnnouncementListView.vue'), meta: { title: 'Announcements', permissions: ['school.announcement.manage'] } },
+        { path: 'audit/list', name: 'SchoolAuditList', component: () => import('@/views/school/audit/AuditListView.vue'), meta: { title: 'Audits', permissions: ['school.audit.manage'] } },
+        { path: 'data/overview', name: 'SchoolDataOverview', component: () => import('@/views/school/data/DataOverviewView.vue'), meta: { title: 'Data overview', permissions: ['school.dashboard.view'] } },
+        { path: 'complaint/stats', name: 'SchoolComplaintStats', component: () => import('@/views/school/complaint/ComplaintStatsView.vue'), meta: { title: 'Complaint stats', permissions: ['school.audit.manage'] } },
+        { path: 'complaint/detail', name: 'SchoolComplaintDetail', component: () => import('@/views/school/complaint/ComplaintDetailView.vue'), meta: { title: 'Complaint detail', permissions: ['school.audit.manage'] } },
+        { path: 'help/tickets', name: 'SchoolHelpTickets', component: () => import('@/views/school/help/HelpTicketListView.vue'), meta: { title: 'Help tickets', permissions: ['school.help.manage'] } },
+        { path: 'help/content', name: 'SchoolHelpContent', component: () => import('@/views/school/help/HelpContentManageView.vue'), meta: { title: 'Help content', permissions: ['school.help.manage'] } },
+        { path: 'audit/logs', name: 'SchoolOperationLogs', component: () => import('@/views/school/audit/SchoolOperationLogView.vue'), meta: { title: 'Operation logs', permissions: ['school.audit.manage'] } },
+        { path: 'imports', name: 'SchoolImportCenter', component: () => import('@/views/school/imports/ImportCenterView.vue'), meta: { title: 'Imports', permissions: ['school.user.manage'] } },
+        { path: 'teaching/courses', name: 'SchoolCourses', component: () => import('@/views/school/teaching/CourseManagementView.vue'), meta: { title: 'Courses', permissions: ['school.org.manage'] } },
+        { path: 'teaching/classes', name: 'SchoolClasses', component: () => import('@/views/school/teaching/ClassManagementView.vue'), meta: { title: 'Classes', permissions: ['school.org.manage'] } },
+        { path: 'teaching/enrollments', name: 'SchoolEnrollments', component: () => import('@/views/school/teaching/EnrollmentManagementView.vue'), meta: { title: 'Enrollments', permissions: ['school.org.manage'] } },
+        { path: 'service/orgs', name: 'SchoolServiceOrgs', component: () => import('@/views/school/service/ServiceOrgManagementView.vue'), meta: { title: 'Service orgs', permissions: ['school.org.manage'] } },
+        { path: 'service/items', name: 'SchoolServiceItems', component: () => import('@/views/school/service/ServiceItemManagementView.vue'), meta: { title: 'Service items', permissions: ['school.org.manage'] } },
+        { path: 'school-info', name: 'SchoolInfo', component: () => import('@/views/school/info/SchoolInfoView.vue'), meta: { title: 'School info', permissions: ['school.org.manage'] } },
       ],
     },
     {
@@ -167,7 +173,15 @@ router.beforeEach(async (to, from, next) => {
       const staffPortalRoles = ['teaching_admin', 'service_admin', 'feedback_handler', 'form_publisher', 'course_owner', 'service_window_manager']
       const staffSubRoleMatch = to.meta.roles.includes('staff') && userStore.roles.some(role => staffPortalRoles.includes(role))
       if (!roleMatch && !staffSubRoleMatch) {
-        next({ name: roleDashboardMap[userStore.userRole] || 'StudentDashboard' })
+        next({ name: 'Forbidden', query: { from: to.fullPath } })
+        return
+      }
+    }
+
+    if (Array.isArray(to.meta.permissions) && to.meta.permissions.length > 0) {
+      const hasPermission = to.meta.permissions.some(permission => userStore.permissions.includes(permission))
+      if (!hasPermission) {
+        next({ name: 'Forbidden', query: { from: to.fullPath } })
         return
       }
     }

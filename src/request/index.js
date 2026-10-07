@@ -3,82 +3,189 @@ import { ElMessage } from 'element-plus'
 import { getToken, clearAuth } from '@/utils/auth'
 import router from '@/router'
 
-// 创建 axios 实例
 const service = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 15000,
 })
 
-// 请求拦截器
+let redirectingToLogin = false
+let redirectingToForbidden = false
+
 service.interceptors.request.use(
   (config) => {
     const token = getToken()
     if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`
-    }
-    // 打印请求信息
-    console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`)
-    if (config.params) {
-      console.log(`  Params:`, config.params)
-    }
-    if (config.data) {
-      console.log(`  Data:`, config.data)
+      config.headers = config.headers || {}
+      config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error),
 )
 
-// 响应拦截器
 service.interceptors.response.use(
   (response) => {
-    const res = response.data
-    // 打印响应信息
-    console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`)
-    console.log(`  Status: ${response.status}`)
-    if (res.code && res.code !== 200) {
-      ElMessage.error(res.message || '请求失败')
-      if (res.code === 401) handleUnauthorized()
-      return Promise.reject(new Error(res.message || '请求失败'))
+    if (response.config?.rawResponse) return response
+    const body = response.data
+    if (isBusinessError(body)) {
+      const error = createApiError(body.message || '请求失败', {
+        code: body.code,
+        status: response.status,
+        response,
+      })
+      handleBusinessError(error, response.config)
+      return Promise.reject(error)
     }
-    return res
+    return body
   },
   (error) => {
-    if (error.response?.status === 401) {
-      handleUnauthorized(error.response?.data?.message)
-    } else if (error.response?.status === 403) {
-      ElMessage.error(error.response?.data?.message || '没有操作权限')
-    } else if (error.response?.status === 409 || error.response?.status === 422) {
-      ElMessage.error(error.response?.data?.message || '请求无法处理')
-    } else if (!error.config?.silent) {
-      ElMessage.error(error.message || '网络错误')
-    }
-    return Promise.reject(error)
-  }
+    const status = error.response?.status
+    const body = error.response?.data
+    const apiError = createApiError(
+      getErrorMessage(body, status, error),
+      { code: body?.code, status, response: error.response, cause: error },
+    )
+    handleHttpError(apiError, error.config)
+    return Promise.reject(apiError)
+  },
 )
 
-export default service
+function isBusinessError(body) {
+  return Boolean(
+    body
+    && typeof body === 'object'
+    && Object.prototype.hasOwnProperty.call(body, 'code')
+    && body.code !== 200
+    && body.code !== 0
+    && body.code !== '200',
+  )
+}
 
-let redirectingToLogin = false
+function getErrorMessage(body, status, error) {
+  if (body?.message) return body.message
+  if (body?.msg) return body.msg
+  if (status === 401) return '登录已失效，请重新登录'
+  if (status === 403) return '没有执行该操作的权限'
+  if (status === 422) return '请求参数校验失败'
+  if (status >= 500) return '服务暂时不可用，请稍后重试'
+  if (!error.response) return '网络连接失败，请检查网络后重试'
+  return error.message || '请求失败'
+}
 
-function handleUnauthorized(message = '登录已过期，请重新登录') {
+function createApiError(message, details = {}) {
+  const apiError = new Error(message)
+  Object.assign(apiError, details)
+  apiError.isApiError = true
+  return apiError
+}
+
+function notify(message, config) {
+  if (!config?.silent && message) ElMessage.error(message)
+}
+
+function handleBusinessError(error, config) {
+  const code = Number(error.code)
+  if (error.status === 401 || code === 401) {
+    handleUnauthorized(error.message)
+  } else if (error.status === 403 || code === 403) {
+    handleForbidden(error.message, config)
+  } else {
+    notify(error.message, config)
+  }
+}
+
+function handleHttpError(error, config) {
+  if (error.status === 401) {
+    handleUnauthorized(error.message)
+  } else if (error.status === 403) {
+    handleForbidden(error.message, config)
+  } else {
+    notify(error.message, config)
+  }
+}
+
+function handleUnauthorized(message = '登录已失效，请重新登录') {
   clearAuth()
+  window.dispatchEvent(new CustomEvent('campus:auth-expired'))
   if (!redirectingToLogin) {
     redirectingToLogin = true
-    router.push('/login').finally(() => {
+    router.push({ name: 'Login', query: { reason: 'expired' } }).finally(() => {
       redirectingToLogin = false
     })
   }
   ElMessage.error(message)
 }
 
-/**
- * 解包响应：兼容 mock server 包装格式 { code, data } 和裸对象
- * 用于 POST/PATCH/PUT/DELETE 等写操作
- */
-export function unwrap(res) {
-  if (res && typeof res === 'object' && 'code' in res && 'data' in res) return res.data
-  return res
+function handleForbidden(message = '没有执行该操作的权限', config) {
+  notify(message, config)
+  if (router.currentRoute.value.name !== 'Forbidden' && !redirectingToForbidden) {
+    redirectingToForbidden = true
+    router.push({ name: 'Forbidden' }).finally(() => {
+      redirectingToForbidden = false
+    })
+  }
 }
+
+export function unwrap(response) {
+  return response && typeof response === 'object' && 'data' in response ? response.data : response
+}
+
+export function toPage(response, defaults = {}) {
+  const data = unwrap(response) || {}
+  const records = data.records || data.list || data.items || (Array.isArray(data) ? data : [])
+  const list = Array.isArray(records) ? records : []
+  return {
+    records: list,
+    list,
+    total: Number(data.total ?? data.totalCount ?? list.length ?? defaults.total ?? 0),
+    pageNum: Number(data.pageNum ?? data.page ?? defaults.pageNum ?? 1),
+    pageSize: Number(data.pageSize ?? defaults.pageSize ?? (list.length || 10)),
+  }
+}
+
+export function emptyPage(pageNum = 1, pageSize = 10) {
+  return { records: [], list: [], total: 0, pageNum, pageSize }
+}
+
+export function isPermissionError(error) {
+  return error?.status === 403 || Number(error?.code) === 403
+}
+
+export function isUnauthorizedError(error) {
+  return error?.status === 401 || Number(error?.code) === 401
+}
+
+export function uploadFile(url, file, fields = {}, config = {}) {
+  const formData = new FormData()
+  formData.append('file', file)
+  Object.entries(fields).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) formData.append(key, value)
+  })
+  return service.post(url, formData, {
+    ...config,
+    headers: { ...(config.headers || {}), 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+export async function downloadFile(url, params = {}, filename = '', config = {}) {
+  const response = await service.get(url, {
+    ...config,
+    params,
+    responseType: 'blob',
+    rawResponse: true,
+  })
+  const blob = response.data instanceof Blob ? response.data : new Blob([response.data])
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = filename || getFilenameFromDisposition(response) || 'download'
+  link.click()
+  URL.revokeObjectURL(link.href)
+  return response
+}
+
+function getFilenameFromDisposition(response) {
+  const disposition = response?.headers?.['content-disposition'] || ''
+  return disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i)?.[1]
+}
+
+export default service
