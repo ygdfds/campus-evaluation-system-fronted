@@ -40,7 +40,10 @@ async function save() {
     ElMessage.success('选课关系已保存')
     dialogVisible.value = false
     await load()
-  } catch {}
+  } catch (error) {
+    console.error('Failed to save enrollment', error)
+    ElMessage.error('Failed to save enrollment')
+  }
 }
 async function remove(row) {
   try {
@@ -48,7 +51,12 @@ async function remove(row) {
     await deleteEnrollmentApi(row.id)
     ElMessage.success('选课关系已删除')
     await load()
-  } catch {}
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Failed to delete enrollment', error)
+      ElMessage.error('Failed to delete enrollment')
+    }
+  }
 }
 onMounted(load)
 </script>

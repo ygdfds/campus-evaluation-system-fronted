@@ -147,7 +147,7 @@ router.beforeEach(async (to, from, next) => {
     try {
       await userStore.confirmSession()
       next({ name: roleDashboardMap[userStore.userRole] || 'StudentDashboard' })
-    } catch (error) {
+    } catch {
       await userStore.logout({ localOnly: true })
       next()
     }
@@ -162,7 +162,7 @@ router.beforeEach(async (to, from, next) => {
 
     try {
       await userStore.confirmSession()
-    } catch (error) {
+    } catch {
       await userStore.logout({ localOnly: true })
       next({ name: 'Login', query: { redirect: to.fullPath } })
       return

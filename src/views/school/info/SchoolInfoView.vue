@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useUserStore } from '@/stores/user'
 import {
   OfficeBuilding, Calendar, CircleCheck,
   Location, Connection, Document,
@@ -11,7 +10,6 @@ import { uploadFileApi } from '@/api/files'
 
 defineOptions({ name: 'SchoolInfoView' })
 
-const userStore = useUserStore()
 const loading = ref(true)
 const schoolInfo = ref(null)
 const editVisible = ref(false)
@@ -63,7 +61,10 @@ async function uploadImage(file, key) {
     const response = await uploadFileApi(file.raw, 'school-profile')
     const data = response.data || response
     editForm.value[key] = data.id
-  } catch {}
+  } catch (error) {
+    console.error('Failed to upload school image', error)
+    ElMessage.error('Image upload failed')
+  }
 }
 
 async function saveEdit() {
@@ -71,7 +72,10 @@ async function saveEdit() {
     schoolInfo.value = (await updateSchoolProfileApi(editForm.value)).data
     editVisible.value = false
     ElMessage.success('学校资料已保存')
-  } catch {}
+  } catch (error) {
+    console.error('Failed to save school profile', error)
+    ElMessage.error('Failed to save school profile')
+  }
 }
 
 onMounted(loadData)

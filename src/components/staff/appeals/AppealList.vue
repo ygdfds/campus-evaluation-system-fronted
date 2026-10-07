@@ -1,5 +1,5 @@
 <script setup>
-import { APPEAL_STATUS_MAP, APPEAL_TYPE_MAP, APPEAL_PRIORITY_MAP, TRACE_AUTH_STATUS_MAP } from '@/api/staffAppeals'
+import { APPEAL_STATUS_MAP, APPEAL_PRIORITY_MAP, TRACE_AUTH_STATUS_MAP } from '@/api/staffAppeals'
 
 defineOptions({ name: 'AppealList' })
 

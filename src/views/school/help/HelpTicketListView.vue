@@ -1,8 +1,8 @@
-<script setup>
+﻿<script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Refresh, Search, View, ChatDotRound, CircleClose, Clock, User, Document } from '@element-plus/icons-vue'
+import { Refresh, Search, View, ChatDotRound, CircleClose, Document } from '@element-plus/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import {
   getSchoolHelpTicketsApi,
@@ -99,7 +99,7 @@ async function submitReply() {
     ElMessage.success('回复成功')
     replyVisible.value = false
     loadData()
-  } catch (e) {
+  } catch {
     ElMessage.error('回复失败')
   }
 }

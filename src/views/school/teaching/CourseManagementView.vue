@@ -50,7 +50,10 @@ async function save() {
     ElMessage.success('课程已保存')
     dialogVisible.value = false
     await load()
-  } catch {}
+  } catch (error) {
+    console.error('Failed to save course', error)
+    ElMessage.error('Failed to save course')
+  }
 }
 async function remove(row) {
   try {
@@ -58,7 +61,12 @@ async function remove(row) {
     await deleteCourseApi(row.id)
     ElMessage.success('课程已删除')
     await load()
-  } catch {}
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Failed to delete course', error)
+      ElMessage.error('Failed to delete course')
+    }
+  }
 }
 onMounted(async () => {
   orgs.value = await getTeachingOrgOptionsApi().catch(() => [])
