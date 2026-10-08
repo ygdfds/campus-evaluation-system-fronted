@@ -75,16 +75,18 @@ async function loadData() {
     const tid = userStore.tenantId
     if (!tid) return
 
-    // 先加载组织数据以计算权限范围
     const [teachingOrgsRes, serviceOrgsRes] = await Promise.all([
       request.get('/teachingOrgUnits', { params: { tenant_id: tid, deleted: false } }),
       request.get('/serviceOrgUnits', { params: { tenant_id: tid, deleted: false } }),
     ])
-    const teachingOrgs = (teachingOrgsRes.data || []).filter(o => !o.deleted)
-    const serviceOrgs = (serviceOrgsRes.data || []).filter(o => !o.deleted)
+    const scope = getStaffRoleScope(
+      userStore,
+      teachingOrgsRes.data || [],
+      serviceOrgsRes.data || [],
+    )
 
+    // 先加载组织数据以计算权限范围
     // 计算当前职工权限范围，用于数据隔离
-    const scope = getStaffRoleScope(userStore, teachingOrgs, serviceOrgs)
     const isSchoolAdmin = roleCodes.includes('school_admin')
 
     ctx.value = await getStaffReportContextApi(tid, { ...scope, schoolAdmin: isSchoolAdmin })

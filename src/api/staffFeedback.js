@@ -1,5 +1,16 @@
 import request from '@/request'
 import { unwrap } from '@/request'
+import {
+  getCoursesApi,
+  getServiceItemsApi,
+  getTeachingOrgUnitsApi,
+} from './evaluation'
+
+function getServiceOrgUnitsApi() {
+  return request.get('/school/service-orgs', {
+    params: { pageNum: 1, pageSize: 1000 },
+  }).then(res => res.data?.records || res.data || [])
+}
 
 /**
  * 职工端反馈处理 API
@@ -343,18 +354,18 @@ export async function createFeedbackNotificationApi(payload) {
  * 获取关联对象名称（服务项目、课程、组织等）
  */
 export async function getFeedbackRelatedObjectsApi(tenantId) {
-  const [serviceItemsRes, coursesRes, serviceOrgsRes, teachingOrgsRes] = await Promise.all([
-    request.get('/serviceItems', { params: { tenant_id: tenantId } }),
-    request.get('/courses', { params: { tenant_id: tenantId } }),
-    request.get('/serviceOrgUnits', { params: { tenant_id: tenantId } }),
-    request.get('/teachingOrgUnits', { params: { tenant_id: tenantId } }),
+  const [serviceItems, courses, serviceOrgs, teachingOrgs] = await Promise.all([
+    getServiceItemsApi(tenantId),
+    getCoursesApi(tenantId),
+    getServiceOrgUnitsApi(tenantId),
+    getTeachingOrgUnitsApi(tenantId),
   ])
 
   return {
-    serviceItems: serviceItemsRes.data || [],
-    courses: coursesRes.data || [],
-    serviceOrgs: serviceOrgsRes.data || [],
-    teachingOrgs: teachingOrgsRes.data || [],
+    serviceItems,
+    courses,
+    serviceOrgs,
+    teachingOrgs,
   }
 }
 

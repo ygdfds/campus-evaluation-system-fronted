@@ -94,16 +94,14 @@ export { getCoursesApi, getServiceItemsApi, getTeachingOrgUnitsApi } from './eva
  * 获取学生选课记录
  */
 export function getCourseEnrollmentsApi(tenantId, studentId) {
-  return request.get('/courseEnrollments', {
-    params: { tenant_id: tenantId, student_id: studentId }
-  }).then(res => res.data || [])
+  return request.get('/evaluation/student/course-enrollments').then(res => res.data || res || [])
 }
 
 /**
  * 获取后勤服务组织
  */
 export function getServiceOrgUnitsApi(tenantId) {
-  return request.get('/serviceOrgUnits', {
-    params: { tenant_id: tenantId }
-  }).then(res => res.data || [])
+  return request.get('/school/service-orgs', {
+    params: { pageNum: 1, pageSize: 1000 }
+  }).then(res => res.data?.records || res.data || [])
 }

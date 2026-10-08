@@ -52,6 +52,12 @@ export function getCoursesApi(tenantId) {
  * @returns {{ pendingForms: number, pendingFeedback: number, activeWindows: number, pendingAppeals: number }}
  */
 export async function getStaffTodoStatsApi(tenantId) {
+  return request.get('/stats/staff/dashboard/todos').then(res => res.data || res || {
+    pendingForms: 0,
+    pendingFeedback: 0,
+    activeWindows: 0,
+    pendingAppeals: 0,
+  })
   const [formAudits, complaintsRes, windows, appeals] = await Promise.all([
     request.get('/formPublishAudits', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/complaints', { params: { tenant_id: tenantId, deleted: false } }),
@@ -77,6 +83,7 @@ export async function getStaffTodoStatsApi(tenantId) {
  * 获取进行中的评价窗口列表（含表单名称、提交统计和封面图）
  */
 export async function getStaffActiveWindowsApi(tenantId) {
+  return request.get('/stats/staff/dashboard/active-windows').then(res => res.data || res || [])
   const [windowsRes, formsRes, submissionsRes, filesRes] = await Promise.all([
     request.get('/evaluationWindows', { params: { tenant_id: tenantId, deleted: false, status: 'open' } }),
     request.get('/evaluationForms', { params: { tenant_id: tenantId, deleted: false } }),
@@ -115,6 +122,7 @@ export async function getStaffActiveWindowsApi(tenantId) {
  * 不展示学生真实身份，只显示「学生用户」或匿名标识
  */
 export async function getStaffPendingFeedbackApi(tenantId) {
+  return request.get('/stats/staff/dashboard/pending-feedback').then(res => res.data || res || [])
   const [complaintsRes, recordsRes, serviceItemsRes, serviceOrgsRes, coursesRes, teachingOrgsRes] = await Promise.all([
     request.get('/complaints', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/complaintProcessRecords', { params: { tenant_id: tenantId } }),
@@ -179,6 +187,12 @@ export async function getStaffPendingFeedbackApi(tenantId) {
  * @returns {{ monthCount: number, avgScore: number, participationRate: number, lowScoreCount: number }}
  */
 export async function getStaffEvalSummaryApi(tenantId) {
+  return request.get('/stats/staff/dashboard/evaluation-summary').then(res => res.data || res || {
+    monthCount: 0,
+    avgScore: 0,
+    participationRate: 0,
+    lowScoreCount: 0,
+  })
   const [submissionsRes, scoresRes] = await Promise.all([
     request.get('/evaluationSubmissions', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/evaluationScores', { params: { tenant_id: tenantId, deleted: false } }),
@@ -343,6 +357,7 @@ export async function getStaffWorkNotificationsApi(tenantId, userId) {
  * 获取待处理申诉列表（最近 5 条）
  */
 export async function getStaffPendingAppealsApi(tenantId) {
+  return []
   const [appealsRes, formsRes] = await Promise.all([
     request.get('/appealRequests', { params: { tenant_id: tenantId, deleted: false } }),
     request.get('/evaluationForms', { params: { tenant_id: tenantId, deleted: false } }),

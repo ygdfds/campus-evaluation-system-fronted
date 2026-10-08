@@ -15,6 +15,7 @@ service.interceptors.request.use(
     const token = getToken()
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
+      config.headers['satoken'] = token
     }
     // 打印请求信息
     console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`)

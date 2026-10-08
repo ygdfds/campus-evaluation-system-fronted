@@ -4,9 +4,7 @@ import { useRouter } from 'vue-router'
 import { Search, RefreshRight } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import {
-  getEvaluationWindowsApi, getEvaluationFormsApi, getEvaluationSubmissionsApi,
-  getCoursesApi, getServiceItemsApi, getCourseEnrollmentsApi,
-  getTeachingOrgUnitsApi, getFileResourcesApi,
+  getStudentEvaluationTasksApi,
 } from '@/api/evaluation'
 import EmptyPlaceholder from '@/components/common/EmptyPlaceholder.vue'
 import EvaluationTaskCard from '@/components/student/EvaluationTaskCard.vue'
@@ -128,67 +126,10 @@ async function loadData() {
   loading.value = true
   const userId = userStore.userInfo?.id
   const tenantId = userStore.tenantId
-  const roleType = userStore.userRole || 'student'
   if (!userId || !tenantId) { loading.value = false; return }
 
   try {
-    const [windows, forms, submissions, courses, enrollments, serviceItems, orgUnits, files] = await Promise.all([
-      getEvaluationWindowsApi(tenantId),
-      getEvaluationFormsApi(tenantId),
-      getEvaluationSubmissionsApi(tenantId, userId),
-      getCoursesApi(tenantId),
-      getCourseEnrollmentsApi(tenantId, userId),
-      getServiceItemsApi(tenantId),
-      getTeachingOrgUnitsApi(tenantId),
-      getFileResourcesApi(tenantId),
-    ])
-
-    const fileMap = {}; files.forEach(f => { fileMap[f.id] = f })
-    const formsMap = {}; forms.forEach(f => { formsMap[f.id] = f })
-    const coursesMap = {}; courses.forEach(c => { coursesMap[c.id] = c })
-    const serviceMap = {}; serviceItems.forEach(s => { serviceMap[s.id] = s })
-    const orgMap = {}; orgUnits.forEach(o => { orgMap[o.id] = o })
-    const submissionMap = {}; submissions.forEach(s => { submissionMap[s.form_id] = s })
-    const enrolledCourseIds = enrollments.map(e => e.course_id)
-
-    evaluationList.value = windows
-      .filter(w => {
-        const form = formsMap[w.form_id]
-        if (!form) return false
-        if (form.type === 'teaching' && form.course_id && !enrolledCourseIds.includes(form.course_id)) return false
-        if (form.publish_scope === 'all_staff' && roleType === 'student') return false
-        return true
-      })
-      .map(w => {
-        const form = formsMap[w.form_id]
-        const submission = submissionMap[w.form_id]
-        const statusInfo = computeTaskStatus(w, submission)
-        let dept = '', target = ''
-        if (form.type === 'teaching' && form.course_id) {
-          const course = coursesMap[form.course_id]
-          const org = course ? orgMap[course.teaching_org_id] : null
-          dept = org ? org.name : '教务处'
-          target = course ? course.course_name : ''
-        } else if (form.service_item_id) {
-          const si = serviceMap[form.service_item_id]
-          const org = si ? orgMap[si.service_org_id] : null
-          dept = org ? org.name : '后勤管理处'
-          target = si ? si.name : ''
-        }
-        return {
-          id: w.id,
-          title: form ? form.title : '评价任务',
-          type: w.type === 'teaching' ? '教学评价' : w.type === 'instant' ? '即时评价' : '后勤服务',
-          typeKey: w.type,
-          dept, target,
-          startDate: formatShortDate(w.start_at),
-          endDate: formatShortDate(w.end_at),
-          status: statusInfo.label,
-          statusType: statusInfo.type,
-          img: form?.cover_file_id && fileMap[form.cover_file_id] ? fileMap[form.cover_file_id].url : '',
-          form_id: w.form_id,
-        }
-      })
+    evaluationList.value = await getStudentEvaluationTasksApi()
   } catch (err) {
     console.error('加载评价任务失败:', err)
   } finally {

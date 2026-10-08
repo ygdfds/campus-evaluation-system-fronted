@@ -24,27 +24,21 @@ function fetchAll(resource, tenantId) {
  *   - serviceOrgIds: 授权服务组织 ID 列表
  */
 export async function getStaffReportContextApi(tenantId, scope = null) {
-  const [
-    forms, windows, submissions, scores, answers, questions, options,
-    complaints, records,
-    courses, courseTeachers, teachingOrgs,
-    serviceItems, serviceOrgs,
-  ] = await Promise.all([
-    fetchAll('evaluationForms', tenantId),
-    fetchAll('evaluationWindows', tenantId),
-    fetchAll('evaluationSubmissions', tenantId),
-    fetchAll('evaluationScores', tenantId),
-    fetchAll('evaluationAnswers', tenantId),
-    fetchAll('evaluationQuestions', tenantId),
-    fetchAll('evaluationQuestionOptions', tenantId),
-    fetchAll('complaints', tenantId),
-    request.get('/complaintProcessRecords', { params: { tenant_id: tenantId } }).then(res => (res.data || []).filter(r => !r.deleted)),
-    fetchAll('courses', tenantId),
-    fetchAll('courseTeachers', tenantId),
-    fetchAll('teachingOrgUnits', tenantId),
-    fetchAll('serviceItems', tenantId),
-    fetchAll('serviceOrgUnits', tenantId),
-  ])
+  const backendCtx = await request.get('/stats/staff/reports/context').then(res => res.data || res || {})
+  const forms = backendCtx.forms || []
+  const windows = backendCtx.windows || []
+  const submissions = backendCtx.submissions || []
+  const scores = backendCtx.scores || []
+  const answers = backendCtx.answers || []
+  const questions = backendCtx.questions || []
+  const options = backendCtx.options || []
+  const complaints = backendCtx.complaints || []
+  const records = backendCtx.records || []
+  const courses = backendCtx.courses || []
+  const courseTeachers = backendCtx.courseTeachers || []
+  const teachingOrgs = backendCtx.teachingOrgs || []
+  const serviceItems = backendCtx.serviceItems || []
+  const serviceOrgs = backendCtx.serviceOrgs || []
 
   // 权限范围过滤：非 school_admin 时按授权组织限定数据
   let filteredCourses = courses

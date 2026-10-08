@@ -1,6 +1,14 @@
 import request from '@/request'
 import { unwrap } from '@/request'
 
+function dataOf(res) {
+  return res && typeof res === 'object' && 'data' in res ? res.data : res
+}
+
+export function getStudentEvaluationTasksApi() {
+  return request.get('/evaluation/student/tasks').then(dataOf)
+}
+
 // ==================== 基础读取 ====================
 
 /**
@@ -278,116 +286,21 @@ export async function updateSubmissionAttachments(submissionId, attachments, con
  * 保存草稿
  */
 export async function saveEvaluationDraft(payload, context) {
-  const now = new Date().toISOString()
-  let submissionId = payload.submissionId
-
-  if (submissionId) {
-    // 更新已有草稿
-    await updateEvaluationSubmissionApi(submissionId, {
-      updated_at: now,
-    })
-  } else {
-    // 创建新草稿
-    const newSub = await createEvaluationSubmissionApi({
-      tenant_id: context.tenantId,
-      school_id: context.schoolId,
-      form_id: payload.formId,
-      window_id: payload.windowId,
-      evaluator_user_id: context.userId,
-      target_type: payload.targetType,
-      target_id: payload.targetId,
-      overall_score: null,
-      anonymous: false,
-      submitted_at: null,
-      modifiable_until: null,
-      locked_at: null,
-      status: 'draft',
-      review_status: null,
-      created_at: now,
-      updated_at: now,
-      deleted: false,
-    })
-    submissionId = newSub.id
-  }
-
-  // 覆盖答案/评分/附件
-  await updateSubmissionAnswers(submissionId, payload.answers || [], context)
-  await updateSubmissionScores(submissionId, payload.scores || [], context)
-  await updateSubmissionAttachments(submissionId, payload.attachments || [], context)
-
-  return { id: submissionId }
+  return request.post('/evaluation/student/submissions/draft', payload).then(dataOf)
 }
 
 /**
  * 提交评价
  */
 export async function submitEvaluation(payload, context) {
-  const now = new Date()
-  const nowStr = now.toISOString()
-  const modifiableHours = payload.modifiableHours || 24
-  const modifiableUntil = new Date(now.getTime() + modifiableHours * 3600 * 1000).toISOString()
-  let submissionId = payload.submissionId
-
-  if (submissionId) {
-    // 更新已有 submission（草稿→提交，或修改模式下的重新提交）
-    await updateEvaluationSubmissionApi(submissionId, {
-      status: 'submitted',
-      submitted_at: payload.keepOriginalSubmitTime ? payload.originalSubmittedAt : nowStr,
-      modifiable_until: payload.keepOriginalModifiableTime ? payload.originalModifiableUntil : modifiableUntil,
-      locked_at: null,
-      review_status: payload.reviewStatus || null,
-      updated_at: nowStr,
-    })
-  } else {
-    // 创建新 submission
-    const newSub = await createEvaluationSubmissionApi({
-      tenant_id: context.tenantId,
-      school_id: context.schoolId,
-      form_id: payload.formId,
-      window_id: payload.windowId,
-      evaluator_user_id: context.userId,
-      target_type: payload.targetType,
-      target_id: payload.targetId,
-      overall_score: null,
-      anonymous: false,
-      submitted_at: nowStr,
-      modifiable_until: modifiableUntil,
-      locked_at: null,
-      status: 'submitted',
-      review_status: payload.reviewStatus || null,
-      created_at: nowStr,
-      updated_at: nowStr,
-      deleted: false,
-    })
-    submissionId = newSub.id
-  }
-
-  // 覆盖答案/评分/附件
-  await updateSubmissionAnswers(submissionId, payload.answers || [], context)
-  await updateSubmissionScores(submissionId, payload.scores || [], context)
-  await updateSubmissionAttachments(submissionId, payload.attachments || [], context)
-
-  return { id: submissionId }
+  return request.post('/evaluation/student/submissions/submit', payload).then(dataOf)
 }
 
 /**
  * 修改评价（提交修改）— 不新建 submission，只更新答案
  */
 export async function updateEvaluationSubmission(submissionId, payload, context) {
-  const now = new Date().toISOString()
-
-  // 只更新 updated_at
-  await updateEvaluationSubmissionApi(submissionId, {
-    updated_at: now,
-    review_status: payload.reviewStatus !== undefined ? payload.reviewStatus : undefined,
-  })
-
-  // 覆盖答案/评分/附件
-  await updateSubmissionAnswers(submissionId, payload.answers || [], context)
-  await updateSubmissionScores(submissionId, payload.scores || [], context)
-  await updateSubmissionAttachments(submissionId, payload.attachments || [], context)
-
-  return { id: submissionId }
+  return request.put(`/evaluation/student/submissions/${submissionId}`, payload).then(dataOf)
 }
 
 // ==================== 聚合方法 ====================
@@ -396,271 +309,40 @@ export async function updateEvaluationSubmission(submissionId, payload, context)
  * 获取评价提交页全部数据（聚合）
  */
 export async function getEvaluationSubmitPageData(taskId, context) {
-  const formId = Number(taskId)
-
-  // 1. 并行加载基础数据
-  const [form, windows, questions, submission] = await Promise.all([
-    getEvaluationFormById(formId),
-    getEvaluationWindowsApi(context.tenantId),
-    getEvaluationQuestions(formId, context),
-    getSubmissionByTask({ formId, userId: context.userId, tenantId: context.tenantId }),
-  ])
-
-  if (!form) return null
-
-  // 2. 找到对应的窗口
-  const win = windows.find(w => w.form_id === formId) || null
-
-  // 3. 加载题目选项
-  const selectQuestions = questions.filter(q => q.type === 'single' || q.type === 'multiple')
-  const optionsMap = {}
-  await Promise.all(
-    selectQuestions.map(async q => {
-      optionsMap[q.id] = await getEvaluationQuestionOptionsApi(q.id)
-    })
-  )
-
-  // 4. 判断模式
-  const now = new Date()
-  let mode = 'create'
-  let readonly = false
-  let readonlyReason = ''
-  let answers = []
-  let scores = []
-  let attachments = []
-
-  if (win) {
-    const start = new Date(win.start_at)
-    const end = new Date(win.end_at)
-
-    if (submission && submission.status !== 'pending') {
-      // 有有效 submission（pending 视为无效，走无 submission 逻辑）
-      if (submission.locked_at) {
-        mode = 'readonly'
-        readonly = true
-        readonlyReason = '评价已锁定，无法修改'
-      } else if (submission.status === 'draft') {
-        mode = 'draft'
-        readonly = false
-      } else if (submission.status === 'submitted') {
-        if (now <= new Date(submission.modifiable_until)) {
-          mode = 'edit'
-          readonly = false
-        } else {
-          mode = 'readonly'
-          readonly = true
-          readonlyReason = '修改期限已过，评价已锁定'
-        }
-      } else {
-        mode = 'readonly'
-        readonly = true
-        readonlyReason = '评价状态异常'
-      }
-    } else {
-      // 无 submission
-      if (now < start) {
-        mode = 'not_started'
-        readonly = true
-        readonlyReason = '评价尚未开始'
-      } else if (now > end) {
-        mode = 'closed'
-        readonly = true
-        readonlyReason = '评价已截止，无法提交'
-      } else {
-        mode = 'create'
-        readonly = false
-      }
-    }
-  } else {
-    // 无窗口
-    readonly = true
-    readonlyReason = '评价窗口不存在'
-  }
-
-  // 5. 加载历史答案/评分/附件
-  if (submission && (mode === 'draft' || mode === 'edit' || mode === 'readonly')) {
-    const [a, s, att] = await Promise.all([
-      getSubmissionAnswers(submission.id, context),
-      getSubmissionScores(submission.id, context),
-      getSubmissionAttachments(submission.id, context),
-    ])
-    answers = a
-    scores = s
-    attachments = att
-  }
-
-  return {
-    task: form,
-    form,
-    window: win,
-    questions,
-    options: optionsMap,
-    submission,
-    answers,
-    scores,
-    attachments,
-    mode,
-    readonly,
-    readonlyReason,
-  }
+  return request.get(`/evaluation/student/forms/${taskId}/submit-page`).then(dataOf)
 }
 
 /**
  * 获取我的评价列表
  */
 export async function getMyEvaluations(context, filters = {}) {
-  const submissions = await getEvaluationSubmissionsApi(context.tenantId, context.userId)
-  const now = new Date()
-
-  // 获取关联的表单和窗口信息
-  const formIds = [...new Set(submissions.map(s => s.form_id))]
-  const forms = await Promise.all(formIds.map(id => getEvaluationFormById(id).catch(() => null)))
-  const formMap = {}
-  forms.forEach(f => { if (f) formMap[f.id] = f })
-
-  const windows = await getEvaluationWindowsApi(context.tenantId)
-  const winMap = {}
-  windows.forEach(w => { winMap[w.form_id] = w })
-
-  // 获取封面图片、课程、服务项目、组织单位等辅助信息
-  const [files, courses, serviceItems, orgUnits] = await Promise.all([
-    getFileResourcesApi(context.tenantId).catch(() => []),
-    getCoursesApi(context.tenantId).catch(() => []),
-    getServiceItemsApi(context.tenantId).catch(() => []),
-    getTeachingOrgUnitsApi(context.tenantId).catch(() => []),
-  ])
-  const fileMap = {}; files.forEach(f => { fileMap[f.id] = f })
-  const courseMap = {}; courses.forEach(c => { courseMap[c.id] = c })
-  const serviceMap = {}; serviceItems.forEach(s => { serviceMap[s.id] = s })
-  const orgMap = {}; orgUnits.forEach(o => { orgMap[o.id] = o })
-
-  // 计算每条记录的状态
-  const result = submissions.map(sub => {
-    const form = formMap[sub.form_id] || {}
-    const win = winMap[sub.form_id] || {}
-    let displayStatus = sub.status
-    let canEdit = false
-    let canView = true
-
-    if (sub.status === 'draft') {
-      displayStatus = 'draft'
-      canEdit = true
-    } else if (sub.status === 'pending') {
-      displayStatus = 'pending'
-      canEdit = false
-    } else if (sub.status === 'submitted') {
-      if (sub.locked_at) {
-        displayStatus = 'locked'
-        canEdit = false
-      } else if (sub.modifiable_until && now <= new Date(sub.modifiable_until)) {
-        displayStatus = 'modifiable'
-        canEdit = true
-      } else {
-        displayStatus = 'locked'
-        canEdit = false
-      }
-    } else if (sub.status === 'locked') {
-      displayStatus = 'locked'
-      canEdit = false
-    }
-
-    // 解析封面图片
-    let coverImg = ''
-    if (form.cover_file_id && fileMap[form.cover_file_id]) {
-      coverImg = fileMap[form.cover_file_id].url
-    }
-
-    // 解析评价对象和部门
-    let targetName = ''
-    let deptName = ''
-    if (form.type === 'teaching' && form.course_id) {
-      const course = courseMap[form.course_id]
-      targetName = course ? course.course_name : ''
-      const org = course ? orgMap[course.teaching_org_id] : null
-      deptName = org ? org.name : '教务处'
-    } else if (form.service_item_id) {
-      const si = serviceMap[form.service_item_id]
-      targetName = si ? si.name : ''
-      const org = si ? orgMap[si.service_org_id] : null
-      deptName = org ? org.name : '后勤管理处'
-    }
-
-    return {
-      ...sub,
-      form_title: form.title || `评价表单 #${sub.form_id}`,
-      form_type: form.type || 'service',
-      window: win,
-      display_status: displayStatus,
-      can_edit: canEdit,
-      can_view: canView,
-      cover_img: coverImg,
-      target_name: targetName,
-      dept_name: deptName,
-    }
-  })
-
-  // 按 form_id 去重：同一表单只保留最新一条 submission
-  const deduped = []
-  const formIdSeen = {}
-  // 先按 created_at 降序排列，确保最新的在前
-  result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-  for (const r of result) {
-    if (!formIdSeen[r.form_id]) {
-      formIdSeen[r.form_id] = true
-      deduped.push(r)
-    }
-  }
-
-  // 按 filters 过滤
-  let filtered = deduped
-  if (filters.status) {
-    filtered = filtered.filter(r => r.display_status === filters.status)
-  }
-
-  // 按 updated_at 降序
-  filtered.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
-
-  return filtered
+  let list = await request.get('/evaluation/student/submissions/my').then(dataOf)
+  if (filters.status) list = list.filter(item => item.display_status === filters.status)
+  return list
 }
 
-// ==================== 辅助资源读取 ====================
+// ==================== 杈呭姪璧勬簮璇诲彇 ====================
 
 /**
- * 获取课程列表
+ * 鑾峰彇璇剧▼鍒楄〃
  */
+
 export function getCoursesApi(tenantId) {
-  return request.get('/courses', { params: { tenant_id: tenantId } })
-    .then(res => res.data || [])
+  return request.get('/evaluation/student/courses').then(dataOf)
 }
 
-/**
- * 获取课程选课记录
- */
 export function getCourseEnrollmentsApi(tenantId, studentId) {
-  return request.get('/courseEnrollments', {
-    params: { tenant_id: tenantId, student_id: studentId }
-  }).then(res => res.data || [])
+  return request.get('/evaluation/student/course-enrollments').then(dataOf)
 }
 
-/**
- * 获取服务项目列表
- */
 export function getServiceItemsApi(tenantId) {
-  return request.get('/serviceItems', { params: { tenant_id: tenantId } })
-    .then(res => res.data || [])
+  return request.get('/evaluation/student/service-items').then(dataOf)
 }
 
-/**
- * 获取教学组织单位
- */
 export function getTeachingOrgUnitsApi(tenantId) {
-  return request.get('/teachingOrgUnits', { params: { tenant_id: tenantId } })
-    .then(res => res.data || [])
+  return request.get('/evaluation/student/teaching-orgs').then(dataOf)
 }
 
-/**
- * 获取文件资源
- */
 export function getFileResourcesApi(tenantId) {
   return request.get('/fileResources', { params: { tenant_id: tenantId } })
     .then(res => res.data || [])

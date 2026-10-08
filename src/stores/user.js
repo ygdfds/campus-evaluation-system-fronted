@@ -10,25 +10,58 @@ import {
   clearAuth,
 } from '@/utils/auth'
 
+function normalizeRoles(roles) {
+  if (!Array.isArray(roles)) return []
+  return roles.map((role) => {
+    if (typeof role === 'string') {
+      return { role_code: role, role_name: role }
+    }
+    return role
+  })
+}
+
+function normalizeUser(loginData) {
+  const explicitUser = loginData.user || loginData.userInfo
+  if (explicitUser) {
+    return {
+      ...explicitUser,
+      roles: normalizeRoles(explicitUser.roles || loginData.roles),
+    }
+  }
+
+  const roleType = loginData.userType || loginData.user_type || loginData.role
+  return {
+    id: loginData.userId || loginData.user_id,
+    user_id: loginData.userId || loginData.user_id,
+    username: loginData.username,
+    real_name: loginData.realName || loginData.real_name,
+    realName: loginData.realName || loginData.real_name,
+    role_type: roleType,
+    role: roleType,
+    tenant_id: loginData.tenantId || loginData.tenant_id,
+    tenantId: loginData.tenantId || loginData.tenant_id,
+    school_id: loginData.schoolId || loginData.school_id,
+    schoolId: loginData.schoolId || loginData.school_id,
+    roles: normalizeRoles(loginData.roles),
+    permissions: loginData.permissions || [],
+    avatar_url: loginData.avatarUrl || loginData.avatar_url,
+    avatarUrl: loginData.avatarUrl || loginData.avatar_url,
+  }
+}
+
 export const useUserStore = defineStore('user', () => {
-  // 状态
   const token = ref(getToken() || '')
   const userInfo = ref(getUserInfo() || null)
   const tenant = ref(getTenant() || null)
 
-  // 计算属性
   const isLoggedIn = computed(() => !!token.value)
   const userRole = computed(() => userInfo.value?.role_type || userInfo.value?.role || '')
-  // 角色名称：优先从 roles 数组取第一个，回退到 role_type 映射
   const roleName = computed(() => {
-    // 新格式：roles 数组
     const roles = userInfo.value?.roles
     if (Array.isArray(roles) && roles.length > 0) {
-      return roles.map(r => r.role_name).join('、')
+      return roles.map((role) => role.role_name || role.role_code || role).join('、')
     }
-    // 旧格式：直接字段
     if (userInfo.value?.role_name) return userInfo.value.role_name
-    // 回退：role_type 映射为中文
     const roleTypeMap = {
       system_admin: '系统管理员',
       school_admin: '学校管理员',
@@ -42,17 +75,15 @@ export const useUserStore = defineStore('user', () => {
   const schoolId = computed(() => userInfo.value?.school_id || tenant.value?.schoolId || tenant.value?.school_id || null)
   const schoolName = computed(() => tenant.value?.schoolName || tenant.value?.school_name || '')
 
-  // 登录
   function login(loginData) {
+    const user = normalizeUser(loginData)
     token.value = loginData.token
-    // 兼容新旧格式：新格式用 user，旧格式用 userInfo
-    const user = loginData.user || loginData.userInfo
     userInfo.value = user
     tenant.value = {
-      tenantId: loginData.tenant_id || loginData.tenantId,
-      tenant_id: loginData.tenant_id || loginData.tenantId,
-      schoolId: loginData.school_id || loginData.schoolId,
-      school_id: loginData.school_id || loginData.schoolId,
+      tenantId: loginData.tenant_id || loginData.tenantId || user.tenant_id || user.tenantId,
+      tenant_id: loginData.tenant_id || loginData.tenantId || user.tenant_id || user.tenantId,
+      schoolId: loginData.school_id || loginData.schoolId || user.school_id || user.schoolId,
+      school_id: loginData.school_id || loginData.schoolId || user.school_id || user.schoolId,
       schoolName: loginData.school_name || loginData.schoolName,
       school_name: loginData.school_name || loginData.schoolName,
     }
@@ -61,7 +92,6 @@ export const useUserStore = defineStore('user', () => {
     setTenant(tenant.value)
   }
 
-  // 登出
   function logout() {
     token.value = ''
     userInfo.value = null
@@ -69,7 +99,6 @@ export const useUserStore = defineStore('user', () => {
     clearAuth()
   }
 
-  // 更新用户信息
   function updateUserInfo(info) {
     userInfo.value = { ...userInfo.value, ...info }
     setUserInfo(userInfo.value)
