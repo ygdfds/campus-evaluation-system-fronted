@@ -73,7 +73,10 @@ const submitReply = async () => {
     return
   }
   if (!currentTicket.value) return
-  const response = await updateSupportTicketApi(currentTicket.value.id, { status: 'processing' })
+  const response = await updateSupportTicketApi(currentTicket.value.id, {
+    status: 'replied',
+    reply_content: replyForm.value.content.trim(),
+  })
   Object.assign(currentTicket.value, response.data)
   ElMessage.success('工单回复已发送')
   replyDialogVisible.value = false

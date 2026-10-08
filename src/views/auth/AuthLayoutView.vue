@@ -43,21 +43,20 @@ const testAccounts = computed(() => {
   const path = route.path
   if (path === '/login/school') {
     return [
-      { label: '清华校管', username: 'school_admin', password: '123456' },
-      { label: '北大校管', username: 'pku_admin', password: '123456' },
+      { label: '学校管理员', username: 'school_admin', password: '123456' },
     ]
   }
   if (path === '/login/sys') {
     return [
-      { label: '系统管理员', username: 'admin', password: 'admin123' },
+      { label: '系统管理员', username: 'sys_admin', password: '123456' },
     ]
   }
-  // 默认（/login）：用户登录
+  // 默认（/login）：用户登录和管理端快捷账号
   return [
-    { label: '清华教师', username: 'teacher_li', password: '123456' },
-    { label: '清华学生', username: 'student_zhang', password: '123456' },
-    { label: '北大教师', username: 'pku_teacher', password: '123456' },
-    { label: '北大学生', username: 'pku_student', password: '123456' },
+    { label: '教师', username: 'teacher_li', password: '123456' },
+    { label: '学生', username: 'student_zhang', password: '123456' },
+    { label: '学校管理员', username: 'school_admin', password: '123456' },
+    { label: '系统管理员', username: 'sys_admin', password: '123456' },
   ]
 })
 

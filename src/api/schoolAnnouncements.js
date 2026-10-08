@@ -64,32 +64,11 @@ function formatAnnouncement(item, fileMap = {}) {
 }
 
 async function writeLog(context, action, targetId, detail) {
-  const { tenantId, schoolId, userId } = normalizeContext(context)
-  const now = new Date().toISOString()
-  try {
-    await request.post('/operationLogs', {
-      tenant_id: tenantId,
-      school_id: schoolId,
-      user_id: userId,
-      operator_id: userId,
-      module: 'announcement',
-      action,
-      target_type: 'announcement',
-      target_id: Number(targetId),
-      result: 'success',
-      detail,
-      content: detail,
-      created_at: now,
-      updated_at: now,
-      deleted: false,
-    })
-  } catch {
-    // 日志失败不阻断公告主流程
-  }
+  return { action, targetId, detail }
 }
 
 async function getFileMap(tenantId) {
-  const res = await request.get('/fileResources', { params: { tenant_id: tenantId, deleted: false } })
+  const res = await request.get('/files')
   return Object.fromEntries(toList(res).filter(item => !item.deleted).map(item => [item.id, item]))
 }
 
@@ -165,8 +144,7 @@ export async function getSchoolAnnouncementDetailApi(context, id) {
 }
 
 export async function getSchoolAnnouncementCoverOptionsApi(context) {
-  const { tenantId } = normalizeContext(context)
-  const res = await request.get('/fileResources', { params: { tenant_id: tenantId, deleted: false } })
+  const res = await request.get('/files')
   return toList(res)
     .filter(item => !item.deleted && item.url && (item.mime_type?.startsWith?.('image/') || /\.(png|jpg|jpeg|webp|gif)$/i.test(item.url) || item.url.includes('picsum.photos')))
     .map(item => ({ ...item, label: item.original_name || item.name || `图片 ${item.id}` }))

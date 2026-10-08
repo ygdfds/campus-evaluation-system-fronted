@@ -1,5 +1,10 @@
 import request from '@/request'
 
+function unwrapData(res, fallback = []) {
+  if (res && typeof res === 'object' && 'data' in res) return res.data ?? fallback
+  return res ?? fallback
+}
+
 /**
  * 职工端帮助中心 API
  *
@@ -21,14 +26,13 @@ export function getStaffHelpHomeApi(params, currentUser) {
   const ticketParams = { submitter_id: userId, tenant_id: tenantId, deleted: false, _sort: 'created_at', _order: 'desc', _limit: 5 }
 
   return Promise.all([
-    request.get('/helpGuides', { params: guideParams }).catch(() => ({ data: [] })),
-    request.get('/helpFaqs', { params: faqParams }).catch(() => ({ data: [] })),
-    request.get('/helpTickets', { params: ticketParams }).catch(() => ({ data: [] })),
+    request.get('/helpGuides', { params: guideParams }),
+    request.get('/helpFaqs', { params: faqParams }),
+    request.get('/helpTickets', { params: ticketParams }),
   ]).then(([guideRes, faqRes, ticketRes]) => {
-    // json-server GET 返回数组，经 axios 拦截器解包后 res 即为数组本身
-    let guides = Array.isArray(guideRes) ? guideRes : (guideRes?.data || [])
-    let faqs = Array.isArray(faqRes) ? faqRes : (faqRes?.data || [])
-    const rawTickets = Array.isArray(ticketRes) ? ticketRes : (ticketRes?.data || [])
+    let guides = unwrapData(guideRes)
+    let faqs = unwrapData(faqRes)
+    const rawTickets = unwrapData(ticketRes)
     const myTickets = rawTickets.filter(t =>
       String(t.submitter_id) === String(userId) &&
       String(t.tenant_id) === String(tenantId) &&
@@ -68,7 +72,7 @@ export function getHelpGuideListApi(params, currentUser) {
   if (params?.module) queryParams.module = params.module
 
   return request.get('/helpGuides', { params: queryParams }).then(res => {
-    let guides = Array.isArray(res) ? res : (res?.data || [])
+    let guides = unwrapData(res)
     if (params?.keyword) {
       const kw = params.keyword.toLowerCase()
       guides = guides.filter(g =>
@@ -94,7 +98,7 @@ export function getHelpFaqListApi(params, currentUser) {
   if (params?.category) queryParams.category = params.category
 
   return request.get('/helpFaqs', { params: queryParams }).then(res => {
-    let faqs = Array.isArray(res) ? res : (res?.data || [])
+    let faqs = unwrapData(res)
     if (params?.keyword) {
       const kw = params.keyword.toLowerCase()
       faqs = faqs.filter(f =>
@@ -122,7 +126,7 @@ export function getMyHelpTicketsApi(params, currentUser) {
   if (params?.status) queryParams.status = params.status
 
   return request.get('/helpTickets', { params: queryParams }).then(res => {
-    const rawTickets = Array.isArray(res) ? res : (res?.data || [])
+    const rawTickets = unwrapData(res)
     return rawTickets.filter(t =>
       String(t.submitter_id) === String(userId) &&
       String(t.tenant_id) === String(tenantId) &&
@@ -140,34 +144,19 @@ export function getMyHelpTicketsApi(params, currentUser) {
 export function createHelpTicketApi(payload, currentUser) {
   const { tenantId, userId, schoolId } = currentUser
 
-  // 生成工单编号
-  const now = new Date()
-  const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '')
-  const ticketNo = `HT${dateStr}${String(Date.now()).slice(-4)}`
-
   const ticketData = {
     tenant_id: Number(tenantId),
     school_id: Number(schoolId),
     submitter_id: Number(userId),
-    ticket_no: ticketNo,
     title: payload.title,
     content: payload.content,
     category: payload.category,
     priority: payload.priority || 'normal',
     status: 'pending',
     attachment_file_ids: payload.attachment_file_ids || [],
-    reply_content: null,
-    replied_by: null,
-    replied_at: null,
-    created_at: now.toISOString(),
-    updated_at: now.toISOString(),
-    deleted: false,
   }
 
-  return request.post('/helpTickets', ticketData).then(res => {
-    // POST 返回新建记录
-    return Array.isArray(res) ? res : (res?.data || res)
-  })
+  return request.post('/helpTickets', ticketData).then(res => unwrapData(res, null))
 }
 
 /**
@@ -180,7 +169,7 @@ export function closeHelpTicketApi(ticketId, currentUser) {
   return request.get('/helpTickets', {
     params: { id: ticketId },
   }).then(res => {
-    const tickets = Array.isArray(res) ? res : (res?.data || [])
+    const tickets = unwrapData(res)
     const ticket = tickets.find(t => String(t.id) === String(ticketId))
     if (!ticket) throw new Error('工单不存在')
     if (String(ticket.submitter_id) !== String(userId)) throw new Error('无权操作该工单')
@@ -189,6 +178,6 @@ export function closeHelpTicketApi(ticketId, currentUser) {
     return request.patch(`/helpTickets/${ticketId}`, {
       status: 'closed',
       updated_at: new Date().toISOString(),
-    }).then(r => r.data)
+    }).then(r => unwrapData(r, null))
   })
 }

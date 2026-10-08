@@ -1,17 +1,20 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
 import ActionButton from '@/components/admin/ActionButton.vue'
-import { getTenantDetailApi, SYSTEM_STATUS_MAP } from '@/api/system'
+import { createTenantAdminApi, getTenantDetailApi, SYSTEM_STATUS_MAP } from '@/api/system'
 
 defineOptions({ name: 'AdminTenantDetailView' })
 
 const route = useRoute()
 const loading = ref(false)
+const adminDialogVisible = ref(false)
+const adminSaving = ref(false)
+const adminForm = reactive({ username: '', realName: '', password: '', phone: '', email: '' })
 const detail = ref({
   tenant: {},
   admins: [],
@@ -29,8 +32,27 @@ const fetchDetail = async () => {
   }
 }
 
-const saveAdmin = () => {
-  ElMessage.success('管理员账号信息已保存')
+const openAdminDialog = () => {
+  Object.assign(adminForm, { username: '', realName: '', password: '', phone: '', email: '' })
+  adminDialogVisible.value = true
+}
+
+const submitAdmin = async () => {
+  if (!adminForm.username || !adminForm.realName || !adminForm.password) {
+    ElMessage.warning('请填写用户名、姓名和初始密码')
+    return
+  }
+  adminSaving.value = true
+  try {
+    const created = await createTenantAdminApi(route.params.tenantId, { ...adminForm })
+    detail.value.admins = [...detail.value.admins, created]
+    adminDialogVisible.value = false
+    ElMessage.success('本校超级管理员账号已创建')
+  } catch (error) {
+    ElMessage.error(error.message || '创建管理员账号失败')
+  } finally {
+    adminSaving.value = false
+  }
 }
 
 onMounted(() => {
@@ -59,7 +81,7 @@ onMounted(() => {
       <template #header>
         <div class="card-header">
           <span>本校超级管理员账号</span>
-          <el-button type="primary" @click="saveAdmin">新增账号</el-button>
+          <el-button type="primary" @click="openAdminDialog">新增账号</el-button>
         </div>
       </template>
       <el-table :data="detail.admins" stripe style="width: 100%">
@@ -79,6 +101,20 @@ onMounted(() => {
         </el-table-column>
       </el-table>
     </PageSection>
+
+    <el-dialog v-model="adminDialogVisible" title="新增本校超级管理员账号" width="520px">
+      <el-form label-width="100px">
+        <el-form-item label="用户名"><el-input v-model="adminForm.username" /></el-form-item>
+        <el-form-item label="姓名"><el-input v-model="adminForm.realName" /></el-form-item>
+        <el-form-item label="初始密码"><el-input v-model="adminForm.password" type="password" show-password /></el-form-item>
+        <el-form-item label="手机号"><el-input v-model="adminForm.phone" /></el-form-item>
+        <el-form-item label="邮箱"><el-input v-model="adminForm.email" /></el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="adminDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="adminSaving" @click="submitAdmin">创建账号</el-button>
+      </template>
+    </el-dialog>
 
     <PageSection title="资源配额">
       <el-descriptions :column="3" border>

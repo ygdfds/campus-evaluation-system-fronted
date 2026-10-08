@@ -26,7 +26,6 @@ import {
   getStaffFeedbackSummaryApi,
   getStaffReportObjectDetailApi,
 } from '@/api/staffReports'
-import request from '@/request'
 
 defineOptions({ name: 'StaffReportsView' })
 
@@ -75,14 +74,11 @@ async function loadData() {
     const tid = userStore.tenantId
     if (!tid) return
 
-    const [teachingOrgsRes, serviceOrgsRes] = await Promise.all([
-      request.get('/teachingOrgUnits', { params: { tenant_id: tid, deleted: false } }),
-      request.get('/serviceOrgUnits', { params: { tenant_id: tid, deleted: false } }),
-    ])
+    const sourceContext = await getStaffReportContextApi(tid)
     const scope = getStaffRoleScope(
       userStore,
-      teachingOrgsRes.data || [],
-      serviceOrgsRes.data || [],
+      sourceContext.teachingOrgs || [],
+      sourceContext.serviceOrgs || [],
     )
 
     // 先加载组织数据以计算权限范围

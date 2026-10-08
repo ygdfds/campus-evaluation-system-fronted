@@ -199,7 +199,9 @@ router.beforeEach((to, from, next) => {
   }
 
   // 已登录用户访问 guest 页面（登录/注册/入驻等），根据角色跳转到对应首页
-  if (to.meta.guest && token) {
+  // 只有已登录用户访问登录页时才回到首页；注册和忘记密码允许从登录态打开，
+  // 避免登录页的“立即注册”被全局守卫吞掉。
+  if (to.meta.guest && token && to.name === 'Login') {
     const userInfo = JSON.parse(sessionStorage.getItem('campus_user_info') || '{}')
     const userRole = userInfo.role_type || userInfo.role
     const defaultRoute = roleDashboardMap[userRole]

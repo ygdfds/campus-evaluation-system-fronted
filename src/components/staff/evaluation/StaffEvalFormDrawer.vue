@@ -2,6 +2,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { Plus, Picture, Delete, ZoomIn } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import request from '@/request'
 import CoverImage from '@/components/common/CoverImage.vue'
 import QuestionEditor from './QuestionEditor.vue'
 import {
@@ -47,11 +48,24 @@ function handleCoverSelect(event) {
     ElMessage.warning('图片大小不能超过 5MB')
     return
   }
-  // 本地预览（后续接入后端上传接口）
   coverPreviewUrl.value = URL.createObjectURL(file)
-  form.cover_file_id = Date.now() // mock ID，后续替换为后端返回值
-  uploadDialogVisible.value = false
-  ElMessage.success('封面图片已选择（待接入后端上传）')
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('bizType', 'evaluation_cover')
+  request.post('/files/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }).then((response) => {
+    const uploaded = response?.data || response
+    form.cover_file_id = uploaded?.id || null
+    if (!form.cover_file_id) throw new Error('上传文件后端未返回文件ID')
+    uploadDialogVisible.value = false
+    ElMessage.success('封面图片上传成功')
+  }).catch((error) => {
+    coverPreviewUrl.value = ''
+    form.cover_file_id = null
+    console.error('封面图片上传失败:', error)
+    ElMessage.error('封面图片上传失败')
+  })
 }
 
 function handleRemoveCover() {

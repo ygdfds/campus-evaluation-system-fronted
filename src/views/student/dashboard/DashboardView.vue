@@ -5,6 +5,7 @@ import { Clock, ArrowRight } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { getAnnouncementsApi } from '@/api/announcement'
 import {
+  getStudentEvaluationTasksApi, getMyEvaluations,
   getEvaluationWindowsApi, getEvaluationFormsApi, getEvaluationSubmissionsApi,
   getCoursesApi, getServiceItemsApi, getCourseEnrollmentsApi,
   getTeachingOrgUnitsApi, getFileResourcesApi, getDashboardOverviewApi,
@@ -300,6 +301,106 @@ async function loadDashboard() {
   }
 }
 
+async function loadIntegratedDashboard() {
+  loading.value = true
+  const userId = userStore.userInfo?.id
+  const tenantId = userStore.tenantId
+  const schoolId = userStore.schoolId
+  const roleType = userStore.userRole || 'student'
+
+  if (!userId || !tenantId) {
+    loading.value = false
+    return
+  }
+
+  try {
+    const [annList, tasks, histories, complaints] = await Promise.all([
+      getAnnouncementsApi(tenantId, roleType),
+      getStudentEvaluationTasksApi(),
+      getMyEvaluations({ tenantId, schoolId, userId, role: roleType }),
+      getMyComplaintsApi(tenantId, userId),
+    ])
+
+    announcements.value = annList.map(item => ({
+      id: item.id,
+      title: item.title,
+      desc: item.summary || item.content,
+      tag: item.tag || item.notice_type || '校园公告',
+      time: formatDate(item.publish_time || item.created_at),
+      img: '',
+    }))
+
+    evaluationList.value = tasks
+    pendingTasks.value = tasks
+      .filter(item => ['待评价', '进行中', '可修改'].includes(item.status))
+      .slice(0, 3)
+      .map(item => ({
+        id: item.id,
+        title: item.title,
+        deadline: item.endDate,
+        type: item.type,
+        urgent: false,
+        form_id: item.form_id,
+      }))
+
+    calendarEvents.value = tasks.slice(0, 6).map(item => ({
+      id: item.id,
+      date: item.endDate || '',
+      title: item.title,
+      status: item.status,
+      urgent: false,
+    }))
+
+    overviewStats.value = {
+      completedCount: histories.filter(item => ['locked', 'submitted'].includes(item.display_status)).length,
+      pendingCount: pendingTasks.value.length,
+      processingFeedbackCount: complaints.filter(item => ['pending', 'processing'].includes(item.status)).length,
+      participationRate: tasks.length
+        ? Math.round((histories.length / tasks.length) * 100)
+        : 0,
+    }
+
+    const sortedComplaints = [...complaints]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, 2)
+    const statusMap = {
+      pending: '待处理',
+      processing: '处理中',
+      resolved: '已办结',
+      rejected: '已驳回',
+      cancelled: '已撤销',
+    }
+    const statusTypeMap = {
+      pending: 'warning',
+      processing: '',
+      resolved: 'success',
+      rejected: 'danger',
+      cancelled: 'info',
+    }
+    feedbackItems.value = await Promise.all(sortedComplaints.map(async complaint => {
+      let latestRecord = null
+      try {
+        const records = await getComplaintProcessRecordsApi(tenantId, complaint.id)
+        latestRecord = records?.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+      } catch {
+        latestRecord = null
+      }
+      return {
+        id: complaint.id,
+        title: complaint.title,
+        status: statusMap[complaint.status] || complaint.status,
+        statusType: statusTypeMap[complaint.status] || 'info',
+        progress: latestRecord?.content || '已提交，等待学校相关部门处理',
+        eta: complaint.status === 'resolved' ? '已办结' : '预计 3 个工作日内反馈',
+      }
+    }))
+  } catch (err) {
+    console.error('加载首页数据失败:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
 // 轮播联动
 function handleCarouselChange(idx) { activeAnnounceIdx.value = idx }
 function handleAnnounceHover(idx) {
@@ -321,7 +422,7 @@ function handleEvalCardClick(ev) {
   }
 }
 
-onMounted(() => { loadDashboard() })
+onMounted(() => { loadIntegratedDashboard() })
 </script>
 
 <template>

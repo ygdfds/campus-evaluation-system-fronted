@@ -1,4 +1,5 @@
 import request from '@/request'
+import { dataOf } from '@/api/backend'
 
 /**
  * 职工端申诉处理 API
@@ -49,42 +50,32 @@ export const TRACE_AUTH_STATUS_MAP = {
 
 // ==================== 基础数据读取 ====================
 
-function fetchAll(resource, tenantId) {
-  return request.get(`/${resource}`, {
-    params: { tenant_id: tenantId, deleted: false },
-  }).then(res => (res.data || []).filter(r => !r.deleted))
-}
-
 /**
  * 加载申诉处理所需的上下文数据
  */
 export async function getStaffAppealContextApi(tenantId) {
-  const [
-    appeals, records, traces,
-    submissions, forms, windows, scores, answers,
-    courses, serviceItems, teachingOrgs, serviceOrgs,
-    profiles,
-  ] = await Promise.all([
-    fetchAll('appealRequests', tenantId),
-    fetchAll('appealProcessRecords', tenantId),
-    fetchAll('traceAuthorizations', tenantId),
-    fetchAll('evaluationSubmissions', tenantId),
-    fetchAll('evaluationForms', tenantId),
-    fetchAll('evaluationWindows', tenantId),
-    fetchAll('evaluationScores', tenantId),
-    fetchAll('evaluationAnswers', tenantId),
-    fetchAll('courses', tenantId),
-    fetchAll('serviceItems', tenantId),
-    fetchAll('teachingOrgUnits', tenantId),
-    fetchAll('serviceOrgUnits', tenantId),
-    fetchAll('personProfiles', tenantId),
+  const [appealsRes, recordsRes, tracesRes, reportRes] = await Promise.all([
+    request.get('/review/appeals'),
+    request.get('/review/appealProcessRecords'),
+    request.get('/review/traceAuthorizations'),
+    request.get('/stats/staff/reports/context'),
   ])
+  const report = dataOf(reportRes) || {}
 
   return {
-    appeals, records, traces,
-    submissions, forms, windows, scores, answers,
-    courses, serviceItems, teachingOrgs, serviceOrgs,
-    profiles,
+    appeals: dataOf(appealsRes) || [],
+    records: dataOf(recordsRes) || [],
+    traces: dataOf(tracesRes) || [],
+    submissions: report.submissions || [],
+    forms: report.forms || [],
+    windows: report.windows || [],
+    scores: report.scores || [],
+    answers: report.answers || [],
+    courses: report.courses || [],
+    serviceItems: report.serviceItems || [],
+    teachingOrgs: report.teachingOrgs || [],
+    serviceOrgs: report.serviceOrgs || [],
+    profiles: [],
   }
 }
 
@@ -108,12 +99,10 @@ function filterAppealsByScope(appeals, scope, ctx) {
   const hasTeaching = allowedCourseIds.size > 0
   const hasService = allowedItemIds.size > 0
 
-  // Mock 阶段兜底：当 teaching_admin 的 teachingOrgIds 为空时，允许查看本租户所有教学类申诉
   const isTeachingAdmin = roleCodes.includes('teaching_admin')
-  const fallbackTeaching = isTeachingAdmin && !hasTeaching
-  // Mock 阶段兜底：当 service_admin 的 serviceOrgIds 为空时，允许查看本租户所有服务类申诉
   const isServiceAdmin = roleCodes.includes('service_admin')
-  const fallbackService = isServiceAdmin && !hasService
+  const fallbackTeaching = false
+  const fallbackService = false
 
   return appeals.filter(a => {
     if (a.target_type === 'course') return hasTeaching || fallbackTeaching
@@ -394,15 +383,12 @@ export function getStaffAppealDetailApi(ctx, appealId) {
  * 写入处理记录
  */
 async function writeProcessRecord(tenantId, appealId, operatorId, action, fromStatus, toStatus, content) {
-  return request.post('/appealProcessRecords', {
-    tenant_id: tenantId,
+  return request.post('/review/appealProcessRecords', {
     appeal_id: appealId,
-    operator_id: operatorId,
     action,
     from_status: fromStatus,
     to_status: toStatus,
     content,
-    created_at: new Date().toISOString(),
   })
 }
 
@@ -425,40 +411,19 @@ async function writeNotification(tenantId, schoolId, receiverUserId, title, cont
 }
 
 /**
- * 写入操作日志
- */
-async function writeOperationLog(tenantId, userId, action, targetId, content) {
-  return request.post('/operationLogs', {
-    tenant_id: tenantId,
-    user_id: userId,
-    module: 'appeal',
-    action,
-    target_type: 'appeal_request',
-    target_id: targetId,
-    content,
-    created_at: new Date().toISOString(),
-  })
-}
-
-/**
  * 受理申诉
  */
 export async function acceptAppealApi(tenantId, schoolId, appealId, operatorId, appellantUserId, appealNo) {
   const now = new Date().toISOString()
 
   // 更新申诉状态
-  await request.patch(`/appealRequests/${appealId}`, {
+  await request.patch(`/review/appeals/${appealId}`, {
     status: 'processing',
     handler_id: operatorId,
-    accepted_at: now,
-    updated_at: now,
   })
 
   // 写入处理记录
   await writeProcessRecord(tenantId, appealId, operatorId, 'accept', 'pending', 'processing', '已受理该申诉。')
-
-  // 写入操作日志
-  await writeOperationLog(tenantId, operatorId, 'accept', appealId, `受理申诉 ${appealNo}`)
 
   // 通知申诉人
   await writeNotification(tenantId, schoolId, appellantUserId, '你的申诉已被受理', `你提交的申诉 ${appealNo} 已被受理，相关部门正在处理中。`, '/student/my-evaluations')
@@ -469,19 +434,16 @@ export async function acceptAppealApi(tenantId, schoolId, appealId, operatorId, 
  */
 export async function rejectAppealApi(tenantId, schoolId, appealId, operatorId, appellantUserId, appealNo, comment) {
   const now = new Date().toISOString()
-  const appeal = (await request.get(`/appealRequests/${appealId}`)).data
+  const appeal = dataOf(await request.get(`/review/appeals/${appealId}`))
   const fromStatus = appeal.status
 
-  await request.patch(`/appealRequests/${appealId}`, {
+  await request.patch(`/review/appeals/${appealId}`, {
     status: 'rejected',
     handle_result: 'maintain',
     handle_comment: comment,
-    resolved_at: now,
-    updated_at: now,
   })
 
   await writeProcessRecord(tenantId, appealId, operatorId, 'reject', fromStatus, 'rejected', comment)
-  await writeOperationLog(tenantId, operatorId, 'reject', appealId, `驳回申诉 ${appealNo}：${comment}`)
   await writeNotification(tenantId, schoolId, appellantUserId, '你的申诉未予受理', `你提交的申诉 ${appealNo} 未予受理。原因：${comment}`, '/student/my-evaluations')
 }
 
@@ -489,14 +451,7 @@ export async function rejectAppealApi(tenantId, schoolId, appealId, operatorId, 
  * 要求补充说明
  */
 export async function requestSupplementApi(tenantId, schoolId, appealId, operatorId, appellantUserId, appealNo, comment) {
-  const now = new Date().toISOString()
-
-  await request.patch(`/appealRequests/${appealId}`, {
-    updated_at: now,
-  })
-
   await writeProcessRecord(tenantId, appealId, operatorId, 'request_supplement', 'processing', 'processing', comment)
-  await writeOperationLog(tenantId, operatorId, 'request_supplement', appealId, `要求补充申诉 ${appealNo}：${comment}`)
   await writeNotification(tenantId, schoolId, appellantUserId, '申诉需要补充说明', `你提交的申诉 ${appealNo} 需要补充说明。${comment}`, '/student/my-evaluations')
 }
 
@@ -504,84 +459,59 @@ export async function requestSupplementApi(tenantId, schoolId, appealId, operato
  * 申请追溯授权
  */
 export async function requestTraceAuthorizationApi(tenantId, schoolId, appealId, submissionId, operatorId, appellantUserId, appealNo, reason) {
-  const now = new Date().toISOString()
-
   // 创建追溯授权申请
-  await request.post('/traceAuthorizations', {
-    tenant_id: tenantId,
+  await request.post('/review/traceAuthorizations', {
     submission_id: submissionId,
     appeal_id: appealId,
-    applicant_id: operatorId,
-    approver_id: null,
     reason,
-    status: 'pending',
-    requested_at: now,
-    approved_at: null,
-    rejected_at: null,
-    created_at: now,
   })
 
   // 更新申诉状态
-  await request.patch(`/appealRequests/${appealId}`, {
+  await request.patch(`/review/appeals/${appealId}`, {
     status: 'waiting_trace_auth',
-    updated_at: now,
   })
 
   await writeProcessRecord(tenantId, appealId, operatorId, 'request_trace_authorization', 'processing', 'waiting_trace_auth', reason)
-  await writeOperationLog(tenantId, operatorId, 'request_trace_authorization', appealId, `对申诉 ${appealNo} 发起追溯授权申请`)
 
-  // 通知学校管理员（追溯授权需学校管理员审核）
-  // 简化处理：通知学校管理员用户（school_admin user_id = 1 或 tenant 对应的管理员）
-  const schoolAdminUserId = 1 // Mock: 学校管理员用户 ID
-  await writeNotification(tenantId, schoolId, schoolAdminUserId, '收到追溯授权申请', `申诉 ${appealNo} 已发起匿名评价追溯授权申请，请及时审核。原因：${reason}`, '/staff/appeals')
+  await request.post('/notifications', {
+    title: '收到追溯授权申请',
+    content: `申诉 ${appealNo} 已发起匿名评价追溯授权申请，请及时审核。原因：${reason}`,
+    type: 'trace_authorization',
+    target_roles: ['school_admin'],
+    link: '/school/audit',
+    read_status: 'unread',
+  })
 }
 
 /**
  * 完成处理申诉
  */
 export async function resolveAppealApi(tenantId, schoolId, appealId, operatorId, appellantUserId, appealNo, result, comment) {
-  const now = new Date().toISOString()
-  const appeal = (await request.get(`/appealRequests/${appealId}`)).data
+  const appeal = dataOf(await request.get(`/review/appeals/${appealId}`))
   const fromStatus = appeal.status
 
-  await request.patch(`/appealRequests/${appealId}`, {
+  await request.patch(`/review/appeals/${appealId}`, {
     status: 'resolved',
     handle_result: result,
     handle_comment: comment,
-    resolved_at: now,
-    updated_at: now,
   })
 
   await writeProcessRecord(tenantId, appealId, operatorId, 'resolve', fromStatus, 'resolved', comment)
-  await writeOperationLog(tenantId, operatorId, 'resolve', appealId, `办结申诉 ${appealNo}，结果：${APPEAL_RESULT_MAP[result] || result}`)
 
   const resultLabel = APPEAL_RESULT_MAP[result] || result
   await writeNotification(tenantId, schoolId, appellantUserId, '你的申诉已办结', `你提交的申诉 ${appealNo} 已处理完成。处理结果：${resultLabel}。${comment}`, '/student/my-evaluations')
-
-  // 模拟更新评价提交状态（不物理删除）
-  if (['hide_review', 'remove_invalid', 'adjust_stat'].includes(result) && appeal.submission_id) {
-    try {
-      await request.patch(`/evaluationSubmissions/${appeal.submission_id}`, {
-        review_status: result,
-        updated_at: now,
-      })
-    } catch { /* 字段可能不存在，忽略 */ }
-  }
 }
 
 /**
  * 关闭申诉
  */
 export async function closeAppealApi(tenantId, appealId, operatorId, appealNo, comment) {
-  const now = new Date().toISOString()
-  const appeal = (await request.get(`/appealRequests/${appealId}`)).data
+  const appeal = dataOf(await request.get(`/review/appeals/${appealId}`))
   const fromStatus = appeal.status
 
-  await request.patch(`/appealRequests/${appealId}`, {
+  await request.patch(`/review/appeals/${appealId}`, {
     status: 'closed',
-    updated_at: now,
   })
 
   await writeProcessRecord(tenantId, appealId, operatorId, 'close', fromStatus, 'closed', comment || '申诉已关闭。')
-  await writeOperationLog(tenantId, operatorId, 'close', appealId, `关闭申诉 ${appealNo}`)
 }

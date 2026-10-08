@@ -374,7 +374,7 @@ export async function getFeedbackRelatedObjectsApi(tenantId) {
  */
 export async function getFeedbackAttachmentsApi(fileIds) {
   if (!fileIds || fileIds.length === 0) return []
-  const promises = fileIds.map(id => request.get(`/fileResources/${id}`).catch(() => null))
+  const promises = fileIds.map(id => request.get(`/files/${id}`).catch(() => null))
   const results = await Promise.all(promises)
   return results.filter(Boolean).map(r => r.data).filter(d => d && !d.deleted)
 }

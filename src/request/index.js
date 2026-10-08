@@ -65,7 +65,7 @@ service.interceptors.response.use(
 export default service
 
 /**
- * 解包响应：兼容 mock server 包装格式 { code, data } 和裸对象
+ * 解包标准 API 包装格式 { code, data } 和裸对象
  * 用于 POST/PATCH/PUT/DELETE 等写操作
  */
 export function unwrap(res) {

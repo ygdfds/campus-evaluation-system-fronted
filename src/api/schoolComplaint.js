@@ -105,12 +105,15 @@ export async function getComplaintDetailApi(tenantId, complaintId) {
   // 关联提交人信息（仅非匿名时展示）
   let submitterInfo = null
   if (!complaint.anonymous_to_handler && complaint.submitter_id) {
-    const profilesRes = await request.get('/personProfiles', { params: { user_id: complaint.submitter_id, deleted: false } })
-    const profile = (profilesRes.data || [])[0]
+    const [studentRes, staffRes] = await Promise.all([
+      request.get(`/school/student-users/${complaint.submitter_id}`).catch(() => null),
+      request.get(`/school/staff-users/${complaint.submitter_id}`).catch(() => null),
+    ])
+    const profile = studentRes?.data || staffRes?.data || null
     if (profile) {
       submitterInfo = {
-        realName: profile.real_name || '',
-        roleType: profile.role_type || '',
+        realName: profile.realName || profile.real_name || profile.username || '',
+        roleType: profile.roleType || profile.role_type || '',
       }
     }
   }
@@ -118,12 +121,10 @@ export async function getComplaintDetailApi(tenantId, complaintId) {
   // 关联服务部门/院系
   let orgInfo = null
   if (complaint.service_org_id) {
-    const orgsRes = await request.get('/serviceOrgUnits', { params: { id: complaint.service_org_id, deleted: false } })
-    const org = (orgsRes.data || [])[0]
+    const org = (await request.get(`/school/service-orgs/${complaint.service_org_id}`).catch(() => null))?.data
     if (org) orgInfo = { name: org.name, type: org.type }
   } else if (complaint.teaching_org_id) {
-    const orgsRes = await request.get('/teachingOrgUnits', { params: { id: complaint.teaching_org_id, deleted: false } })
-    const org = (orgsRes.data || [])[0]
+    const org = (await request.get(`/school/teaching-orgs/${complaint.teaching_org_id}`).catch(() => null))?.data
     if (org) orgInfo = { name: org.name, type: 'teaching' }
   }
 
@@ -142,28 +143,22 @@ export async function getComplaintDetailApi(tenantId, complaintId) {
  * @param {object} data - { to_status, content, handler_id }
  */
 export async function updateComplaintStatusApi(tenantId, complaintId, data) {
-  const db = await request.get('/complaintProcessRecords', { params: { _sort: 'id', _order: 'desc', _limit: 1 } })
-  const nextId = (db.data || []).length > 0 ? Math.max(...(db.data || []).map(r => r.id)) + 1 : 1
-
   const record = {
-    id: nextId,
-    tenant_id: tenantId,
     complaint_id: complaintId,
     handler_id: data.handler_id || null,
     from_status: data.from_status || null,
     to_status: data.to_status,
     content: data.content || '',
-    created_at: new Date().toISOString(),
   }
 
   const createRes = await request.post('/complaintProcessRecords', record)
 
   // 更新投诉主表状态
-  const updateData = { status: data.to_status, updated_at: new Date().toISOString() }
+  const updateData = { status: data.to_status }
   if (data.to_status === 'resolved') {
     updateData.resolved_at = new Date().toISOString()
   }
-  await request.put(`/complaints/${complaintId}`, updateData)
+  await request.patch(`/complaints/${complaintId}`, updateData)
 
   return createRes.data
 }

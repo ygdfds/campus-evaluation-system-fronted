@@ -54,10 +54,15 @@ export function createFeedbackWorkOrderApi(data) {
 }
 
 /**
- * 新增文件资源（mock 附件上传）
+ * 新增文件资源
  */
-export function createFileResourceApi(data) {
-  return request.post('/fileResources', data).then(unwrap)
+export function createFileResourceApi(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('bizType', 'complaint')
+  return request.post('/files/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }).then(unwrap)
 }
 
 // ==================== 投诉建议 - 撤销 ====================

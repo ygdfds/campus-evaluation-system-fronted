@@ -4,6 +4,7 @@ import { Files, HomeFilled, Monitor, School, User, Setting, DocumentChecked } fr
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import TopHeader from '@/components/layout/TopHeader.vue'
 import { getAdminMenuApi } from '@/api/system'
+import AiAssistant from '@/components/AiAssistant.vue'
 
 defineOptions({ name: 'PlatformLayoutView' })
 
@@ -62,6 +63,7 @@ const menuGroups = computed(() => {
       <el-main class="layout-main">
         <router-view />
       </el-main>
+      <AiAssistant />
     </el-container>
   </el-container>
 </template>

@@ -18,6 +18,7 @@ import {
   getSchoolDepartmentOptionsApi,
   getSchoolClassOptionsApi,
 } from '@/api/schoolUsers'
+import request from '@/request'
 
 defineOptions({ name: 'SchoolStudentListView' })
 
@@ -264,8 +265,8 @@ function handleFileChange(e) {
   const file = e.target.files?.[0]
   if (!file) return
   const ext = file.name.split('.').pop().toLowerCase()
-  if (!['xlsx', 'xls'].includes(ext)) {
-    ElMessage.error('仅支持 .xlsx 或 .xls 格式的 Excel 文件')
+  if (ext !== 'csv') {
+    ElMessage.error('当前后端导入接口仅支持 .csv 文件')
     if (importInputRef.value) importInputRef.value.value = ''
     return
   }
@@ -286,9 +287,14 @@ async function handleImportSubmit() {
   }
   importLoading.value = true
   try {
-    // TODO: 后续对接后端上传接口
-    await new Promise(resolve => setTimeout(resolve, 800))
-    ElMessage.success('文件上传成功，后端处理功能开发中')
+    const formData = new FormData()
+    formData.append('importType', 'student')
+    formData.append('file', importFile.value)
+    const response = await request.post('/school/imports/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    const result = response?.data || response
+    ElMessage.success(`导入完成：成功 ${result?.successCount || 0} 条，失败 ${result?.errorCount || 0} 条`)
     importVisible.value = false
   } catch {
     ElMessage.error('上传失败')
@@ -597,13 +603,13 @@ onMounted(() => {
           <input
             ref="importInputRef"
             type="file"
-            accept=".xlsx,.xls"
+            accept=".csv"
             class="import-file-input"
             @change="handleFileChange"
           />
           <el-icon :size="40" class="import-upload-icon"><Upload /></el-icon>
-          <p class="import-upload-text">点击或拖拽 Excel 文件到此处</p>
-          <p class="import-upload-hint">支持 .xlsx / .xls 格式</p>
+          <p class="import-upload-text">点击或拖拽 CSV 文件到此处</p>
+          <p class="import-upload-hint">支持 .csv 格式</p>
         </div>
         <div v-if="importFileName" class="import-file-info">
           <el-icon :size="18" class="import-file-icon"><Files /></el-icon>

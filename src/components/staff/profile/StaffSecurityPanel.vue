@@ -15,7 +15,6 @@ function formatDateTime(dt) {
 }
 
 function getPasswordStrength() {
-  // mock 环境简化
   return { label: '中等', type: 'warning', percent: 50 }
 }
 

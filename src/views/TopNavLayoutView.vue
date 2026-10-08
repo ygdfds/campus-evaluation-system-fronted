@@ -4,7 +4,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { SwitchButton, ArrowDown, User } from '@element-plus/icons-vue'
 import NotificationDropdown from '@/components/NotificationDropdown.vue'
+import AiAssistant from '@/components/AiAssistant.vue'
 import { getStaffRoleCodes, isStaffPortalUser, canViewStaffMenu, getStaffRoleNames } from '@/utils/staffPermission'
+import { logoutApi } from '@/api/auth'
 
 defineOptions({ name: 'TopNavLayoutView' })
 
@@ -74,9 +76,15 @@ function handleNavClick(path) {
   router.push(path)
 }
 
-function handleLogout() {
-  userStore.logout()
-  router.push('/login')
+async function handleLogout() {
+  try {
+    await logoutApi()
+  } catch (error) {
+    console.warn('Backend logout failed; clearing local auth state:', error)
+  } finally {
+    userStore.logout()
+    router.push('/login')
+  }
 }
 </script>
 
@@ -134,6 +142,7 @@ function handleLogout() {
     <main class="nav-main">
       <router-view />
     </main>
+    <AiAssistant />
   </div>
 </template>
 

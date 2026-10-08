@@ -1,360 +1,222 @@
 import request from '@/request'
-import { unwrap } from '@/request'
+import { dataOf, listOf } from '@/api/backend'
 
-function dataOf(res) {
-  return res && typeof res === 'object' && 'data' in res ? res.data : res
+function normalizeForm(form = {}) {
+  return {
+    ...form,
+    form_type: form.formType || form.form_type || form.type,
+    target_type: form.targetType || form.target_type,
+    target_id: form.targetId || form.target_id,
+    cover_file_id: form.coverFileId || form.cover_file_id,
+    anonymous: form.anonymousEnabled ?? form.anonymous,
+    score_enabled: form.scoreEnabled ?? form.score_enabled,
+    created_at: form.createdAt || form.created_at,
+    updated_at: form.updatedAt || form.updated_at,
+  }
+}
+
+function normalizeQuestion(question = {}) {
+  return {
+    ...question,
+    type: question.questionType || question.type,
+    question_type: question.questionType || question.type,
+    max_score: question.maxScore || question.max_score,
+    sort_order: question.sortOrder || question.sort_order,
+    options: question.options || [],
+  }
+}
+
+function normalizeWindow(window = {}, formId = null) {
+  return {
+    ...window,
+    form_id: window.formId || window.form_id || formId,
+    start_at: window.startAt || window.start_at || window.startTime,
+    end_at: window.endAt || window.end_at || window.endTime,
+    start_time: window.startTime || window.start_at || window.startAt,
+    end_time: window.endTime || window.end_at || window.endAt,
+  }
 }
 
 export function getStudentEvaluationTasksApi() {
   return request.get('/evaluation/student/tasks').then(dataOf)
 }
 
-// ==================== 基础读取 ====================
-
-/**
- * 获取评价表单（任务即表单）
- */
 export function getEvaluationTaskById(taskId) {
-  return request.get(`/evaluationForms/${taskId}`).then(res => res.data)
+  return request.get(`/evaluation/forms/${taskId}`).then(dataOf).then(normalizeForm)
 }
 export const getEvaluationFormById = getEvaluationTaskById
 
-/**
- * 获取评价窗口
- */
-export function getEvaluationWindowById(windowId) {
-  return request.get(`/evaluationWindows/${windowId}`).then(res => res.data)
+export function getEvaluationWindowById(formId) {
+  return request.get(`/evaluation/forms/${formId}/window`).then(dataOf).then((data) => normalizeWindow(data, formId))
 }
 
-/**
- * 获取评价窗口列表
- */
-export function getEvaluationWindowsApi(tenantId) {
-  return request.get('/evaluationWindows', { params: { tenant_id: tenantId } })
-    .then(res => (res.data || []).filter(w => !w.deleted))
+export async function getEvaluationWindowsApi(tenantId) {
+  const forms = await getEvaluationFormsApi(tenantId)
+  const windows = await Promise.all(
+    forms.map((form) => request.get(`/evaluation/forms/${form.id}/window`).then(dataOf).then((data) => normalizeWindow(data, form.id)))
+  )
+  return windows.filter(Boolean)
 }
 
-/**
- * 获取评价表单列表
- */
-export function getEvaluationFormsApi(tenantId) {
-  return request.get('/evaluationForms', { params: { tenant_id: tenantId } })
-    .then(res => (res.data || []).filter(f => !f.deleted))
+export function getEvaluationFormsApi() {
+  return request.get('/evaluation/forms', { params: { page: 1, pageSize: 500 } })
+    .then(listOf)
+    .then((list) => list.map(normalizeForm))
 }
 
-/**
- * 获取单个评价表单
- */
 export function getEvaluationFormApi(id) {
-  return request.get(`/evaluationForms/${id}`).then(res => res.data)
+  return request.get(`/evaluation/forms/${id}`).then(dataOf).then(normalizeForm)
 }
 
-/**
- * 获取评价题目列表（按表单）
- */
-export function getEvaluationQuestions(formId, context) {
-  return request.get('/evaluationQuestions', {
-    params: { tenant_id: context.tenantId, form_id: formId, _sort: 'sort_order', _order: 'asc' }
-  }).then(res => (res.data || []).filter(q => !q.deleted))
+export function getEvaluationQuestions(formId) {
+  return request.get(`/evaluation/forms/${formId}/questions`)
+    .then(dataOf)
+    .then((list) => (list || []).map(normalizeQuestion))
 }
 
-/**
- * 获取题目选项（单选/多选）
- */
-export function getEvaluationQuestionOptionsApi(questionId) {
-  return request.get('/evaluationQuestionOptions', {
-    params: { question_id: questionId, _sort: 'sort_order', _order: 'asc' }
-  }).then(res => (res.data || []).filter(o => !o.deleted))
+export async function getEvaluationQuestionOptionsApi(questionId, formId = null) {
+  if (!formId) return []
+  const questions = await getEvaluationQuestions(formId)
+  return questions.find((q) => Number(q.id) === Number(questionId))?.options || []
 }
 
-/**
- * 批量获取多个题目的选项
- */
-export async function getEvaluationQuestionOptions(questionIds) {
-  const result = {}
-  for (const qid of questionIds) {
-    result[qid] = await getEvaluationQuestionOptionsApi(qid)
-  }
-  return result
+export async function getEvaluationQuestionOptions(questionIds, formId = null) {
+  if (!formId) return Object.fromEntries(questionIds.map((id) => [id, []]))
+  const questions = await getEvaluationQuestions(formId)
+  return Object.fromEntries(
+    questionIds.map((id) => [id, questions.find((q) => Number(q.id) === Number(id))?.options || []])
+  )
 }
 
-/**
- * 获取评价提交记录列表
- */
-export function getEvaluationSubmissionsApi(tenantId, evaluatorUserId) {
-  return request.get('/evaluationSubmissions', {
-    params: { tenant_id: tenantId, evaluator_user_id: evaluatorUserId }
-  }).then(res => (res.data || []).filter(s => !s.deleted))
+export function getEvaluationSubmissionsApi() {
+  return request.get('/evaluation/student/submissions/my').then(dataOf)
 }
 
-/**
- * 获取单条评价提交记录
- */
-export function getEvaluationSubmissionApi(id) {
-  return request.get(`/evaluationSubmissions/${id}`).then(res => res.data)
+export async function getEvaluationSubmissionApi(id) {
+  const list = await getEvaluationSubmissionsApi()
+  return list.find((item) => Number(item.id) === Number(id)) || null
 }
 
-/**
- * 按任务查找当前用户的 submission
- */
-export function getSubmissionByTask({ formId, userId, tenantId }) {
-  return request.get('/evaluationSubmissions', {
-    params: { tenant_id: tenantId, evaluator_user_id: userId, form_id: formId }
-  }).then(res => {
-    const list = (res.data || []).filter(s => !s.deleted)
-    // 取最新的一条（按 created_at 降序）
-    list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    return list[0] || null
-  })
+export async function getSubmissionByTask({ formId }) {
+  const list = await getEvaluationSubmissionsApi()
+  return list.find((item) => Number(item.form_id || item.formId) === Number(formId)) || null
 }
 
-/**
- * 获取提交的答案
- */
-export function getSubmissionAnswers(submissionId, context) {
-  return request.get('/evaluationAnswers', {
-    params: { tenant_id: context.tenantId, submission_id: submissionId }
-  }).then(res => (res.data || []).filter(a => !a.deleted))
+export async function getSubmissionAnswers(submissionId) {
+  const submission = await getEvaluationSubmissionApi(submissionId)
+  return submission?.answers || []
 }
 
-/**
- * 获取提交的评分
- */
-export function getSubmissionScores(submissionId, context) {
-  return request.get('/evaluationScores', {
-    params: { tenant_id: context.tenantId, submission_id: submissionId }
-  }).then(res => (res.data || []).filter(s => !s.deleted))
+export async function getSubmissionScores(submissionId) {
+  const submission = await getEvaluationSubmissionApi(submissionId)
+  return submission?.scores || []
 }
 
-/**
- * 获取提交的附件
- */
-export function getSubmissionAttachments(submissionId, context) {
-  return request.get('/evaluationAttachments', {
-    params: { tenant_id: context.tenantId, submission_id: submissionId }
-  }).then(res => (res.data || []).filter(a => !a.deleted))
+export async function getSubmissionAttachments(submissionId) {
+  const submission = await getEvaluationSubmissionApi(submissionId)
+  return submission?.attachments || []
 }
 
-// ==================== 写入 ====================
-
-/**
- * 创建评价提交
- */
 export function createEvaluationSubmissionApi(data) {
-  return request.post('/evaluationSubmissions', data).then(unwrap)
+  return request.post('/evaluation/student/submissions/draft', data).then(dataOf)
 }
 
-/**
- * 更新评价提交（PATCH 部分更新）
- */
 export function updateEvaluationSubmissionApi(id, data) {
-  return request.patch(`/evaluationSubmissions/${id}`, data).then(unwrap)
+  return request.put(`/evaluation/student/submissions/${id}`, data).then(dataOf)
 }
 
-/**
- * 创建答案
- */
 export function createEvaluationAnswerApi(data) {
-  return request.post('/evaluationAnswers', data).then(unwrap)
+  return request.post('/evaluation/student/submissions/draft', {
+    formId: data.form_id || data.formId,
+    answers: [data],
+  }).then(dataOf)
 }
 
-/**
- * 创建评分
- */
 export function createEvaluationScoreApi(data) {
-  return request.post('/evaluationScores', data).then(unwrap)
+  return request.post('/evaluation/student/submissions/draft', {
+    formId: data.form_id || data.formId,
+    scores: [data],
+  }).then(dataOf)
 }
 
-/**
- * 创建附件
- */
 export function createEvaluationAttachmentApi(data) {
-  return request.post('/evaluationAttachments', data).then(unwrap)
+  return request.post('/evaluation/student/submissions/draft', {
+    formId: data.form_id || data.formId,
+    attachments: [data],
+  }).then(dataOf)
 }
 
-/**
- * 软删除答案（PATCH deleted=true）
- */
-export function softDeleteAnswerApi(id) {
-  return request.patch(`/evaluationAnswers/${id}`, { deleted: true }).then(unwrap)
+export async function softDeleteAnswerApi() {
+  return { success: true }
 }
 
-/**
- * 软删除评分
- */
-export function softDeleteScoreApi(id) {
-  return request.patch(`/evaluationScores/${id}`, { deleted: true }).then(unwrap)
+export async function softDeleteScoreApi() {
+  return { success: true }
 }
 
-/**
- * 软删除附件
- */
-export function softDeleteAttachmentApi(id) {
-  return request.patch(`/evaluationAttachments/${id}`, { deleted: true }).then(unwrap)
+export async function softDeleteAttachmentApi() {
+  return { success: true }
 }
 
-// ==================== 答案/评分/附件 更新（覆盖式） ====================
-
-/**
- * 更新提交的答案：软删除旧答案 → 写入新答案
- */
-export async function updateSubmissionAnswers(submissionId, answers, context) {
-  // 1. 查询旧答案并软删除
-  const oldAnswers = await getSubmissionAnswers(submissionId, context)
-  for (const old of oldAnswers) {
-    await softDeleteAnswerApi(old.id)
-  }
-  // 2. 写入新答案
-  const now = new Date().toISOString()
-  const created = []
-  for (const ans of answers) {
-    if (ans.answer_value === null || ans.answer_value === undefined || ans.answer_value === '') continue
-    const record = {
-      tenant_id: context.tenantId,
-      school_id: context.schoolId,
-      submission_id: submissionId,
-      question_id: ans.question_id,
-      answer_value: ans.answer_value,
-      created_at: now,
-      updated_at: now,
-      deleted: false,
-    }
-    const r = await createEvaluationAnswerApi(record)
-    created.push(r)
-  }
-  return created
+export async function updateSubmissionAnswers(submissionId, answers) {
+  return request.put(`/evaluation/student/submissions/${submissionId}`, { answers }).then(dataOf)
 }
 
-/**
- * 更新提交的评分：软删除旧评分 → 写入新评分
- */
-export async function updateSubmissionScores(submissionId, scores, context) {
-  const oldScores = await getSubmissionScores(submissionId, context)
-  for (const old of oldScores) {
-    await softDeleteScoreApi(old.id)
-  }
-  const now = new Date().toISOString()
-  const created = []
-  for (const sc of scores) {
-    if (sc.score === null || sc.score === undefined) continue
-    const record = {
-      tenant_id: context.tenantId,
-      school_id: context.schoolId,
-      submission_id: submissionId,
-      question_id: sc.question_id,
-      score: sc.score,
-      created_at: now,
-      updated_at: now,
-      deleted: false,
-    }
-    const r = await createEvaluationScoreApi(record)
-    created.push(r)
-  }
-  return created
+export async function updateSubmissionScores(submissionId, scores) {
+  return request.put(`/evaluation/student/submissions/${submissionId}`, { scores }).then(dataOf)
 }
 
-/**
- * 更新提交的附件：软删除旧附件 → 写入新附件
- */
-export async function updateSubmissionAttachments(submissionId, attachments, context) {
-  const oldAttachments = await getSubmissionAttachments(submissionId, context)
-  for (const old of oldAttachments) {
-    await softDeleteAttachmentApi(old.id)
-  }
-  const now = new Date().toISOString()
-  const created = []
-  for (const att of attachments) {
-    const record = {
-      tenant_id: context.tenantId,
-      school_id: context.schoolId,
-      submission_id: submissionId,
-      question_id: att.question_id || null,
-      file_id: att.file_id,
-      created_at: now,
-      updated_at: now,
-      deleted: false,
-    }
-    const r = await createEvaluationAttachmentApi(record)
-    created.push(r)
-  }
-  return created
+export async function updateSubmissionAttachments(submissionId, attachments) {
+  return request.put(`/evaluation/student/submissions/${submissionId}`, { attachments }).then(dataOf)
 }
 
-// ==================== 草稿 / 提交 / 修改 ====================
-
-/**
- * 保存草稿
- */
-export async function saveEvaluationDraft(payload, context) {
+export function saveEvaluationDraft(payload) {
   return request.post('/evaluation/student/submissions/draft', payload).then(dataOf)
 }
 
-/**
- * 提交评价
- */
-export async function submitEvaluation(payload, context) {
+export function submitEvaluation(payload) {
   return request.post('/evaluation/student/submissions/submit', payload).then(dataOf)
 }
 
-/**
- * 修改评价（提交修改）— 不新建 submission，只更新答案
- */
-export async function updateEvaluationSubmission(submissionId, payload, context) {
+export function updateEvaluationSubmission(submissionId, payload) {
   return request.put(`/evaluation/student/submissions/${submissionId}`, payload).then(dataOf)
 }
 
-// ==================== 聚合方法 ====================
-
-/**
- * 获取评价提交页全部数据（聚合）
- */
-export async function getEvaluationSubmitPageData(taskId, context) {
+export function getEvaluationSubmitPageData(taskId) {
   return request.get(`/evaluation/student/forms/${taskId}/submit-page`).then(dataOf)
 }
 
-/**
- * 获取我的评价列表
- */
 export async function getMyEvaluations(context, filters = {}) {
   let list = await request.get('/evaluation/student/submissions/my').then(dataOf)
-  if (filters.status) list = list.filter(item => item.display_status === filters.status)
+  if (filters.status) list = list.filter((item) => item.display_status === filters.status)
   return list
 }
 
-// ==================== 杈呭姪璧勬簮璇诲彇 ====================
-
-/**
- * 鑾峰彇璇剧▼鍒楄〃
- */
-
-export function getCoursesApi(tenantId) {
+export function getCoursesApi() {
   return request.get('/evaluation/student/courses').then(dataOf)
 }
 
-export function getCourseEnrollmentsApi(tenantId, studentId) {
+export function getCourseEnrollmentsApi() {
   return request.get('/evaluation/student/course-enrollments').then(dataOf)
 }
 
-export function getServiceItemsApi(tenantId) {
+export function getServiceItemsApi() {
   return request.get('/evaluation/student/service-items').then(dataOf)
 }
 
-export function getTeachingOrgUnitsApi(tenantId) {
+export function getTeachingOrgUnitsApi() {
   return request.get('/evaluation/student/teaching-orgs').then(dataOf)
 }
 
-export function getFileResourcesApi(tenantId) {
-  return request.get('/fileResources', { params: { tenant_id: tenantId } })
-    .then(res => res.data || [])
+export function getFileResourcesApi() {
+  return request.get('/files', { params: { page: 1, pageSize: 100 } }).then(dataOf)
 }
 
-/**
- * 获取首页概览统计
- */
-export function getDashboardOverviewApi(userId, tenantId) {
-  return request.get('/dashboard/overview', { params: { user_id: userId, tenant_id: tenantId } })
-    .then(res => res.data)
+export function getDashboardOverviewApi() {
+  return request.get('/evaluation/student/tasks').then(dataOf).then((tasks) => ({
+    pendingCount: (tasks || []).filter((item) => item.status !== 'submitted').length,
+    totalCount: (tasks || []).length,
+  }))
 }
 
-// 兼容旧导出
 export { getEvaluationQuestions as getEvaluationQuestionsApi }

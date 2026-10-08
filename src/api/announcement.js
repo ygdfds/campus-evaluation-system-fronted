@@ -1,7 +1,7 @@
 import request from '@/request'
 
 function toList(res) {
-  return Array.isArray(res) ? res : (res?.data || [])
+  return Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : [])
 }
 
 function toItem(res) {
@@ -9,25 +9,23 @@ function toItem(res) {
 }
 
 function roleVisible(item, role) {
-  if (!item.target_roles) return true
-  return item.target_roles.split(',').map(r => r.trim()).includes(role)
+  const roles = Array.isArray(item.target_roles)
+    ? item.target_roles
+    : String(item.target_roles || '').split(',').map(value => value.trim()).filter(Boolean)
+  return roles.length === 0 || roles.includes(role)
 }
 
 /**
  * 获取正式校园公告列表。
- * 公告已从 notifications 中拆出，这里只读取 announcements。
+ * 从真实公告表读取已发布公告。
  */
 export function getAnnouncementsApi(tenantId, role) {
   return request.get('/announcements', {
     params: {
-      tenant_id: tenantId,
       status: 'published',
-      deleted: false,
-      _sort: 'publish_time',
-      _order: 'desc',
     },
   }).then(res => {
-    return toList(res).filter(n => !n.deleted && n.status === 'published' && roleVisible(n, role))
+    return toList(res).filter(n => !n.deleted && roleVisible(n, role))
   })
 }
 
@@ -44,14 +42,11 @@ export function getAnnouncementDetailApi(id) {
 export function getRelatedAnnouncementsApi(tenantId, tag, excludeId, limit = 3) {
   return request.get('/announcements', {
     params: {
-      tenant_id: tenantId,
       status: 'published',
-      tag,
-      deleted: false,
-      _sort: 'publish_time',
-      _order: 'desc',
     },
   }).then(res => {
-    return toList(res).filter(n => n.id !== excludeId && !n.deleted).slice(0, limit)
+    return toList(res)
+      .filter(n => n.id !== excludeId && !n.deleted && (!tag || n.tag === tag))
+      .slice(0, limit)
   })
 }

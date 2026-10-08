@@ -50,7 +50,7 @@ export function markNotificationReadApi(id) {
 }
 
 /**
- * 标记所有通知为已读（逐条 PATCH，json-server 不支持批量）
+ * 标记所有通知为已读（逐条调用真实通知接口）
  */
 export function markAllNotificationsReadApi(context) {
   return getNotificationsApi(context, { read_status: 'unread' })

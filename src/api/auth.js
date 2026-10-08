@@ -26,6 +26,10 @@ export function loginApi(username, password) {
   return request.post('/auth/login', { username, password })
 }
 
+export function logoutApi() {
+  return request.post('/auth/logout')
+}
+
 /**
  * 用户注册
  * @param {object} userData - 注册信息

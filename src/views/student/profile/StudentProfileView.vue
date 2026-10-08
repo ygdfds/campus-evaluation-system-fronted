@@ -131,7 +131,7 @@ async function handleChangePassword() {
   }
   pwdLoading.value = true
   try {
-    await updatePasswordApi(account.value.id, `$mock$${pwdForm.newPassword}`)
+    await updatePasswordApi(account.value.id, pwdForm.currentPassword, pwdForm.newPassword)
     ElMessage.success('密码修改成功')
     Object.assign(pwdForm, { currentPassword: '', newPassword: '', confirmPassword: '' })
   } catch (e) { ElMessage.error('密码修改失败'); console.error(e) }
@@ -171,14 +171,13 @@ async function handleAvatarChange(event) {
   event.target.value = ''
   try {
     const now = new Date().toISOString()
-    const fr = await createFileResourceApi({
+    const fr = await createFileResourceApi(file); /*
       tenant_id: userStore.tenantId, school_id: userStore.schoolId,
       file_name: file.name, file_size: file.size,
       file_type: file.name.split('.').pop() || 'png',
       url: '', uploaded_at: now, deleted: false,
     })
-    if (fr?.id) {
-      await updateAvatarApi(profile.value.id, fr.id)
+    */ if (fr?.id) {
       profile.value = { ...profile.value, avatar_file_id: fr.id }
       ElMessage.success('头像已更新')
     }

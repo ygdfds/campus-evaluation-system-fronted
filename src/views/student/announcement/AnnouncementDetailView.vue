@@ -22,13 +22,6 @@ function formatDate(dateStr) {
   return dateStr.slice(0, 10)
 }
 
-function canView(item, tenantId, roleType) {
-  if (!item || item.deleted || item.status !== 'published') return false
-  if (item.tenant_id !== tenantId) return false
-  if (!item.target_roles) return true
-  return item.target_roles.split(',').map(r => r.trim()).includes(roleType)
-}
-
 function handleRelatedClick(item) {
   router.push({ name: 'StudentAnnouncementDetail', params: { id: item.id } })
 }
@@ -52,7 +45,9 @@ async function loadDetail() {
       getFileResourcesApi(tenantId),
     ])
 
-    if (!canView(announcement, tenantId, roleType)) {
+    // 详情接口已经按当前用户的租户和角色完成权限过滤，不能再用旧的
+    // target_roles 字符串规则二次拦截后端返回的数据。
+    if (!announcement || announcement.deleted || announcement.status !== 'published') {
       loading.value = false
       return
     }
@@ -69,7 +64,7 @@ async function loadDetail() {
 
     const related = await getRelatedAnnouncementsApi(tenantId, announcement.tag, id, 3)
     relatedList.value = related
-      .filter(item => canView(item, tenantId, roleType))
+      .filter(item => item && !item.deleted && item.status === 'published')
       .map(n => ({
         id: n.id,
         title: n.title,

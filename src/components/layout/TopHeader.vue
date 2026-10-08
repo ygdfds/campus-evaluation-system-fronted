@@ -2,6 +2,7 @@
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { SwitchButton, Fold, Expand } from '@element-plus/icons-vue'
+import { logoutApi } from '@/api/auth'
 
 defineOptions({ name: 'TopHeader' })
 
@@ -16,9 +17,15 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-function handleLogout() {
-  userStore.logout()
-  router.push('/login')
+async function handleLogout() {
+  try {
+    await logoutApi()
+  } catch (error) {
+    console.warn('Backend logout failed; clearing local auth state:', error)
+  } finally {
+    userStore.logout()
+    router.push('/login')
+  }
 }
 </script>
 

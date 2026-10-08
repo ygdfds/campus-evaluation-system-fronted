@@ -10,6 +10,7 @@ import {
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyPlaceholder from '@/components/common/EmptyPlaceholder.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
+import StaffEvalFormDrawer from '@/components/staff/evaluation/StaffEvalFormDrawer.vue'
 import {
   getSchoolFormListApi,
   getSchoolFormStatsApi,
@@ -66,6 +67,23 @@ const windowStatusTagMap = {
 const detailVisible = ref(false)
 const detailData = ref(null)
 const detailLoading = ref(false)
+const editorVisible = ref(false)
+const editorMode = ref('create')
+const editorForm = ref({})
+
+function handleCreateForm() {
+  editorMode.value = 'create'
+  editorForm.value = {
+    _context: { tenantId: tenantId.value, userId: userStore.userInfo?.id },
+  }
+  editorVisible.value = true
+}
+
+function handleEditorSaved() {
+  editorVisible.value = false
+  loadData()
+  loadStats()
+}
 
 // ==================== 窗口管理弹窗 ====================
 const windowVisible = ref(false)
@@ -246,7 +264,7 @@ async function handleCloseWindow(window) {
       { type: 'warning', confirmButtonText: '确认关闭', cancelButtonText: '取消' },
     )
     await closeSchoolFormWindowApi(
-      { tenantId: tenantId.value, userId: userStore.userInfo?.id || 1 },
+      { tenantId: tenantId.value, formId: windowFormId.value },
       window.id,
     )
     ElMessage.success('窗口已关闭')
@@ -297,7 +315,7 @@ onMounted(() => {
     <!-- 页面标题 -->
     <PageHeader title="表单管理" description="管理评价表单模板及发布审核">
       <template #actions>
-        <el-button type="primary" :icon="Plus">创建表单</el-button>
+        <el-button type="primary" :icon="Plus" @click="handleCreateForm">创建表单</el-button>
       </template>
     </PageHeader>
 
@@ -600,6 +618,13 @@ onMounted(() => {
         </template>
       </div>
     </el-dialog>
+
+    <StaffEvalFormDrawer
+      v-model:visible="editorVisible"
+      :mode="editorMode"
+      :form-data="editorForm"
+      @saved="handleEditorSaved"
+    />
   </div>
 </template>
 
@@ -1013,4 +1038,3 @@ onMounted(() => {
   }
 }
 </style>
-

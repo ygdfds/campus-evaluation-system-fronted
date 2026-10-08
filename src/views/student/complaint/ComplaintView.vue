@@ -168,7 +168,7 @@ function handleFileSelect(event) {
       ElMessage.warning('附件最多上传 3 个')
       break
     }
-    attachments.value.push({ id: Date.now() + Math.random(), name: file.name, size: file.size })
+    attachments.value.push({ id: `${file.name}-${file.size}-${file.lastModified}`, file, name: file.name, size: file.size })
     formDirty.value = true
   }
   event.target.value = ''
@@ -219,10 +219,7 @@ async function handleSubmit() {
   try {
     const fileIds = []
     for (const att of attachments.value) {
-      const fr = await createFileResourceApi({
-        tenant_id: tid, school_id: sid, file_name: att.name, file_size: att.size,
-        file_type: att.name.split('.').pop() || 'png', url: '', uploaded_at: now, deleted: false,
-      })
+      const fr = await createFileResourceApi(att.file)
       if (fr?.id) fileIds.push(fr.id)
     }
 
@@ -275,7 +272,9 @@ async function loadComplaints() {
       getServiceItemsApi(tid).catch(() => []),
       getCoursesApi(tid).catch(() => []),
       getTeachingOrgUnitsApi(tid).catch(() => []),
-      getServiceOrgUnitsApi(tid).catch(() => []),
+      // 学生不能访问学校管理端的组织管理接口；服务组织名称由服务项目返回的
+      // service_org_id 关联即可，避免进入投诉页时触发 403。
+      Promise.resolve([]),
     ])
     const sItemMap = {}, courseMap = {}, tOrgMap = {}, sOrgMap = {}
     serviceItems.forEach(s => { sItemMap[s.id] = s })

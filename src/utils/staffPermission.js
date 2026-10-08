@@ -70,8 +70,7 @@ export function canViewStaffMenu(menuKey, roleCodes) {
  * @param {Array} serviceOrgs - 服务组织列表（serviceOrgUnits）
  * @returns {Object} scope 对象
  * 
- * 说明：当前为前端基于 mock 数据的简化实现，
- * 后续可替换为后端权限接口返回的授权范围。
+ * 权限与数据范围来自登录接口返回的真实角色信息。
  */
 export function getStaffRoleScope(userStore, teachingOrgs = [], serviceOrgs = []) {
   const roleCodes = getStaffRoleCodes(userStore.userInfo)

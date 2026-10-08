@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { Plus, Refresh } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import request from '@/request'
 import { getStaffRoleCodes, getStaffRoleNames } from '@/utils/staffPermission'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyPlaceholder from '@/components/common/EmptyPlaceholder.vue'
@@ -218,12 +219,7 @@ async function handleCloseWindow(item) {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    // 更新表单状态为 closed
-    await updateEvalFormApi(context.value, item.id, { status: 'closed' })
-    // 如果有窗口，也更新窗口状态
-    if (item._window) {
-      await updateEvalWindowApi(context.value, item._window.id, { status: 'closed' })
-    }
+    await request.post(`/evaluation/forms/${item.id}/close`)
     ElMessage.success('已关闭窗口')
     await loadData()
   } catch (err) {

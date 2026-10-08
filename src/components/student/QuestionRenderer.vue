@@ -1,5 +1,6 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import request from '@/request'
 
 defineOptions({ name: 'QuestionRenderer' })
 
@@ -14,6 +15,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'update:scoreValue'])
+const uploading = ref(false)
 
 const stars = computed(() => {
   const max = props.question.max_score || 5
@@ -36,6 +38,28 @@ function handleRatingClick(val) {
 
 function handleTextInput(e) {
   emit('update:modelValue', e.target.value)
+}
+
+async function handleFileChange(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file || props.disabled) return
+  uploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('bizType', 'evaluation_answer')
+    const response = await request.post('/files/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    const uploaded = response?.data || response
+    if (!uploaded?.id) throw new Error('上传文件后端未返回文件ID')
+    emit('update:modelValue', uploaded.id)
+  } catch (error) {
+    console.error('评价附件上传失败:', error)
+  } finally {
+    uploading.value = false
+  }
 }
 
 function handleOptionToggle(optionId) {
@@ -131,10 +155,15 @@ const typeLabel = computed(() => {
       </div>
     </div>
 
-    <!-- 文件上传题 (mock) -->
+    <!-- 文件上传题 -->
     <div v-else-if="question.type === 'file'" class="file-input-group">
-      <div class="file-upload-area" :class="{ disabled: disabled }">
-        <span>点击或拖拽上传文件（Mock 环境暂不支持真实上传）</span>
+      <div class="file-upload-area" :class="{ disabled: disabled || uploading }">
+        <input
+          type="file"
+          :disabled="disabled || uploading"
+          @change="handleFileChange"
+        />
+        <span>{{ uploading ? '正在上传文件…' : modelValue ? '文件已上传，可重新选择' : '点击或拖拽上传文件' }}</span>
       </div>
     </div>
 

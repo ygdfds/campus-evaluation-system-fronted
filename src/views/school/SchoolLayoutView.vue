@@ -8,6 +8,8 @@ import {
   ChatDotRound, Bell,
 } from '@element-plus/icons-vue'
 import NotificationDropdown from '@/components/NotificationDropdown.vue'
+import AiAssistant from '@/components/AiAssistant.vue'
+import { logoutApi } from '@/api/auth'
 
 defineOptions({ name: 'SchoolLayoutView' })
 
@@ -86,9 +88,15 @@ function go(path) {
   router.push(path)
 }
 
-function handleLogout() {
-  userStore.logout()
-  router.push('/login')
+async function handleLogout() {
+  try {
+    await logoutApi()
+  } catch (error) {
+    console.warn('Backend logout failed; clearing local auth state:', error)
+  } finally {
+    userStore.logout()
+    router.push('/login')
+  }
 }
 </script>
 
@@ -185,6 +193,7 @@ function handleLogout() {
       <main class="content-area">
         <router-view />
       </main>
+      <AiAssistant />
     </div>
   </div>
 </template>

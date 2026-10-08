@@ -76,8 +76,10 @@ async function handleLogin() {
     if (redirect) {
       router.push(redirect)
     } else {
-      const role = res.data.user?.role_type || res.data.userInfo?.role || 'student'
+      const role = res.data.user?.role_type || res.data.userInfo?.role || res.data.roleType || res.data.userType || 'student'
       const roleRouteMap = {
+        system_admin: '/admin/dashboard',
+        school_admin: '/school/dashboard',
         staff: '/staff/dashboard',
         student: '/student/dashboard',
       }

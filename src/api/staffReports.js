@@ -3,7 +3,7 @@ import request from '@/request'
 /**
  * 职工端数据看板 API
  *
- * 所有方法内部组合调用 json-server 已有资源，
+ * 所有方法使用后端统计上下文返回的真实数据库数据，
  * 按 tenant_id + deleted 过滤，再按角色 scope 限定数据范围。
  */
 
