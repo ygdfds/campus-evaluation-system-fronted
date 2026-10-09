@@ -145,7 +145,7 @@ function openCreateDrawer() {
   drawerForm.value = {
     real_name: '',
     username: '',
-    role_type: 'staff',
+    role_type: ['staff'],
     no_work: '',
     gender: '',
     phone: '',
@@ -167,7 +167,7 @@ async function openEditDrawer(row) {
     if (detail) {
       drawerForm.value = {
         real_name: detail.real_name || '',
-        role_type: detail.role_type || 'staff',
+        role_type: detail.roleCodes?.length ? detail.roleCodes : [detail.role_type || 'staff'],
         no_work: detail.no_work || '',
         gender: detail.gender || '',
         phone: detail.account?.phone || '',
@@ -450,7 +450,7 @@ onMounted(() => {
           </el-col>
           <el-col :span="12">
             <el-form-item label="角色类型" prop="role_type">
-              <el-select v-model="drawerForm.role_type" placeholder="请选择角色" style="width: 100%">
+              <el-select v-model="drawerForm.role_type" placeholder="请选择角色（可多选）" multiple collapse-tags style="width: 100%">
                 <el-option
                   v-for="opt in roleOptions"
                   :key="opt.value"

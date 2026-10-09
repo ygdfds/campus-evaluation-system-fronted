@@ -130,6 +130,13 @@ export async function updateSchoolStaffApi(tenantId, profileId, payload) {
   return normalizeStaff(data)
 }
 
+export async function assignSchoolStaffRolesApi(tenantId, profileId, roleCodes = []) {
+  await request.put(`/school/staff-users/${profileId}/roles`, {
+    roleCodes: Array.from(new Set(['staff', ...roleCodes])).filter(Boolean),
+  })
+  return { success: true }
+}
+
 export async function toggleSchoolStaffStatusApi(tenantId, profileId, newStatus) {
   await request.put(`/school/staff-users/${profileId}/status`, { status: newStatus })
   return { account_status: newStatus }
