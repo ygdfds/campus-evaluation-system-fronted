@@ -15,8 +15,12 @@ const fetchSettings = async () => {
 }
 
 const handleSave = async () => {
-  await saveSystemSettingsApi(settingsForm.value)
-  ElMessage.success('配置已保存')
+  try {
+    await saveSystemSettingsApi(settingsForm.value)
+    ElMessage.success('配置已保存')
+  } catch (error) {
+    ElMessage.error(error?.response?.data?.message || error?.message || '配置保存失败')
+  }
 }
 
 onMounted(() => {

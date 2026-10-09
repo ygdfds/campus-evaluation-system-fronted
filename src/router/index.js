@@ -4,7 +4,6 @@ import AuthLayoutView from '@/views/auth/AuthLayoutView.vue'
 import SystemAdminLoginForm from '@/components/SystemAdminLoginForm.vue'
 import SchoolAdminLoginForm from '@/components/SchoolAdminLoginForm.vue'
 import UserLoginForm from '@/components/UserLoginForm.vue'
-import RegisterForm from '@/components/RegisterForm.vue'
 import ForgotPasswordForm from '@/components/ForgotPasswordForm.vue'
 
 const router = createRouter({
@@ -36,12 +35,6 @@ const router = createRouter({
           name: 'SysAdminLogin',
           component: SystemAdminLoginForm,
           meta: { title: '系统维护', guest: true },
-        },
-        {
-          path: 'register',
-          name: 'Register',
-          component: RegisterForm,
-          meta: { title: '注册', guest: true },
         },
         {
           path: 'forgot-password',
@@ -198,9 +191,7 @@ router.beforeEach((to, from, next) => {
     }
   }
 
-  // 已登录用户访问 guest 页面（登录/注册/入驻等），根据角色跳转到对应首页
-  // 只有已登录用户访问登录页时才回到首页；注册和忘记密码允许从登录态打开，
-  // 避免登录页的“立即注册”被全局守卫吞掉。
+  // 已登录用户访问登录页时，根据角色跳转到对应首页；忘记密码页允许直接打开。
   if (to.meta.guest && token && to.name === 'Login') {
     const userInfo = JSON.parse(sessionStorage.getItem('campus_user_info') || '{}')
     const userRole = userInfo.role_type || userInfo.role

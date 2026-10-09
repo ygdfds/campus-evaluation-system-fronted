@@ -24,6 +24,7 @@ import {
   formStatusMap,
   publishScopeMap,
 } from '@/api/schoolForms'
+import { submitFormForAuditApi } from '@/api/staffEvaluationForms'
 
 defineOptions({ name: 'SchoolFormListView' })
 
@@ -162,6 +163,23 @@ async function handleViewDetail(row) {
 // ==================== 审核操作 ====================
 function handleAudit() {
   router.push('/school/audit/list')
+}
+async function handleSubmitAudit(row) {
+  try {
+    await ElMessageBox.confirm(
+      `确认提交表单“${row.title}”进入发布审核流程？`,
+      '提交审核',
+      { type: 'warning', confirmButtonText: '确认提交', cancelButtonText: '取消' },
+    )
+    await submitFormForAuditApi({ tenantId: tenantId.value, userId: userStore.userInfo?.id }, row.id)
+    ElMessage.success('已提交审核申请')
+    await loadData()
+    await loadStats()
+  } catch (err) {
+    if (err === 'cancel') return
+    console.error('提交审核失败:', err)
+    ElMessage.error(err?.response?.data?.message || err?.message || '提交审核失败')
+  }
 }
 
 // ==================== 状态管理 ====================
@@ -399,7 +417,7 @@ onMounted(() => {
           <template #default="{ row }">
             <template v-if="row.status === 'draft'">
               <el-button link type="primary" size="small" @click="handleViewDetail(row)">编辑</el-button>
-              <el-button link type="warning" size="small">提交审核</el-button>
+              <el-button link type="warning" size="small" @click="handleSubmitAudit(row)">提交审核</el-button>
               <el-button link type="danger" size="small" @click="handleDeleteForm(row)">删除</el-button>
             </template>
             <template v-else-if="row.status === 'pending_review'">
@@ -415,7 +433,7 @@ onMounted(() => {
             </template>
             <template v-else-if="row.status === 'rejected'">
               <el-button link type="primary" size="small" @click="handleViewDetail(row)">编辑</el-button>
-              <el-button link type="warning" size="small">重新提交</el-button>
+              <el-button link type="warning" size="small" @click="handleSubmitAudit(row)">提交审核</el-button>
             </template>
             <template v-else-if="row.status === 'closed'">
               <el-button link type="info" size="small" @click="handleViewDetail(row)">查看详情</el-button>

@@ -1,8 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
 
-defineOptions({ name: 'SubmitAuditDialog' })
-
 const props = defineProps({
   visible: { type: Boolean, default: false },
   formItem: { type: Object, default: () => ({}) },
@@ -11,14 +9,15 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'confirm'])
 
 const submitReason = ref('')
-const submitting = ref(false)
+
+const typeMap = {
+  teaching: '教学评价',
+  service: '服务评价',
+  instant: '即时评价',
+}
 
 function handleConfirm() {
-  submitting.value = true
   emit('confirm', { submit_reason: submitReason.value })
-  setTimeout(() => {
-    submitting.value = false
-  }, 500)
 }
 
 function handleClose() {
@@ -26,10 +25,8 @@ function handleClose() {
   emit('update:visible', false)
 }
 
-watch(() => props.visible, (val) => {
-  if (val) {
-    submitReason.value = '申请发布评价表单，请审核'
-  }
+watch(() => props.visible, (visible) => {
+  if (visible) submitReason.value = '申请发布评价表单，请审核。'
 })
 </script>
 
@@ -49,9 +46,7 @@ watch(() => props.visible, (val) => {
         </div>
         <div class="info-row">
           <span class="info-label">表单类型：</span>
-          <el-tag size="small" effect="light">
-            {{ formItem.type === 'teaching' ? '教学评价' : formItem.type === 'service' ? '服务评价' : '即时评价' }}
-          </el-tag>
+          <el-tag size="small" effect="light">{{ typeMap[formItem.type] || formItem.type }}</el-tag>
         </div>
         <div class="info-row">
           <span class="info-label">题目数量：</span>
@@ -65,7 +60,7 @@ watch(() => props.visible, (val) => {
             v-model="submitReason"
             type="textarea"
             :rows="4"
-            placeholder="请填写提交审核的说明（选填）"
+            placeholder="请填写提交审核的说明，可留空"
             maxlength="500"
             show-word-limit
           />
@@ -73,13 +68,13 @@ watch(() => props.visible, (val) => {
       </el-form>
 
       <el-alert type="info" :closable="false" show-icon>
-        提交后将由学校管理员进行审核，审核通过后表单将正式发布
+        提交后将进入学校管理员审核流程，审核通过后表单会正式发布。
       </el-alert>
     </div>
 
     <template #footer>
       <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" :loading="submitting" @click="handleConfirm">确认提交</el-button>
+      <el-button type="primary" @click="handleConfirm">确认提交</el-button>
     </template>
   </el-dialog>
 </template>

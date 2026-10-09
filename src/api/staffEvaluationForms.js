@@ -7,6 +7,12 @@ function formTypeCode(value) {
   return value
 }
 
+function uiFormType(value) {
+  if (value === 'course_evaluation') return 'teaching'
+  if (value === 'service_evaluation') return 'service'
+  return value || 'teaching'
+}
+
 function normalizeQuestion(question = {}) {
   return {
     ...question,
@@ -29,24 +35,33 @@ function normalizeWindow(window, formId) {
     form_id: formId,
     start_at: window.startTime || window.start_at,
     end_at: window.endTime || window.end_at,
+    start_time: window.startTime || window.start_at,
+    end_time: window.endTime || window.end_at,
   }
 }
 
 function normalizeForm(form = {}) {
   const backendType = form.formType || form.form_type || form.type
-  const type = backendType === 'course_evaluation' ? 'teaching'
-    : backendType === 'service_evaluation' ? 'service'
-      : backendType
+  const backendStatus = form.status === 'pending' ? 'pending_review' : form.status
+  const targetType = form.targetType || form.target_type
+  const targetId = form.targetId || form.target_id
   const questions = (form.questions || form._questions || []).map(normalizeQuestion)
   const audits = form.auditRecords || form._audits || []
   const window = normalizeWindow(form.window || form._window, form.id)
   return {
     ...form,
-    type,
-    form_type: type,
+    type: uiFormType(backendType),
+    form_type: uiFormType(backendType),
     formType: backendType,
-    target_type: form.targetType || form.target_type,
-    target_id: form.targetId || form.target_id,
+    status: backendStatus,
+    status_code: form.status,
+    target_type: targetType,
+    target_id: targetId,
+    course_id: form.courseId || form.course_id || (targetType === 'course' ? targetId : null),
+    service_item_id: form.serviceItemId || form.service_item_id || (targetType === 'service_item' ? targetId : null),
+    teaching_org_id: form.teachingOrgId || form.teaching_org_id || null,
+    service_org_id: form.serviceOrgId || form.service_org_id || null,
+    target_name: form.targetName || form.target_name || '',
     cover_file_id: form.coverFileId ?? form.cover_file_id,
     anonymous: form.anonymousEnabled ?? form.anonymous,
     score_enabled: form.scoreEnabled ?? form.score_enabled,
@@ -58,17 +73,29 @@ function normalizeForm(form = {}) {
     _windows: window ? [window] : [],
     _audit: audits[0] || null,
     _audits: audits,
-    _cover_url: form.coverUrl || '',
+    _cover_url: form.coverUrl || form._cover_url || '',
     questions,
   }
 }
 
+function resolveTarget(payload = {}) {
+  const explicitType = payload.targetType || payload.target_type
+  const explicitId = payload.targetId || payload.target_id
+  if (explicitType && explicitId) return { targetType: explicitType, targetId: explicitId }
+  if (payload.course_id || payload.courseId) {
+    return { targetType: 'course', targetId: payload.course_id || payload.courseId }
+  }
+  if (payload.service_item_id || payload.serviceItemId) {
+    return { targetType: 'service_item', targetId: payload.service_item_id || payload.serviceItemId }
+  }
+  return { targetType: explicitType || null, targetId: explicitId || null }
+}
+
 function formPayload(payload = {}) {
-  const targetType = payload.targetType || payload.target_type
-    || (payload.course_id || payload.courseId ? 'course' : 'service_item')
-  const targetId = payload.targetId || payload.target_id
-    || payload.course_id || payload.courseId
-    || payload.service_item_id || payload.serviceItemId
+  const { targetType, targetId } = resolveTarget(payload)
+  if (!targetType || !targetId) {
+    throw new Error('请选择评价对象')
+  }
   return {
     title: payload.title,
     description: payload.description || '',
@@ -81,17 +108,63 @@ function formPayload(payload = {}) {
   }
 }
 
-function questionPayload(question, index) {
+function asArray(value) {
+  if (Array.isArray(value)) return value
+  if (Array.isArray(value?.records)) return value.records
+  if (Array.isArray(value?.list)) return value.list
+  return []
+}
+
+function flattenTree(nodes = []) {
+  const result = []
+  const walk = (items) => {
+    asArray(items).forEach((item) => {
+      result.push(item)
+      if (item.children?.length) walk(item.children)
+    })
+  }
+  walk(nodes)
+  return result
+}
+
+function normalizeCourseOption(item = {}) {
+  const id = item.id ?? item.value
+  const name = item.course_name || item.courseName || item.label || item.name || ''
   return {
-    title: question.title,
-    questionType: question.questionType || question.question_type || question.type,
-    required: question.required ?? true,
-    sortOrder: question.sortOrder ?? question.sort_order ?? index + 1,
-    maxScore: question.maxScore ?? question.max_score ?? null,
-    options: (question.options || question._options || []).map((option, optionIndex) => ({
-      label: option.label || option.optionText || option.option_text || option.text,
-      sortOrder: option.sortOrder ?? option.sort_order ?? optionIndex + 1,
-    })),
+    ...item,
+    id,
+    value: id,
+    course_name: name,
+    course_code: item.course_code || item.courseCode || item.extra || '',
+    teaching_org_id: item.teaching_org_id || item.teachingOrgId || null,
+    label: item.label || name,
+  }
+}
+
+function normalizeServiceItemOption(item = {}) {
+  const id = item.id ?? item.value
+  const name = item.name || item.label || item.service_item_name || item.serviceItemName || ''
+  return {
+    ...item,
+    id,
+    value: id,
+    name,
+    label: item.label || name,
+    service_org_id: item.service_org_id || item.serviceOrgId || null,
+    type: item.type || item.extra || 'service',
+  }
+}
+
+function normalizeOrgOption(item = {}) {
+  const id = item.id ?? item.value
+  const name = item.name || item.label || ''
+  return {
+    ...item,
+    id,
+    value: id,
+    name,
+    label: item.label || name,
+    parent_id: item.parent_id || item.parentId || null,
   }
 }
 
@@ -99,8 +172,8 @@ export async function getStaffEvalFormsApi(_context, filters = {}) {
   const page = await getPage(request, '/evaluation/forms', {
     keyword: filters.keyword,
     status: filters.status === 'pending_review' ? 'pending' : filters.status,
-    formType: filters.type ? formTypeCode(filters.type) : undefined,
-    targetType: filters.targetType,
+    formType: filters.type && filters.type !== 'all' ? formTypeCode(filters.type) : undefined,
+    targetType: filters.targetType && filters.targetType !== 'all' ? filters.targetType : undefined,
     page: filters.page || 1,
     pageSize: filters.pageSize || 10,
   })
@@ -152,6 +225,20 @@ export async function saveEvalQuestionsApi(_context, formId, questions) {
   }).then(dataOf)
 }
 
+function questionPayload(question, index) {
+  return {
+    title: question.title,
+    questionType: question.questionType || question.question_type || question.type,
+    required: question.required ?? true,
+    sortOrder: question.sortOrder ?? question.sort_order ?? index + 1,
+    maxScore: question.maxScore ?? question.max_score ?? null,
+    options: (question.options || question._options || []).map((option, optionIndex) => ({
+      label: option.label || option.optionText || option.option_text || option.text,
+      sortOrder: option.sortOrder ?? option.sort_order ?? optionIndex + 1,
+    })),
+  }
+}
+
 export async function createEvalWindowApi(_context, payload) {
   return request.put(`/evaluation/forms/${payload.form_id || payload.formId}/window`, {
     startTime: payload.startTime || payload.start_at,
@@ -171,10 +258,7 @@ export async function submitFormForAuditApi(_context, formId) {
 }
 
 export async function getFormAuditApi(_context, formId) {
-  const page = await getPage(request, '/evaluation/audits', {
-    page: 1,
-    pageSize: 500,
-  })
+  const page = await getPage(request, '/evaluation/audits', { page: 1, pageSize: 500 })
   return page.records
     .filter((item) => Number(item.formId ?? item.form_id) === Number(formId))
     .sort((a, b) => new Date(b.requestedAt || b.requested_at) - new Date(a.requestedAt || a.requested_at))
@@ -183,12 +267,22 @@ export async function getFormAuditApi(_context, formId) {
 export async function getPublishTargetOptionsApi() {
   const ctx = dataOf(await request.get('/stats/staff/reports/context')) || {}
   return {
-    serviceItems: ctx.serviceItems || [],
-    courses: ctx.courses || [],
-    serviceOrgs: ctx.serviceOrgs || [],
-    teachingOrgs: ctx.teachingOrgs || [],
-    courseTeachers: ctx.courseTeachers || [],
+    serviceItems: asArray(ctx.serviceItems).map(normalizeServiceItemOption),
+    courses: asArray(ctx.courses).map(normalizeCourseOption),
+    serviceOrgs: flattenTree(ctx.serviceOrgs).map(normalizeOrgOption),
+    teachingOrgs: flattenTree(ctx.teachingOrgs).map(normalizeOrgOption),
+    courseTeachers: asArray(ctx.courseTeachers),
   }
+}
+
+export async function createCourseOptionApi(payload) {
+  return request.post('/school/courses', {
+    teachingOrgId: payload.teachingOrgId,
+    courseCode: payload.courseCode,
+    courseName: payload.courseName,
+    term: payload.term || '2026春季学期',
+    status: 'active',
+  }).then(dataOf).then(normalizeCourseOption)
 }
 
 export async function withdrawAuditApi(_context, formId) {
@@ -198,9 +292,9 @@ export async function withdrawAuditApi(_context, formId) {
 
 export async function getEvalFormDataApi(_context, formId) {
   const ctx = dataOf(await request.get('/stats/staff/reports/context')) || {}
-  const submissions = (ctx.submissions || []).filter((item) => Number(item.form_id || item.formId) === Number(formId))
-  const questions = (ctx.questions || []).filter((item) => Number(item.form_id || item.formId) === Number(formId))
-  const scores = ctx.scores || []
+  const submissions = asArray(ctx.submissions).filter((item) => Number(item.form_id || item.formId) === Number(formId))
+  const questions = asArray(ctx.questions).filter((item) => Number(item.form_id || item.formId) === Number(formId))
+  const scores = asArray(ctx.scores)
   const submissionIds = new Set(submissions.map((item) => item.id))
   const relatedScores = scores.filter((item) => submissionIds.has(item.submission_id))
   const avgScore = relatedScores.length

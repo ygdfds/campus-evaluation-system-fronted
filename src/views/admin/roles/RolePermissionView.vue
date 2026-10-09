@@ -9,11 +9,11 @@ import {
   deleteSystemRoleApi,
   getAdminDataScopeOptionsApi,
   getSystemAdminsApi,
-  getCustomRolesApi,
   getMenuPermissionsApi,
   getRoleDefaultPermissionKeys,
   getSystemRolesApi,
   updateSystemRoleApi,
+  updateSystemRolePermissionsApi,
 } from '@/api/system'
 
 defineOptions({ name: 'AdminRolePermissionView' })
@@ -27,7 +27,7 @@ const activeCollapse = ref(1) // 当前展开的折叠面板
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const editingId = ref(null)
-const roleForm = ref({ roleName: '', description: '', dataScope: '' })
+const roleForm = ref({ roleCode: '', roleName: '', description: '', dataScope: '' })
 
 // Permission dialog state
 const permDialogVisible = ref(false)
@@ -35,19 +35,29 @@ const selectedRoleId = ref(null)
 const selectedRoleName = ref('')
 const menuPermissions = ref([])
 const checkedKeys = ref([])
+const permTreeRef = ref(null)
 const dataScopeOptions = ref([])
+
+const permissionNodes = () => menuPermissions.value.flatMap((module) => [
+  module,
+  ...(module.children || []),
+])
+
+const permissionCodesForKeys = (keys) => permissionNodes()
+  .filter((item) => keys.includes(item.id))
+  .map((item) => item.permissionCode || item.permission_code)
+  .filter(Boolean)
+
+const permissionKeysForCodes = (codes) => permissionNodes()
+  .filter((item) => codes.includes(item.permissionCode || item.permission_code))
+  .map((item) => item.id)
 
 // Fetch roles from both built-in (users table) and custom tables
 const fetchRoles = async () => {
   loading.value = true
   try {
     const response = await getSystemRolesApi()
-    const builtIn = (response.data?.list || []).map((role) => ({ ...role, builtin: true }))
-    
-    const customRolesResponse = await getCustomRolesApi().catch(() => ({ data: { list: [] } }))
-    const custom = (customRolesResponse.data?.list || []).map((role) => ({ ...role, builtin: false }))
-    
-    roles.value = [...builtIn, ...custom]
+    roles.value = (response.data?.list || []).map((role) => ({ ...role, builtin: role.roleCode === 'system_admin' }))
   } catch (error) {
     console.error('获取角色列表失败:', error)
   } finally {
@@ -58,7 +68,7 @@ const fetchRoles = async () => {
 const openAddDialog = () => {
   isEdit.value = false
   editingId.value = null
-  roleForm.value = { roleName: '', description: '', dataScope: 'all' }
+  roleForm.value = { roleCode: '', roleName: '', description: '', dataScope: 'all' }
   dialogVisible.value = true
 }
 
@@ -69,18 +79,22 @@ const openEditDialog = (row) => {
   }
   isEdit.value = true
   editingId.value = row.id
-  roleForm.value = { roleName: row.roleName, description: row.description, dataScope: row.dataScope }
+  roleForm.value = { roleCode: row.roleCode || '', roleName: row.roleName, description: row.description || '', dataScope: row.dataScope || 'all' }
   dialogVisible.value = true
 }
 
 const handleSave = async () => {
+  if (!/^[A-Za-z][A-Za-z0-9_.-]{1,63}$/.test(roleForm.value.roleCode.trim())) {
+    ElMessage.warning('请输入合法角色编码（字母开头，2-64位）')
+    return
+  }
   if (!roleForm.value.roleName.trim()) { ElMessage.warning('请输入角色名称'); return }
   if (!roleForm.value.description.trim()) { ElMessage.warning('请输入角色描述'); return }
   try {
     const payload = {
+      roleCode: roleForm.value.roleCode.trim(),
       roleName: roleForm.value.roleName,
-      description: roleForm.value.description,
-      dataScope: roleForm.value.dataScope
+      scopeType: roleForm.value.dataScope || 'platform',
     }
     if (isEdit.value && editingId.value) {
       await updateSystemRoleApi(editingId.value, payload)
@@ -115,7 +129,9 @@ const handleConfigPermissions = async (row) => {
   try {
     const response = await getMenuPermissionsApi()
     menuPermissions.value = response.data?.list || []
-    checkedKeys.value = getRoleDefaultPermissionKeys(row.roleName, menuPermissions.value)
+    checkedKeys.value = row.permissionKeys?.length
+      ? permissionKeysForCodes(row.permissionKeys)
+      : getRoleDefaultPermissionKeys(row.roleName, menuPermissions.value)
   } catch {
     menuPermissions.value = []
     checkedKeys.value = []
@@ -123,9 +139,16 @@ const handleConfigPermissions = async (row) => {
   permDialogVisible.value = true
 }
 
-const handleSavePermissions = () => {
-  ElMessage.success(`角色「${selectedRoleName.value}」的权限已保存`)
-  permDialogVisible.value = false
+const handleSavePermissions = async () => {
+  try {
+    const permissionCodes = permissionCodesForKeys(permTreeRef.value?.getCheckedKeys(false) || checkedKeys.value)
+    await updateSystemRolePermissionsApi(selectedRoleId.value, { permissionCodes })
+    ElMessage.success(`角色“${selectedRoleName.value}”的权限已保存`)
+    permDialogVisible.value = false
+    fetchRoles()
+  } catch (error) {
+    ElMessage.error(error?.response?.data?.message || error?.message || '权限保存失败')
+  }
 }
 
 const saveAccountRole = (row) => {
@@ -226,6 +249,9 @@ onMounted(() => {
     <!-- 新增/编辑对话框 -->
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑角色' : '新增角色'" width="480px">
       <el-form label-width="90px">
+        <el-form-item label="角色编码" required>
+          <el-input v-model="roleForm.roleCode" placeholder="例：audit_operator" :disabled="isEdit" />
+        </el-form-item>
         <el-form-item label="角色名称" required>
           <el-input v-model="roleForm.roleName" placeholder="例：审计专员" />
         </el-form-item>
@@ -253,6 +279,7 @@ onMounted(() => {
           node-key="id"
           check-on-click-node
           default-expand-all
+          ref="permTreeRef"
           :default-checked-keys="checkedKeys"
           :props="{ children: 'children', label: 'label' }"
         />

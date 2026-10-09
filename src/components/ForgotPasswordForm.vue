@@ -1,83 +1,37 @@
 <script setup>
-import { ref, reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, Message, Key, ArrowRight, ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowLeft, Check, User } from '@element-plus/icons-vue'
 import { forgotPasswordApi } from '@/api/auth'
 
 defineOptions({ name: 'ForgotPasswordForm' })
 
 const router = useRouter()
 const loading = ref(false)
-const activeStep = ref(0)
+const submitted = ref(false)
+const resultMessage = ref('')
+const formRef = ref(null)
+const form = reactive({
+  username: '',
+  realName: '',
+  identityNo: '',
+})
 
-const accountForm = reactive({ username: '' })
-const verifyForm = reactive({ method: 'phone', code: '' })
-const passwordForm = reactive({ newPassword: '', confirmPassword: '' })
-
-const accountRules = {
-  username: [
-    { required: true, message: '请输入注册账号', trigger: 'blur' },
-  ],
-}
-
-const verifyRules = {
-  code: [
-    { required: true, message: '请输入验证码', trigger: 'blur' },
-  ],
-}
-
-const passwordRules = {
-  newPassword: [
-    { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '密码长度为6-20个字符', trigger: 'blur' },
-  ],
-  confirmPassword: [
-    { required: true, message: '请确认新密码', trigger: 'blur' },
-    {
-      validator: (_rule, value, callback) => {
-        if (value !== passwordForm.newPassword) {
-          callback(new Error('两次输入的密码不一致'))
-        } else {
-          callback()
-        }
-      },
-      trigger: 'blur',
-    },
-  ],
-}
-
-const accountFormRef = ref(null)
-const verifyFormRef = ref(null)
-const passwordFormRef = ref(null)
-
-async function handleNextStep() {
-  if (activeStep.value === 0) {
-    const valid = await accountFormRef.value?.validate().catch(() => false)
-    if (!valid) return
-    activeStep.value = 1
-  } else if (activeStep.value === 1) {
-    const valid = await verifyFormRef.value?.validate().catch(() => false)
-    if (!valid) return
-    activeStep.value = 2
-  }
-}
-
-async function handlePrevStep() {
-  activeStep.value--
+const rules = {
+  username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
 }
 
 async function handleSubmit() {
-  const valid = await passwordFormRef.value?.validate().catch(() => false)
+  const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
-
   loading.value = true
   try {
-    await forgotPasswordApi(accountForm.username, passwordForm.newPassword)
-    ElMessage.success('密码重置成功，请使用新密码登录')
-    router.push('/login')
-  } catch (err) {
-    ElMessage.error(err.message || '密码重置失败')
+    const res = await forgotPasswordApi({ ...form })
+    submitted.value = true
+    resultMessage.value = res?.data?.message || '申请已提交，请联系学校管理员核验身份并重置密码。'
+  } catch (error) {
+    ElMessage.error(error?.response?.data?.message || error?.message || '提交失败')
   } finally {
     loading.value = false
   }
@@ -92,141 +46,36 @@ function goToLogin() {
   <div class="form-card">
     <div class="form-header">
       <h2 class="form-title">忘记密码</h2>
-      <p class="form-subtitle">通过验证身份重置您的密码</p>
+      <p class="form-subtitle">提交找回申请后，由学校管理员核验身份并重置密码</p>
     </div>
 
-    <el-steps :active="activeStep" align-center class="steps" finish-status="success">
-      <el-step title="输入账号" />
-      <el-step title="身份验证" />
-      <el-step title="设置密码" />
-    </el-steps>
+    <template v-if="!submitted">
+      <el-form ref="formRef" :model="form" :rules="rules" size="large" class="step-form">
+        <el-form-item prop="username" label="账号">
+          <el-input v-model="form.username" placeholder="请输入登录账号" :prefix-icon="User" />
+        </el-form-item>
+        <el-form-item label="姓名">
+          <el-input v-model="form.realName" placeholder="可填写真实姓名，便于管理员核验" />
+        </el-form-item>
+        <el-form-item label="学号/工号">
+          <el-input v-model="form.identityNo" placeholder="可填写学号或工号" />
+        </el-form-item>
+      </el-form>
 
-    <!-- 步骤1：输入账号 -->
-    <el-form
-      v-show="activeStep === 0"
-      ref="accountFormRef"
-      :model="accountForm"
-      :rules="accountRules"
-      size="large"
-      class="step-form"
-    >
-      <div class="form-group">
-        <label class="form-label">注册账号</label>
-        <el-input
-          v-model="accountForm.username"
-          placeholder="请输入您的注册账号"
-          :prefix-icon="User"
-          
-        />
+      <div class="form-actions">
+        <el-button class="action-btn" @click="goToLogin">
+          <el-icon><ArrowLeft /></el-icon>返回登录
+        </el-button>
+        <el-button type="primary" class="action-btn primary" :loading="loading" @click="handleSubmit">
+          提交申请
+        </el-button>
       </div>
-    </el-form>
+    </template>
 
-    <!-- 步骤2：身份验证 -->
-    <el-form
-      v-show="activeStep === 1"
-      ref="verifyFormRef"
-      :model="verifyForm"
-      :rules="verifyRules"
-      size="large"
-      class="step-form"
-    >
-      <div class="form-group">
-        <label class="form-label">验证方式</label>
-        <el-radio-group v-model="verifyForm.method" class="method-group">
-          <el-radio-button value="phone">
-            <el-icon><Message /></el-icon> 手机验证
-          </el-radio-button>
-          <el-radio-button value="email">
-            <el-icon><Message /></el-icon> 邮箱验证
-          </el-radio-button>
-        </el-radio-group>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">验证码</label>
-        <div class="code-row">
-          <el-input
-            v-model="verifyForm.code"
-            placeholder="请输入验证码"
-            :prefix-icon="Key"
-            
-          />
-          <el-button class="send-code-btn" type="primary" plain>
-            发送验证码
-          </el-button>
-        </div>
-      </div>
-    </el-form>
-
-    <!-- 步骤3：设置新密码 -->
-    <el-form
-      v-show="activeStep === 2"
-      ref="passwordFormRef"
-      :model="passwordForm"
-      :rules="passwordRules"
-      size="large"
-      class="step-form"
-    >
-      <div class="form-group">
-        <label class="form-label">新密码</label>
-        <el-input
-          v-model="passwordForm.newPassword"
-          type="password"
-          placeholder="请输入新密码（6-20位）"
-          :prefix-icon="Key"
-          show-password
-          
-        />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">确认新密码</label>
-        <el-input
-          v-model="passwordForm.confirmPassword"
-          type="password"
-          placeholder="请再次输入新密码"
-          :prefix-icon="Key"
-          show-password
-          
-        />
-      </div>
-    </el-form>
-
-    <!-- 操作按钮 -->
-    <div class="form-actions">
-      <el-button
-        v-if="activeStep > 0"
-        class="action-btn"
-        @click="handlePrevStep"
-      >
-        <el-icon><ArrowLeft /></el-icon> 上一步
-      </el-button>
-
-      <el-button
-        v-if="activeStep < 2"
-        type="primary"
-        class="action-btn primary"
-        @click="handleNextStep"
-      >
-        下一步 <el-icon><ArrowRight /></el-icon>
-      </el-button>
-
-      <el-button
-        v-if="activeStep === 2"
-        type="primary"
-        class="action-btn primary"
-        :loading="loading"
-        @click="handleSubmit"
-      >
-        确认重置
-        <el-icon><ArrowRight /></el-icon>
-      </el-button>
-    </div>
-
-    <div class="back-link">
-      <el-link type="primary" underline="never" @click="goToLogin">
-        返回登录
-      </el-link>
+    <div v-else class="success-panel">
+      <el-icon class="success-icon"><Check /></el-icon>
+      <p>{{ resultMessage }}</p>
+      <el-button type="primary" class="action-btn primary" @click="goToLogin">返回登录</el-button>
     </div>
   </div>
 </template>
@@ -241,106 +90,46 @@ function goToLogin() {
   box-shadow: var(--shadow-xl);
   animation: fadeInRight 0.4s ease;
 }
-
-.form-header {
-  margin-bottom: var(--space-6);
-}
-
+.form-header { margin-bottom: var(--space-6); }
 .form-title {
   font-size: var(--font-3xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   margin: 0 0 var(--space-1);
 }
-
 .form-subtitle {
   font-size: var(--font-sm);
   color: var(--color-text-placeholder);
   margin: 0;
 }
-
-.steps {
-  margin-bottom: var(--space-8);
-}
-
-.step-form {
-  min-height: 160px;
-}
-
-.form-group {
-  margin-bottom: var(--space-5);
-}
-
-.form-label {
-  display: block;
-  font-size: var(--font-base);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-regular);
-  margin-bottom: var(--space-2);
-}
-
-.method-group {
-  display: flex;
-  width: 100%;
-}
-
-.method-group :deep(.el-radio-button) {
-  flex: 1;
-}
-
-.method-group :deep(.el-radio-button__inner) {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-}
-
-.code-row {
-  display: flex;
-  gap: var(--space-3);
-}
-
-.code-row .el-input {
-  flex: 1;
-}
-
-.send-code-btn {
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
+.step-form { min-height: 180px; }
 .form-actions {
   display: flex;
   gap: var(--space-3);
   margin-top: var(--space-6);
 }
-
 .action-btn {
   flex: 1;
   height: 44px;
   font-size: var(--font-base);
   font-weight: var(--font-weight-semibold);
   border-radius: var(--radius-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
 }
-
 .action-btn.primary {
   background: var(--color-primary-500);
   border-color: var(--color-primary-500);
   color: var(--color-text-white);
 }
-
-.action-btn.primary:hover {
-  background: var(--color-primary-600);
-  border-color: var(--color-primary-600);
-}
-
-.back-link {
+.success-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
   text-align: center;
-  margin-top: var(--space-5);
+  color: var(--color-text-regular);
+}
+.success-icon {
+  font-size: 44px;
+  color: var(--color-success-500);
 }
 </style>

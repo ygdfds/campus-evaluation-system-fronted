@@ -169,6 +169,7 @@ async function handleAuditConfirm({ submit_reason }) {
     await loadData()
   } catch (err) {
     console.error('提交审核失败:', err)
+    ElMessage.error(err?.response?.data?.message || err?.message || '提交审核失败')
   }
 }
 

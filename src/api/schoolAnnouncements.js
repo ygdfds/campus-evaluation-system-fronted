@@ -48,7 +48,19 @@ function parseRoles(value) {
 }
 
 function serializeRoles(value) {
-  return parseRoles(value).join(',')
+  return parseRoles(value)
+}
+
+function fileUrl(file) {
+  return file?.url || ''
+}
+
+function fileMimeType(file) {
+  return file?.mimeType || file?.mime_type || ''
+}
+
+function fileLabel(file) {
+  return file?.fileName || file?.file_name || file?.original_name || file?.name || `图片 ${file?.id}`
 }
 
 function formatAnnouncement(item, fileMap = {}) {
@@ -59,7 +71,7 @@ function formatAnnouncement(item, fileMap = {}) {
     target_role_text: parseRoles(item.target_roles).map(role => role === 'student' ? '学生' : role === 'staff' ? '教职工' : role).join('、') || '全部',
     status_text: announcementStatusMap[item.status] || item.status,
     status_type: announcementStatusTagMap[item.status] || 'info',
-    _cover_url: coverFile?.url || '',
+    _cover_url: fileUrl(coverFile),
   }
 }
 
@@ -144,10 +156,25 @@ export async function getSchoolAnnouncementDetailApi(context, id) {
 }
 
 export async function getSchoolAnnouncementCoverOptionsApi(context) {
-  const res = await request.get('/files')
+  const res = await request.get('/files', { params: { bizType: 'announcement_cover' } })
   return toList(res)
-    .filter(item => !item.deleted && item.url && (item.mime_type?.startsWith?.('image/') || /\.(png|jpg|jpeg|webp|gif)$/i.test(item.url) || item.url.includes('picsum.photos')))
-    .map(item => ({ ...item, label: item.original_name || item.name || `图片 ${item.id}` }))
+    .filter(item => {
+      const url = fileUrl(item)
+      const mimeType = fileMimeType(item)
+      return !item.deleted && url && (mimeType.startsWith('image/') || /\.(png|jpg|jpeg|webp|gif)$/i.test(url))
+    })
+    .map(item => ({ ...item, label: fileLabel(item) }))
+}
+
+export async function uploadSchoolAnnouncementCoverApi(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('bizType', 'announcement_cover')
+  const res = await request.post('/files/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  const item = toItem(res)
+  return item ? { ...item, label: fileLabel(item) } : item
 }
 
 export async function createSchoolAnnouncementApi(context, payload) {

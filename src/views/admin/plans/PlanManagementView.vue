@@ -27,6 +27,7 @@ const dialogVisible = ref(false)
 const isEdit = ref(false)
 const editingId = ref(null)
 const planForm = ref({
+  planCode: '',
   planName: '',
   features: '',
   maxUsers: 500,
@@ -54,7 +55,7 @@ const fetchPlans = async () => {
 
 const openAddDialog = () => {
   isEdit.value = false
-  planForm.value = { planName: '', features: '', maxUsers: 500, storageLimit: 100, durationDays: 365, price: 0 }
+  planForm.value = { planCode: '', planName: '', features: '', maxUsers: 500, storageLimit: 100, durationDays: 365, price: 0 }
   dialogVisible.value = true
 }
 
@@ -62,25 +63,42 @@ const openEditDialog = (row) => {
   isEdit.value = true
   editingId.value = row.id
   planForm.value = {
+    planCode: row.planCode || '',
     planName: row.planName,
     features: row.description,
     maxUsers: parseInt(row.duration) || 500,
     storageLimit: row.storageLimit || 100,
     durationDays: row.durationDays || 365,
-    price: Number(row.price.replace(/\D/g, '')) || 0,
+    price: Number(String(row.price ?? 0).replace(/[^0-9.]/g, '')) || 0,
   }
   dialogVisible.value = true
 }
 
 const handleSave = async () => {
+  if (!/^[A-Za-z][A-Za-z0-9_.-]{1,63}$/.test(planForm.value.planCode.trim())) {
+    ElMessage.warning('请输入合法套餐编码（字母开头，2-64位）')
+    return
+  }
   if (!planForm.value.planName.trim()) { ElMessage.warning('请输入套餐名称'); return }
   if (!planForm.value.features.trim()) { ElMessage.warning('请输入套餐描述'); return }
   try {
+    const payload = {
+      planCode: planForm.value.planCode.trim(),
+      planName: planForm.value.planName.trim(),
+      description: planForm.value.features.trim(),
+      featuresJson: JSON.stringify({
+        maxUsers: planForm.value.maxUsers,
+        storageQuota: `${planForm.value.storageLimit}GB`,
+        durationDays: planForm.value.durationDays,
+      }),
+      price: Number(planForm.value.price || 0),
+      status: 'active',
+    }
     if (isEdit.value && editingId.value) {
-      await updateTenantPlanApi(editingId.value, planForm.value)
+      await updateTenantPlanApi(editingId.value, payload)
       ElMessage.success('编辑成功')
     } else {
-      await createTenantPlanApi(planForm.value)
+      await createTenantPlanApi(payload)
       ElMessage.success('创建成功')
     }
     dialogVisible.value = false
@@ -167,6 +185,9 @@ onMounted(() => {
     <!-- 新增/编辑对话框 -->
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑套餐' : '新增套餐'" width="520px">
       <el-form label-width="100px">
+        <el-form-item label="套餐编码" required>
+          <el-input v-model="planForm.planCode" placeholder="例：professional" :disabled="isEdit" />
+        </el-form-item>
         <el-form-item label="套餐名称" required>
           <el-input v-model="planForm.planName" placeholder="例：旗舰版" />
         </el-form-item>

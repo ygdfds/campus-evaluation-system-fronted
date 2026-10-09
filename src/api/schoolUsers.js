@@ -1,5 +1,5 @@
-import request from '@/request'
-import { compactParams, dataOf, listOf, normalizeUser } from '@/api/backend'
+﻿import request from '@/request'
+import { compactParams, dataOf, listOf, normalizeUser, pageOf } from '@/api/backend'
 
 export const staffRoleTypeMap = {
   staff: '教职工',
@@ -33,6 +33,10 @@ function normalizeStaff(item) {
     gender_label: genderMap[user.gender] || '-',
     account_status_label: accountStatusMap[user.account_status] || user.account_status,
     org_unit_id: user.teaching_org_id ? `teaching:${user.teaching_org_id}` : (user.service_org_id ? `service:${user.service_org_id}` : null),
+    teaching_org_id: user.teaching_org_id || null,
+    teaching_org_name: user.teaching_org_name || '',
+    service_org_id: user.service_org_id || null,
+    service_org_name: user.service_org_name || '',
     avatar_url: user.avatar_file_id ? `/api/files/${user.avatar_file_id}/preview` : '',
   }
 }
@@ -46,6 +50,7 @@ function normalizeStudent(item) {
     gender_label: genderMap[user.gender] || '-',
     account_status_label: accountStatusMap[user.account_status] || user.account_status,
     department_name: user.teaching_org_name || user.department_name || '',
+    teaching_org_id: user.teaching_org_id || null,
     class_name: user.class_name || '',
     avatar_url: user.avatar_file_id ? `/api/files/${user.avatar_file_id}/preview` : '',
   }
@@ -67,17 +72,21 @@ function roleCodesOf(payload) {
 }
 
 function staffPayload(payload = {}) {
-  return compactParams({
-    username: payload.username,
-    password: payload.password || '123456',
-    realName: payload.realName || payload.real_name,
-    staffNo: payload.staffNo || payload.staff_no || payload.no_work,
-    phone: payload.phone,
-    email: payload.email,
-    avatarFileId: payload.avatarFileId || payload.avatar_file_id,
-    roleCodes: roleCodesOf(payload),
-    ...parseOrgValue(payload.org_unit_id || payload.orgUnitId),
-  })
+  const parsedOrg = parseOrgValue(payload.org_unit_id || payload.orgUnitId)
+  return {
+    ...compactParams({
+      username: payload.username,
+      password: payload.password || '123456',
+      realName: payload.realName || payload.real_name,
+      staffNo: payload.staffNo || payload.staff_no || payload.no_work,
+      phone: payload.phone,
+      email: payload.email,
+      avatarFileId: payload.avatarFileId || payload.avatar_file_id,
+      roleCodes: roleCodesOf(payload),
+    }),
+    teachingOrgId: payload.teachingOrgId ?? payload.teaching_org_id ?? parsedOrg.teachingOrgId ?? null,
+    serviceOrgId: payload.serviceOrgId ?? payload.service_org_id ?? parsedOrg.serviceOrgId ?? null,
+  }
 }
 
 function studentPayload(payload = {}) {
@@ -88,7 +97,7 @@ function studentPayload(payload = {}) {
     studentNo: payload.studentNo || payload.student_no || payload.no_student,
     phone: payload.phone,
     email: payload.email,
-    classId: payload.classId || payload.class_id || Number(payload.class_name) || undefined,
+    classId: payload.classId || payload.class_id || undefined,
     avatarFileId: payload.avatarFileId || payload.avatar_file_id,
   })
 }
@@ -201,9 +210,14 @@ export async function getSchoolDepartmentOptionsApi() {
 }
 
 export async function getSchoolClassOptionsApi() {
-  const options = await request.get('/school/classes/options').then(dataOf)
-  return (options || []).map((item) => ({
-    value: item.value || item.id,
-    label: item.label || item.name,
+  const page = await request.get('/school/classes', {
+    params: { page: 1, pageSize: 500, status: 'active' },
+  }).then(pageOf)
+  return (page.records || []).map((item) => ({
+    value: item.id || item.value,
+    label: item.className || item.class_name || item.label || item.name,
+    teaching_org_id: item.teachingOrgId || item.teaching_org_id || null,
+    grade: item.gradeName || item.grade_name || item.extra || '',
   }))
 }
+

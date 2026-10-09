@@ -93,10 +93,6 @@ async function handleLogin() {
   }
 }
 
-function goToRegister() {
-  router.push('/register')
-}
-
 function goToForgotPassword() {
   router.push('/forgot-password')
 }
@@ -182,12 +178,6 @@ function goToForgotPassword() {
       </el-button>
     </el-form>
 
-    <div class="register-link">
-      <span>还没有账号？</span>
-      <el-link type="primary" underline="never" @click="goToRegister">
-        立即注册
-      </el-link>
-    </div>
   </div>
 </template>
 
@@ -320,18 +310,4 @@ function goToForgotPassword() {
   font-size: var(--font-xl);
 }
 
-.register-link {
-  text-align: center;
-  margin-top: var(--space-5);
-  font-size: var(--font-base);
-  color: var(--color-text-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-}
-
-.register-link .el-link {
-  font-weight: var(--font-weight-semibold);
-}
 </style>

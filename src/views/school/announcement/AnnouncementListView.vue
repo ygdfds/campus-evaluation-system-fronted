@@ -18,6 +18,7 @@ import {
   getSchoolAnnouncementDetailApi,
   getSchoolAnnouncementListApi,
   getSchoolAnnouncementStatsApi,
+  uploadSchoolAnnouncementCoverApi,
   offlineSchoolAnnouncementApi,
   publishSchoolAnnouncementApi,
   updateSchoolAnnouncementApi,
@@ -120,6 +121,21 @@ async function loadCoverOptions() {
     coverOptions.value = await getSchoolAnnouncementCoverOptionsApi(context.value)
   } catch {
     coverOptions.value = []
+  }
+}
+
+async function handleCoverUpload(uploadFile) {
+  try {
+    const file = uploadFile?.raw
+    if (!file) return
+    const uploaded = await uploadSchoolAnnouncementCoverApi(file)
+    if (uploaded?.id) {
+      editorForm.value.cover_file_id = uploaded.id
+      coverOptions.value = [{ ...uploaded, label: uploaded.fileName || uploaded.file_name || `图片 ${uploaded.id}` }, ...coverOptions.value]
+      ElMessage.success('封面上传成功')
+    }
+  } catch (error) {
+    ElMessage.error(error?.response?.data?.message || error?.message || '封面上传失败')
   }
 }
 
@@ -324,7 +340,16 @@ onMounted(async () => {
         <el-form-item label="公告摘要" prop="summary"><el-input v-model="editorForm.summary" type="textarea" :rows="3" maxlength="160" show-word-limit /></el-form-item>
         <el-form-item label="公告分类" prop="tag"><el-select v-model="editorForm.tag" style="width:100%"><el-option v-for="tag in announcementTagOptions" :key="tag" :label="tag" :value="tag" /></el-select></el-form-item>
         <el-form-item label="可见对象" prop="target_roles"><el-checkbox-group v-model="editorForm.target_roles"><el-checkbox v-for="role in announcementRoleOptions" :key="role.value" :label="role.value">{{ role.label }}</el-checkbox></el-checkbox-group></el-form-item>
-        <el-form-item label="封面图片"><el-select v-model="editorForm.cover_file_id" style="width:100%" clearable placeholder="选择已有封面资源"><el-option v-for="file in coverOptions" :key="file.id" :label="file.label" :value="file.id"><span>{{ file.label }}</span><span class="opt-url">{{ file.url }}</span></el-option></el-select></el-form-item>
+        <el-form-item label="封面图片">
+          <el-select v-model="editorForm.cover_file_id" style="width:100%" clearable placeholder="选择已有封面资源">
+            <el-option v-for="file in coverOptions" :key="file.id" :label="file.label" :value="file.id">
+              <span>{{ file.label }}</span><span class="opt-url">{{ file.url }}</span>
+            </el-option>
+          </el-select>
+          <el-upload :show-file-list="false" :auto-upload="false" accept="image/*" :on-change="handleCoverUpload">
+            <el-button size="small" type="primary">上传封面图片</el-button>
+          </el-upload>
+        </el-form-item>
         <el-form-item label="公告正文" prop="content"><el-input v-model="editorForm.content" type="textarea" :rows="10" maxlength="3000" show-word-limit /></el-form-item>
       </el-form>
       <template #footer>

@@ -41,6 +41,8 @@ const stats = ref({ total: 0, active: 0, disabled: 0 })
 // 选项
 const orgUnitOptions = ref([])
 const roleOptions = ref([])
+const teachingOrgOptions = computed(() => orgUnitOptions.value.filter(opt => opt.type === 'teaching'))
+const serviceOrgOptions = computed(() => orgUnitOptions.value.filter(opt => opt.type === 'service'))
 
 // 抽屉
 const drawerVisible = ref(false)
@@ -149,7 +151,8 @@ function openCreateDrawer() {
     phone: '',
     email: '',
     office_phone: '',
-    org_unit_id: null,
+    teaching_org_id: null,
+    service_org_id: null,
     intro: '',
     must_change_password: true,
   }
@@ -170,7 +173,8 @@ async function openEditDrawer(row) {
         phone: detail.account?.phone || '',
         email: detail.account?.email || '',
         office_phone: detail.office_phone || '',
-        org_unit_id: detail.org_unit_id || null,
+        teaching_org_id: detail.teaching_org_id || null,
+        service_org_id: detail.service_org_id || null,
         intro: detail.intro || '',
         must_change_password: detail.account?.must_change_password || false,
       }
@@ -266,6 +270,14 @@ function getOrgName(orgId) {
   return org?.label || '-'
 }
 
+function getTeachingOrgName(row) {
+  return row.teaching_org_name || getOrgName(row.teaching_org_id ? `teaching:${row.teaching_org_id}` : null)
+}
+
+function getServiceOrgName(row) {
+  return row.service_org_name || getOrgName(row.service_org_id ? `service:${row.service_org_id}` : null)
+}
+
 // ==================== 初始化 ====================
 onMounted(() => {
   loadOptions()
@@ -353,8 +365,11 @@ onMounted(() => {
         </el-table-column>
         <el-table-column prop="real_name" label="姓名" width="120" />
         <el-table-column prop="role_label" label="角色" width="130" />
-        <el-table-column label="所属组织" min-width="150">
-          <template #default="{ row }">{{ getOrgName(row.org_unit_id) }}</template>
+        <el-table-column label="教学组织" min-width="150">
+          <template #default="{ row }">{{ getTeachingOrgName(row) }}</template>
+        </el-table-column>
+        <el-table-column label="服务组织" min-width="150">
+          <template #default="{ row }">{{ getServiceOrgName(row) }}</template>
         </el-table-column>
         <el-table-column prop="phone" label="联系电话" width="140" />
         <el-table-column prop="email" label="邮箱" min-width="180" />
@@ -446,13 +461,25 @@ onMounted(() => {
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="所属组织">
-              <el-select v-model="drawerForm.org_unit_id" placeholder="请选择组织" clearable style="width: 100%">
+            <el-form-item label="教学组织">
+              <el-select v-model="drawerForm.teaching_org_id" placeholder="请选择教学组织" clearable style="width: 100%">
                 <el-option
-                  v-for="opt in orgUnitOptions"
+                  v-for="opt in teachingOrgOptions"
                   :key="opt.value"
                   :label="opt.label"
-                  :value="opt.value"
+                  :value="String(opt.value).replace('teaching:', '')"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="服务组织">
+              <el-select v-model="drawerForm.service_org_id" placeholder="请选择服务组织" clearable style="width: 100%">
+                <el-option
+                  v-for="opt in serviceOrgOptions"
+                  :key="opt.value"
+                  :label="opt.label"
+                  :value="String(opt.value).replace('service:', '')"
                 />
               </el-select>
             </el-form-item>
@@ -519,7 +546,8 @@ onMounted(() => {
               <el-descriptions-item label="姓名">{{ detailData.real_name || '-' }}</el-descriptions-item>
               <el-descriptions-item label="工号">{{ detailData.no_work || '-' }}</el-descriptions-item>
               <el-descriptions-item label="角色">{{ detailData.role_label || '-' }}</el-descriptions-item>
-              <el-descriptions-item label="所属组织">{{ getOrgName(detailData.org_unit_id) }}</el-descriptions-item>
+              <el-descriptions-item label="教学组织">{{ getTeachingOrgName(detailData) }}</el-descriptions-item>
+              <el-descriptions-item label="服务组织">{{ getServiceOrgName(detailData) }}</el-descriptions-item>
               <el-descriptions-item label="性别">{{ detailData.gender_label || '-' }}</el-descriptions-item>
               <el-descriptions-item label="办公电话">{{ detailData.office_phone || '-' }}</el-descriptions-item>
               <el-descriptions-item label="简介">{{ detailData.intro || '-' }}</el-descriptions-item>
@@ -801,4 +829,3 @@ onMounted(() => {
   }
 }
 </style>
-

@@ -2,8 +2,6 @@
 import { computed } from 'vue'
 import { Plus, Delete, Top, Bottom } from '@element-plus/icons-vue'
 
-defineOptions({ name: 'QuestionEditor' })
-
 const props = defineProps({
   questions: { type: Array, default: () => [] },
   index: { type: Number, required: true },
@@ -12,11 +10,11 @@ const props = defineProps({
 const emit = defineEmits(['update:questions'])
 
 const question = computed({
-  get: () => props.questions[props.index],
-  set: (val) => {
-    const arr = [...props.questions]
-    arr[props.index] = val
-    emit('update:questions', arr)
+  get: () => props.questions[props.index] || {},
+  set: (value) => {
+    const next = [...props.questions]
+    next[props.index] = value
+    emit('update:questions', next)
   },
 })
 
@@ -36,45 +34,45 @@ function updateField(field, value) {
 }
 
 function addOption() {
-  const opts = [...(question.value._options || [])]
-  opts.push({ option_text: '', sort_order: opts.length + 1 })
-  updateField('_options', opts)
+  const options = [...(question.value._options || [])]
+  options.push({ option_text: '', sort_order: options.length + 1 })
+  updateField('_options', options)
 }
 
-function removeOption(idx) {
-  const opts = [...(question.value._options || [])]
-  opts.splice(idx, 1)
-  opts.forEach((o, i) => { o.sort_order = i + 1 })
-  updateField('_options', opts)
+function removeOption(index) {
+  const options = [...(question.value._options || [])]
+  options.splice(index, 1)
+  options.forEach((item, idx) => { item.sort_order = idx + 1 })
+  updateField('_options', options)
 }
 
-function updateOptionText(idx, text) {
-  const opts = [...(question.value._options || [])]
-  opts[idx] = { ...opts[idx], option_text: text }
-  updateField('_options', opts)
+function updateOptionText(index, text) {
+  const options = [...(question.value._options || [])]
+  options[index] = { ...options[index], option_text: text }
+  updateField('_options', options)
 }
 
 function moveUp() {
   if (props.index <= 0) return
-  const arr = [...props.questions]
-  ;[arr[props.index - 1], arr[props.index]] = [arr[props.index], arr[props.index - 1]]
-  arr.forEach((q, i) => { q.sort_order = i + 1 })
-  emit('update:questions', arr)
+  const next = [...props.questions]
+  ;[next[props.index - 1], next[props.index]] = [next[props.index], next[props.index - 1]]
+  next.forEach((item, index) => { item.sort_order = index + 1 })
+  emit('update:questions', next)
 }
 
 function moveDown() {
   if (props.index >= props.questions.length - 1) return
-  const arr = [...props.questions]
-  ;[arr[props.index], arr[props.index + 1]] = [arr[props.index + 1], arr[props.index]]
-  arr.forEach((q, i) => { q.sort_order = i + 1 })
-  emit('update:questions', arr)
+  const next = [...props.questions]
+  ;[next[props.index], next[props.index + 1]] = [next[props.index + 1], next[props.index]]
+  next.forEach((item, index) => { item.sort_order = index + 1 })
+  emit('update:questions', next)
 }
 
 function removeQuestion() {
-  const arr = [...props.questions]
-  arr.splice(props.index, 1)
-  arr.forEach((q, i) => { q.sort_order = i + 1 })
-  emit('update:questions', arr)
+  const next = [...props.questions]
+  next.splice(props.index, 1)
+  next.forEach((item, index) => { item.sort_order = index + 1 })
+  emit('update:questions', next)
 }
 </script>
 
@@ -91,14 +89,14 @@ function removeQuestion() {
 
     <div class="question-body">
       <el-form-item label="题目标题" required>
-        <el-input v-model="question.title" placeholder="请输入题目标题" maxlength="200" show-word-limit @update:model-value="updateField('title', $event)" />
+        <el-input :model-value="question.title" placeholder="请输入题目标题" maxlength="200" show-word-limit @update:model-value="updateField('title', $event)" />
       </el-form-item>
 
       <el-row :gutter="16">
         <el-col :span="8">
           <el-form-item label="题型">
-            <el-select :model-value="question.type" @update:model-value="updateField('type', $event)" style="width: 100%">
-              <el-option v-for="opt in typeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+            <el-select :model-value="question.type" style="width: 100%" @update:model-value="updateField('type', $event)">
+              <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
         </el-col>
@@ -109,23 +107,22 @@ function removeQuestion() {
         </el-col>
         <el-col v-if="showMaxScore" :span="8">
           <el-form-item label="最高分值">
-            <el-input-number :model-value="question.max_score" :min="1" :max="10" @update:model-value="updateField('max_score', $event)" style="width: 100%" />
+            <el-input-number :model-value="question.max_score" :min="1" :max="10" style="width: 100%" @update:model-value="updateField('max_score', $event)" />
           </el-form-item>
         </el-col>
         <el-col v-if="showMinLength" :span="8">
           <el-form-item label="最少字数">
-            <el-input-number :model-value="question.min_length" :min="0" :max="500" @update:model-value="updateField('min_length', $event)" style="width: 100%" />
+            <el-input-number :model-value="question.min_length" :min="0" :max="500" style="width: 100%" @update:model-value="updateField('min_length', $event)" />
           </el-form-item>
         </el-col>
       </el-row>
 
-      <!-- 选项编辑 -->
       <div v-if="showOptions" class="options-section">
         <div class="options-label">选项列表</div>
-        <div v-for="(opt, oi) in (question._options || [])" :key="oi" class="option-row">
-          <span class="option-index">{{ oi + 1 }}.</span>
-          <el-input :model-value="opt.option_text || opt.text" placeholder="请输入选项内容" @update:model-value="updateOptionText(oi, $event)" />
-          <el-button :icon="Delete" size="small" text type="danger" @click="removeOption(oi)" />
+        <div v-for="(option, optionIndex) in (question._options || [])" :key="optionIndex" class="option-row">
+          <span class="option-index">{{ optionIndex + 1 }}.</span>
+          <el-input :model-value="option.option_text || option.text" placeholder="请输入选项内容" @update:model-value="updateOptionText(optionIndex, $event)" />
+          <el-button :icon="Delete" size="small" text type="danger" @click="removeOption(optionIndex)" />
         </div>
         <el-button :icon="Plus" size="small" text type="primary" @click="addOption">添加选项</el-button>
       </div>

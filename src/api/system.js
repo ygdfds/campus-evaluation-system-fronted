@@ -138,11 +138,11 @@ export async function getPlanPermissionModulesApi() {
 }
 
 export async function getSystemSettingsApi() {
-  return unsupported('系统设置读取')
+  return request.get('/platform/settings')
 }
 
-export async function saveSystemSettingsApi() {
-  return unsupported('系统设置保存')
+export async function saveSystemSettingsApi(payload) {
+  return request.put('/platform/settings', payload)
 }
 
 export async function getOperationTypeOptionsApi() {
@@ -377,6 +377,10 @@ export async function createSystemRoleApi(data) {
 
 export async function updateSystemRoleApi(id, data) {
   return request.put(`/platform/roles/${id}`, data)
+}
+
+export async function updateSystemRolePermissionsApi(id, data) {
+  return request.put(`/platform/roles/${id}/permissions`, data)
 }
 
 export async function deleteSystemRoleApi(id) {

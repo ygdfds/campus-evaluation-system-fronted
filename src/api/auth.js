@@ -31,18 +31,10 @@ export function logoutApi() {
 }
 
 /**
- * 用户注册
- * @param {object} userData - 注册信息
- */
-export function registerApi(userData) {
-  return request.post('/auth/register', userData)
-}
-
-/**
  * 忘记密码
  * @param {string} username - 用户名
  * @param {string} newPassword - 新密码
  */
-export function forgotPasswordApi(username, newPassword) {
-  return request.post('/auth/forgot-password', { username, newPassword })
+export function forgotPasswordApi(payload) {
+  return request.post('/auth/forgot-password', payload)
 }

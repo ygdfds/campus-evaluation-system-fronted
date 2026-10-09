@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -43,6 +43,18 @@ const stats = ref({ total: 0, active: 0, disabled: 0 })
 const departmentOptions = ref([])
 const classOptions = ref([])
 
+const filteredClassOptions = computed(() => {
+  const selected = Array.isArray(filterDepartment.value) ? filterDepartment.value : [filterDepartment.value].filter(Boolean)
+  if (!selected.length) return classOptions.value
+  const selectedSet = new Set(selected.map(String))
+  return classOptions.value.filter(opt => selectedSet.has(String(opt.teaching_org_id)))
+})
+
+const drawerClassOptions = computed(() => {
+  if (!drawerForm.value?.teaching_org_id) return classOptions.value
+  return classOptions.value.filter(opt => String(opt.teaching_org_id) === String(drawerForm.value.teaching_org_id))
+})
+
 // 抽屉
 const drawerVisible = ref(false)
 const drawerMode = ref('create')
@@ -77,6 +89,7 @@ const drawerRules = {
     { min: 3, max: 30, message: '用户名 3-30 字', trigger: 'blur' },
     { pattern: /^[a-zA-Z0-9_]+$/, message: '只允许字母、数字、下划线', trigger: 'blur' },
   ],
+  class_id: [{ required: true, message: '请选择班级', trigger: 'change' }],
 }
 
 // ==================== 数据加载 ====================
@@ -90,13 +103,18 @@ async function loadData() {
       account_status: filterStatus.value || undefined,
     }
     const data = await getSchoolStudentListApi(tenantId.value, filters)
-    studentList.value = data
-    total.value = data.length
+    const selectedDepartments = Array.isArray(filterDepartment.value) ? filterDepartment.value : [filterDepartment.value].filter(Boolean)
+    const selectedDepartmentSet = new Set(selectedDepartments.map(String))
+    const visibleData = selectedDepartmentSet.size
+      ? data.filter(item => selectedDepartmentSet.has(String(item.teaching_org_id)))
+      : data
+    studentList.value = visibleData
+    total.value = visibleData.length
 
     stats.value = {
-      total: data.length,
-      active: data.filter(s => s.account_status === 'active').length,
-      disabled: data.filter(s => s.account_status === 'disabled').length,
+      total: visibleData.length,
+      active: visibleData.filter(s => s.account_status === 'active').length,
+      disabled: visibleData.filter(s => s.account_status === 'disabled').length,
     }
   } catch {
     ElMessage.error('加载数据失败')
@@ -147,8 +165,8 @@ function openCreateDrawer() {
     gender: '',
     phone: '',
     email: '',
-    department_name: '',
-    class_name: '',
+    teaching_org_id: null,
+    class_id: null,
     must_change_password: true,
   }
   drawerVisible.value = true
@@ -161,13 +179,14 @@ async function openEditDrawer(row) {
     const detail = await getSchoolStudentDetailApi(tenantId.value, row.id)
     if (detail) {
       drawerForm.value = {
+        _id: detail.id,
         real_name: detail.real_name || '',
         no_student: detail.no_student || '',
         gender: detail.gender || '',
         phone: detail.account?.phone || '',
         email: detail.account?.email || '',
-        department_name: detail.department_name || '',
-        class_name: detail.class_name || '',
+        teaching_org_id: detail.teaching_org_id || classOptions.value.find(opt => String(opt.value) === String(detail.class_id))?.teaching_org_id || null,
+        class_id: detail.class_id || null,
         must_change_password: detail.account?.must_change_password || false,
       }
     }
@@ -176,6 +195,14 @@ async function openEditDrawer(row) {
     ElMessage.error('加载详情失败')
   } finally {
     drawerLoading.value = false
+  }
+}
+
+function handleDrawerDepartmentChange() {
+  if (!drawerForm.value?.class_id) return
+  const selectedClass = classOptions.value.find(opt => String(opt.value) === String(drawerForm.value.class_id))
+  if (selectedClass && String(selectedClass.teaching_org_id) !== String(drawerForm.value.teaching_org_id)) {
+    drawerForm.value.class_id = null
   }
 }
 
@@ -312,6 +339,11 @@ function formatDateTime(dt) {
 }
 
 // ==================== 初始化 ====================
+watch(filterDepartment, () => {
+  const available = new Set(filteredClassOptions.value.map(opt => String(opt.value)))
+  filterClass.value = filterClass.value.filter(value => available.has(String(value)))
+})
+
 onMounted(() => {
   loadOptions()
   loadData()
@@ -383,7 +415,7 @@ onMounted(() => {
           @change="handleSearch"
         >
           <el-option
-            v-for="opt in classOptions"
+            v-for="opt in filteredClassOptions"
             :key="opt.value"
             :label="opt.label"
             :value="opt.value"
@@ -502,7 +534,7 @@ onMounted(() => {
           </el-col>
           <el-col :span="12">
             <el-form-item label="所属院系">
-              <el-select v-model="drawerForm.department_name" placeholder="请选择院系" clearable style="width: 100%">
+              <el-select v-model="drawerForm.teaching_org_id" placeholder="请选择院系" clearable style="width: 100%" @change="handleDrawerDepartmentChange">
                 <el-option
                   v-for="opt in departmentOptions"
                   :key="opt.value"
@@ -513,10 +545,10 @@ onMounted(() => {
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="班级">
-              <el-select v-model="drawerForm.class_name" placeholder="请选择班级" clearable style="width: 100%">
+            <el-form-item label="班级" prop="class_id">
+              <el-select v-model="drawerForm.class_id" placeholder="请选择班级" clearable style="width: 100%">
                 <el-option
-                  v-for="opt in classOptions"
+                  v-for="opt in drawerClassOptions"
                   :key="opt.value"
                   :label="opt.label"
                   :value="opt.value"

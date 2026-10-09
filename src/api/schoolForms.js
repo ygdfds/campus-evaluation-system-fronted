@@ -67,6 +67,7 @@ function normalizeWindow(window, formId) {
 
 function normalizeForm(form = {}) {
   const backendType = form.formType || form.form_type || form.type
+  const backendStatus = form.status === 'pending' ? 'pending_review' : form.status
   const type = backendType === 'course_evaluation' ? 'teaching'
     : backendType === 'service_evaluation' ? 'service'
       : backendType
@@ -78,6 +79,8 @@ function normalizeForm(form = {}) {
     type,
     form_type: type,
     formType: backendType,
+    status: backendStatus,
+    status_code: form.status,
     target_type: form.targetType || form.target_type,
     target_id: form.targetId || form.target_id,
     target_name: form.targetName || form.target_name || '',

@@ -12,13 +12,12 @@ import {
   createEvalWindowApi,
   getEvalQuestionsByFormApi,
   getPublishTargetOptionsApi,
+  createCourseOptionApi,
 } from '@/api/staffEvaluationForms'
-
-defineOptions({ name: 'StaffEvalFormDrawer' })
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
-  mode: { type: String, default: 'create' }, // create | edit
+  mode: { type: String, default: 'create' },
   formData: { type: Object, default: () => ({}) },
 })
 
@@ -27,11 +26,255 @@ const emit = defineEmits(['update:visible', 'saved'])
 const currentStep = ref(0)
 const saving = ref(false)
 const formLoading = ref(false)
-
-// 封面上传
 const coverPreviewUrl = ref('')
 const uploadDialogVisible = ref(false)
 const coverPreviewVisible = ref(false)
+
+const form = reactive({
+  title: '',
+  type: 'teaching',
+  description: '',
+  cover_file_id: null,
+  anonymous: true,
+  publish_scope: 'all_students',
+  course_id: null,
+  teaching_org_id: null,
+  service_item_id: null,
+  service_org_id: null,
+})
+
+const questions = ref([])
+const windowForm = reactive({
+  start_at: '',
+  end_at: '',
+  modifiable_hours: 24,
+})
+const targetOptions = ref({ serviceItems: [], courses: [], serviceOrgs: [], teachingOrgs: [] })
+
+const typeOptions = [
+  { label: '教学评价', value: 'teaching' },
+  { label: '后勤服务评价', value: 'service' },
+  { label: '即时评价', value: 'instant' },
+]
+
+const publishScopeOptions = [
+  { label: '全部学生', value: 'all_students' },
+  { label: '指定班级', value: 'specified_class' },
+  { label: '指定专业', value: 'specified_major' },
+]
+
+const typeLabelMap = {
+  rating: '评分题',
+  text: '文本题',
+  single: '单选题',
+  multiple: '多选题',
+}
+
+const isTeaching = computed(() => form.type === 'teaching')
+const isEdit = computed(() => props.mode === 'edit')
+const isLimitedEdit = computed(() => props.formData?._limitedEdit === true)
+const steps = computed(() => (isLimitedEdit.value
+  ? ['基础信息', '评价窗口']
+  : ['基础信息', '评价对象', '题目配置', '评价窗口', '预览提交']))
+
+const filteredServiceItems = computed(() => {
+  if (!form.service_org_id) return targetOptions.value.serviceItems
+  return targetOptions.value.serviceItems.filter((item) => Number(item.service_org_id) === Number(form.service_org_id))
+})
+
+const stepValid = computed(() => {
+  if (isLimitedEdit.value) {
+    if (currentStep.value === 0) return !!form.title.trim()
+    if (currentStep.value === 1) return !!windowForm.start_at && !!windowForm.end_at
+    return true
+  }
+  if (currentStep.value === 0) return !!form.title.trim() && !!form.type
+  if (currentStep.value === 1) return isTeaching.value ? !!form.course_id : !!form.service_item_id
+  if (currentStep.value === 2) return questions.value.length > 0 && questions.value.every((q) => !!String(q.title || '').trim())
+  if (currentStep.value === 3) return !!windowForm.start_at && !!windowForm.end_at
+  return true
+})
+
+function resetForm() {
+  Object.assign(form, {
+    title: '',
+    type: 'teaching',
+    description: '',
+    cover_file_id: null,
+    anonymous: true,
+    publish_scope: 'all_students',
+    course_id: null,
+    teaching_org_id: null,
+    service_item_id: null,
+    service_org_id: null,
+  })
+  coverPreviewUrl.value = ''
+  questions.value = []
+  Object.assign(windowForm, { start_at: '', end_at: '', modifiable_hours: 24 })
+}
+
+function getTargetId(data = {}) {
+  return data.target_id || data.targetId || null
+}
+
+function fillWindow(data = {}) {
+  const window = data._window || data.window || data._windows?.[0]
+  if (!window) return
+  windowForm.start_at = window.start_at || window.startTime || window.start_time || ''
+  windowForm.end_at = window.end_at || window.endTime || window.end_time || ''
+  windowForm.modifiable_hours = window.modifiable_hours || window.modifiableHours || 24
+}
+
+async function loadTargetOptions() {
+  try {
+    targetOptions.value = await getPublishTargetOptionsApi()
+  } catch (error) {
+    console.error('加载评价对象失败:', error)
+    ElMessage.error('评价对象加载失败')
+  }
+}
+
+async function loadEditData() {
+  if (!isEdit.value || !props.formData?.id) return
+  formLoading.value = true
+  try {
+    const targetType = props.formData.target_type || props.formData.targetType
+    Object.assign(form, {
+      title: props.formData.title || '',
+      type: props.formData.type || 'teaching',
+      description: props.formData.description || '',
+      cover_file_id: props.formData.cover_file_id || props.formData.coverFileId || null,
+      anonymous: props.formData.anonymous ?? props.formData.anonymousEnabled ?? true,
+      publish_scope: props.formData.publish_scope || 'all_students',
+      course_id: props.formData.course_id || props.formData.courseId || (targetType === 'course' ? getTargetId(props.formData) : null),
+      teaching_org_id: props.formData.teaching_org_id || props.formData.teachingOrgId || null,
+      service_item_id: props.formData.service_item_id || props.formData.serviceItemId || (targetType === 'service_item' ? getTargetId(props.formData) : null),
+      service_org_id: props.formData.service_org_id || props.formData.serviceOrgId || null,
+    })
+    coverPreviewUrl.value = props.formData._cover_url || props.formData.coverUrl || ''
+    fillWindow(props.formData)
+
+    const loadedQuestions = await getEvalQuestionsByFormApi(props.formData._context, props.formData.id)
+    questions.value = loadedQuestions.map((q) => ({ ...q, _options: q._options || [] }))
+  } catch (error) {
+    console.error('加载编辑数据失败:', error)
+    ElMessage.error('加载表单数据失败')
+  } finally {
+    formLoading.value = false
+  }
+}
+
+function addQuestion(type = 'rating') {
+  questions.value.push({
+    type,
+    question_type: type,
+    title: '',
+    required: true,
+    max_score: type === 'rating' ? 5 : null,
+    min_length: type === 'text' ? 10 : null,
+    sort_order: questions.value.length + 1,
+    _options: ['single', 'multiple'].includes(type) ? [{ option_text: '', sort_order: 1 }] : [],
+  })
+}
+
+function updateQuestions(nextQuestions) {
+  questions.value = nextQuestions
+}
+
+function prevStep() {
+  if (currentStep.value > 0) currentStep.value--
+}
+
+function nextStep() {
+  if (!stepValid.value) {
+    ElMessage.warning('请先填写当前步骤的必填内容')
+    return
+  }
+  if (currentStep.value < steps.value.length - 1) currentStep.value++
+}
+
+function generatedCourseCode(courseName) {
+  return `CUSTOM_${Date.now().toString(36).toUpperCase()}_${courseName.length}`
+}
+
+async function ensureSelectedCourse() {
+  if (!isTeaching.value || !form.course_id || typeof form.course_id !== 'string') return
+  const courseName = form.course_id.trim()
+  if (!courseName) return
+  const teachingOrgId = form.teaching_org_id || targetOptions.value.teachingOrgs?.[0]?.id
+  if (!teachingOrgId) throw new Error('请先选择教学组织，再填写新课程')
+  const created = await createCourseOptionApi({
+    teachingOrgId,
+    courseCode: generatedCourseCode(courseName),
+    courseName,
+  })
+  targetOptions.value.courses = [created, ...targetOptions.value.courses]
+  form.course_id = created.id
+  form.teaching_org_id = created.teaching_org_id || teachingOrgId
+}
+
+function validateBeforeSave() {
+  if (!form.title.trim()) throw new Error('请填写表单名称')
+  if (isTeaching.value && !form.course_id) throw new Error('请选择课程，或直接输入新课程名称')
+  if (!isTeaching.value && !form.service_item_id) throw new Error('请选择服务项目')
+  if (!isLimitedEdit.value && questions.value.length === 0) throw new Error('请至少添加一道题目')
+  if (!isLimitedEdit.value && questions.value.some((q) => !String(q.title || '').trim())) throw new Error('请填写所有题目标题')
+  if (!windowForm.start_at || !windowForm.end_at) throw new Error('请设置评价窗口时间')
+  if (new Date(windowForm.end_at) <= new Date(windowForm.start_at)) throw new Error('结束时间必须晚于开始时间')
+}
+
+async function handleSaveAndPreview() {
+  saving.value = true
+  try {
+    await ensureSelectedCourse()
+    validateBeforeSave()
+    const ctx = { tenantId: props.formData._context?.tenantId, userId: props.formData._context?.userId }
+    let formId = props.formData?.id
+
+    const payload = { ...form }
+    if (isTeaching.value) {
+      payload.service_item_id = null
+      payload.service_org_id = null
+    } else {
+      payload.course_id = null
+      payload.teaching_org_id = null
+    }
+
+    if (isEdit.value && formId) {
+      await updateEvalFormApi(ctx, formId, payload)
+    } else {
+      const created = await createEvalFormDraftApi(ctx, payload)
+      formId = created.id
+    }
+
+    if (!isLimitedEdit.value && formId) {
+      await saveEvalQuestionsApi(ctx, formId, questions.value)
+    }
+
+    if (formId) {
+      await createEvalWindowApi(ctx, {
+        form_id: formId,
+        start_at: new Date(windowForm.start_at).toISOString(),
+        end_at: new Date(windowForm.end_at).toISOString(),
+      })
+    }
+
+    ElMessage.success('评价表单已保存')
+    emit('saved')
+    handleClose()
+  } catch (error) {
+    console.error('保存失败:', error)
+    ElMessage.error(error?.message || '保存失败，请重试')
+  } finally {
+    saving.value = false
+  }
+}
+
+function handleClose() {
+  currentStep.value = 0
+  resetForm()
+  emit('update:visible', false)
+}
 
 function handleOpenUpload() {
   uploadDialogVisible.value = true
@@ -49,23 +292,23 @@ function handleCoverSelect(event) {
     return
   }
   coverPreviewUrl.value = URL.createObjectURL(file)
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('bizType', 'evaluation_cover')
-  request.post('/files/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }).then((response) => {
-    const uploaded = response?.data || response
-    form.cover_file_id = uploaded?.id || null
-    if (!form.cover_file_id) throw new Error('上传文件后端未返回文件ID')
-    uploadDialogVisible.value = false
-    ElMessage.success('封面图片上传成功')
-  }).catch((error) => {
-    coverPreviewUrl.value = ''
-    form.cover_file_id = null
-    console.error('封面图片上传失败:', error)
-    ElMessage.error('封面图片上传失败')
-  })
+  const body = new FormData()
+  body.append('file', file)
+  body.append('bizType', 'evaluation_cover')
+  request.post('/files/upload', body, { headers: { 'Content-Type': 'multipart/form-data' } })
+    .then((response) => {
+      const uploaded = response?.data?.data || response?.data || response
+      form.cover_file_id = uploaded?.id || null
+      if (!form.cover_file_id) throw new Error('后端未返回文件ID')
+      uploadDialogVisible.value = false
+      ElMessage.success('封面图片上传成功')
+    })
+    .catch((error) => {
+      coverPreviewUrl.value = ''
+      form.cover_file_id = null
+      console.error('封面图片上传失败:', error)
+      ElMessage.error('封面图片上传失败')
+    })
 }
 
 function handleRemoveCover() {
@@ -77,204 +320,32 @@ function handlePreviewCover() {
   coverPreviewVisible.value = true
 }
 
-// 表单基础数据
-const form = reactive({
-  title: '',
-  type: 'teaching',
-  description: '',
-  cover_file_id: null,
-  anonymous: true,
-  publish_scope: 'all_students',
-  course_id: null,
-  teaching_org_id: null,
-  service_item_id: null,
-  service_org_id: null,
+watch(() => form.type, () => {
+  form.course_id = null
+  form.teaching_org_id = null
+  form.service_item_id = null
+  form.service_org_id = null
 })
 
-// 题目列表
-const questions = ref([])
-
-// 评价窗口
-const windowForm = reactive({
-  start_at: '',
-  end_at: '',
-  modifiable_hours: 24,
-})
-
-// 目标选项
-const targetOptions = ref({ serviceItems: [], courses: [], serviceOrgs: [], teachingOrgs: [] })
-
-// 表单校验
-const stepValid = computed(() => {
-  if (isLimitedEdit.value) {
-    // 有限编辑模式：步骤 0 = 基础信息, 步骤 1 = 评价窗口
-    switch (currentStep.value) {
-      case 0: return !!form.title.trim()
-      case 1: return !!windowForm.start_at && !!windowForm.end_at
-      default: return true
-    }
-  }
-  switch (currentStep.value) {
-    case 0: return !!form.title.trim() && !!form.type
-    case 1:
-      if (isTeaching.value) return !!form.course_id || !!form.teaching_org_id
-      return !!form.service_item_id || !!form.service_org_id
-    case 2: return questions.value.length > 0
-    case 3: return !!windowForm.start_at && !!windowForm.end_at
-    case 4: return true
-    default: return false
+watch(() => form.service_org_id, () => {
+  if (!form.service_item_id) return
+  const selected = targetOptions.value.serviceItems.find((item) => Number(item.id) === Number(form.service_item_id))
+  if (selected && form.service_org_id && Number(selected.service_org_id) !== Number(form.service_org_id)) {
+    form.service_item_id = null
   }
 })
 
-const typeOptions = [
-  { label: '教学评价', value: 'teaching' },
-  { label: '后勤服务评价', value: 'service' },
-  { label: '即时评价', value: 'instant' },
-]
-
-const isTeaching = computed(() => form.type === 'teaching')
-const isEdit = computed(() => props.mode === 'edit')
-const isLimitedEdit = computed(() => props.formData?._limitedEdit === true)
-
-// 有限编辑模式只显示可修改的步骤
-const steps = computed(() => {
-  if (isLimitedEdit.value) {
-    return ['基础信息', '评价窗口']
-  }
-  return ['基础信息', '评价对象', '题目配置', '评价窗口', '预览提交']
+watch(() => form.service_item_id, (id) => {
+  const selected = targetOptions.value.serviceItems.find((item) => Number(item.id) === Number(id))
+  if (selected?.service_org_id) form.service_org_id = selected.service_org_id
 })
 
-// 加载目标选项
-async function loadTargetOptions() {
-  try {
-    const ctx = { tenantId: props.formData.tenant_id || props.formData._context?.tenantId }
-    if (!ctx.tenantId) return
-    targetOptions.value = await getPublishTargetOptionsApi(ctx)
-  } catch { /* ignore */ }
-}
-
-// 加载编辑数据
-async function loadEditData() {
-  if (!isEdit.value || !props.formData?.id) return
-  formLoading.value = true
-  try {
-    // 填充基础信息
-    Object.assign(form, {
-      title: props.formData.title || '',
-      type: props.formData.type || 'teaching',
-      description: props.formData.description || '',
-      cover_file_id: props.formData.cover_file_id || null,
-      anonymous: props.formData.anonymous ?? true,
-      publish_scope: props.formData.publish_scope || 'all_students',
-      course_id: props.formData.course_id || null,
-      teaching_org_id: props.formData.teaching_org_id || null,
-      service_item_id: props.formData.service_item_id || null,
-      service_org_id: props.formData.service_org_id || null,
-    })
-
-    coverPreviewUrl.value = props.formData._cover_url || ''
-
-    // 加载题目
-    const ctx = { tenantId: props.formData.tenant_id }
-    const loadedQuestions = await getEvalQuestionsByFormApi(ctx, props.formData.id)
-    questions.value = loadedQuestions.map(q => ({
-      ...q,
-      _options: q._options || [],
-    }))
-  } catch (err) {
-    console.error('加载编辑数据失败:', err)
-  } finally {
-    formLoading.value = false
-  }
-}
-
-// 添加题目
-function addQuestion(type = 'rating') {
-  questions.value.push({
-    type,
-    title: '',
-    required: true,
-    max_score: type === 'rating' ? 5 : null,
-    min_length: type === 'text' ? 10 : null,
-    sort_order: questions.value.length + 1,
-    _options: ['single', 'multiple'].includes(type) ? [{ option_text: '', sort_order: 1 }] : [],
-  })
-}
-
-// 上一步 / 下一步
-function prevStep() {
-  if (currentStep.value > 0) currentStep.value--
-}
-
-function nextStep() {
-  if (currentStep.value < steps.value.length - 1 && stepValid.value) currentStep.value++
-}
-
-// 保存并提交预览中的完整保存
-async function handleSaveAndPreview() {
-  saving.value = true
-  try {
-    const ctx = { tenantId: props.formData._context?.tenantId, userId: props.formData._context?.userId }
-    let formId = props.formData?.id
-
-    if (isEdit.value && formId) {
-      await updateEvalFormApi(ctx, formId, { ...form })
-    } else {
-      const created = await createEvalFormDraftApi(ctx, { ...form })
-      formId = created.id
-    }
-
-    // 保存题目
-    if (formId && questions.value.length > 0) {
-      await saveEvalQuestionsApi(ctx, formId, questions.value)
-    }
-
-    // 保存窗口
-    if (formId && windowForm.start_at && windowForm.end_at) {
-      await createEvalWindowApi(ctx, {
-        form_id: formId,
-        type: form.type,
-        start_at: new Date(windowForm.start_at).toISOString(),
-        end_at: new Date(windowForm.end_at).toISOString(),
-        modifiable_hours: windowForm.modifiable_hours,
-        status: new Date(windowForm.end_at) > new Date() ? 'open' : 'closed',
-      })
-    }
-
-    emit('saved')
-    handleClose()
-  } catch (err) {
-    console.error('保存失败:', err)
-    ElMessage.error('保存失败，请重试')
-  } finally {
-    saving.value = false
-  }
-}
-
-function handleClose() {
-  currentStep.value = 0
-  resetForm()
-  emit('update:visible', false)
-}
-
-function resetForm() {
-  Object.assign(form, {
-    title: '', type: 'teaching', description: '', cover_file_id: null,
-    anonymous: true, publish_scope: 'all_students',
-    course_id: null, teaching_org_id: null, service_item_id: null, service_org_id: null,
-  })
-  coverPreviewUrl.value = ''
-  questions.value = []
-  Object.assign(windowForm, { start_at: '', end_at: '', modifiable_hours: 24 })
-}
-
-// 题型标签
-const typeLabelMap = { rating: '评分题', text: '文本题', single: '单选题', multiple: '多选题' }
-
-watch(() => props.visible, (val) => {
-  if (val) {
-    loadTargetOptions()
-    if (isEdit.value) loadEditData()
+watch(() => props.visible, async (visible) => {
+  if (visible) {
+    resetForm()
+    currentStep.value = 0
+    await loadTargetOptions()
+    await loadEditData()
   } else {
     resetForm()
     currentStep.value = 0
@@ -285,30 +356,28 @@ watch(() => props.visible, (val) => {
 <template>
   <el-drawer
     :model-value="visible"
-    :title="isLimitedEdit ? '有限修改评价表单' : isEdit ? '编辑评价表单' : '新建评价表单'"
+    :title="isLimitedEdit ? '修改评价表单' : isEdit ? '编辑评价表单' : '新建评价表单'"
     size="760px"
     :close-on-click-modal="false"
     @close="handleClose"
   >
-    <!-- 步骤条 -->
     <el-steps :active="currentStep" finish-status="success" align-center class="drawer-steps">
-      <el-step v-for="(s, i) in steps" :key="i" :title="s" />
+      <el-step v-for="(step, index) in steps" :key="index" :title="step" />
     </el-steps>
 
     <div v-loading="formLoading" class="drawer-body">
-      <!-- 步骤 1: 基础信息 -->
       <div v-show="currentStep === 0" class="step-content">
-        <el-form label-width="80px" label-position="top">
+        <el-form label-position="top">
           <el-form-item label="表单名称" required>
             <el-input v-model="form.title" placeholder="请输入评价表单名称" maxlength="100" show-word-limit />
           </el-form-item>
           <el-form-item v-if="!isLimitedEdit" label="表单类型" required>
             <el-select v-model="form.type" style="width: 100%">
-              <el-option v-for="opt in typeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+              <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
           <el-form-item label="表单说明">
-            <el-input v-model="form.description" type="textarea" :rows="3" placeholder="简要描述评价目的和范围（选填）" maxlength="500" show-word-limit />
+            <el-input v-model="form.description" type="textarea" :rows="3" placeholder="简要描述评价目的和范围" maxlength="500" show-word-limit />
           </el-form-item>
           <el-form-item label="封面图片">
             <div v-if="coverPreviewUrl" class="cover-preview-wrapper">
@@ -321,57 +390,61 @@ watch(() => props.visible, (val) => {
             <div v-else class="cover-upload-trigger" @click="handleOpenUpload">
               <el-icon :size="28" class="cover-upload-icon"><Picture /></el-icon>
               <span class="cover-upload-text">点击上传封面</span>
-              <span class="cover-upload-hint">建议尺寸 16:9，不超过 5MB</span>
+              <span class="cover-upload-hint">16:9，不超过 5MB</span>
             </div>
           </el-form-item>
           <el-form-item label="匿名评价">
             <el-switch v-model="form.anonymous" />
-            <span class="field-hint">开启后学生提交评价时不显示个人信息</span>
+            <span class="field-hint">开启后学生提交评价时不展示个人信息</span>
           </el-form-item>
           <el-alert v-if="isLimitedEdit" type="info" :closable="false" show-icon>
-            已发布表单仅允许修改说明、封面、评价窗口设置，不可修改题目结构和评价对象
+            已发布表单仅适合调整说明、封面和评价窗口。
           </el-alert>
         </el-form>
       </div>
 
-      <!-- 步骤 2: 评价对象与范围 -->
       <div v-show="currentStep === 1 && !isLimitedEdit" class="step-content">
-        <el-form label-width="80px" label-position="top">
+        <el-form label-position="top">
           <template v-if="isTeaching">
-            <el-form-item label="选择课程">
-              <el-select v-model="form.course_id" placeholder="选择关联课程（可选）" clearable filterable style="width: 100%">
-                <el-option v-for="c in targetOptions.courses" :key="c.id" :label="c.course_name" :value="c.id" />
+            <el-form-item label="课程" required>
+              <el-select
+                v-model="form.course_id"
+                placeholder="选择课程，或直接输入新课程名称"
+                clearable
+                filterable
+                allow-create
+                default-first-option
+                style="width: 100%"
+              >
+                <el-option v-for="course in targetOptions.courses" :key="course.id" :label="course.course_name || course.label" :value="course.id" />
               </el-select>
             </el-form-item>
             <el-form-item label="教学组织">
-              <el-select v-model="form.teaching_org_id" placeholder="选择教学组织（可选）" clearable filterable style="width: 100%">
-                <el-option v-for="o in targetOptions.teachingOrgs" :key="o.id" :label="o.name" :value="o.id" />
+              <el-select v-model="form.teaching_org_id" placeholder="选择教学组织" clearable filterable style="width: 100%">
+                <el-option v-for="org in targetOptions.teachingOrgs" :key="org.id" :label="org.name || org.label" :value="org.id" />
               </el-select>
             </el-form-item>
           </template>
           <template v-else>
-            <el-form-item label="服务项目">
-              <el-select v-model="form.service_item_id" placeholder="选择关联服务项目（可选）" clearable filterable style="width: 100%">
-                <el-option v-for="s in targetOptions.serviceItems" :key="s.id" :label="s.name" :value="s.id" />
+            <el-form-item label="服务组织">
+              <el-select v-model="form.service_org_id" placeholder="先选择服务组织可筛选项目" clearable filterable style="width: 100%">
+                <el-option v-for="org in targetOptions.serviceOrgs" :key="org.id" :label="org.name || org.label" :value="org.id" />
               </el-select>
             </el-form-item>
-            <el-form-item label="服务组织">
-              <el-select v-model="form.service_org_id" placeholder="选择服务组织（可选）" clearable filterable style="width: 100%">
-                <el-option v-for="o in targetOptions.serviceOrgs" :key="o.id" :label="o.name" :value="o.id" />
+            <el-form-item label="服务项目" required>
+              <el-select v-model="form.service_item_id" placeholder="请选择服务项目" clearable filterable style="width: 100%">
+                <el-option v-for="item in filteredServiceItems" :key="item.id" :label="item.name || item.label" :value="item.id" />
               </el-select>
             </el-form-item>
           </template>
           <el-form-item label="发布范围">
             <el-select v-model="form.publish_scope" style="width: 100%">
-              <el-option label="全部学生" value="all_students" />
-              <el-option label="指定班级" value="specified_class" />
-              <el-option label="指定专业" value="specified_major" />
+              <el-option v-for="item in publishScopeOptions" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
         </el-form>
       </div>
 
-      <!-- 步骤 3: 题目配置 -->
       <div v-show="currentStep === 2 && !isLimitedEdit" class="step-content">
         <div class="questions-header">
           <span class="questions-title">题目列表（{{ questions.length }} 道）</span>
@@ -387,51 +460,31 @@ watch(() => props.visible, (val) => {
             </template>
           </el-dropdown>
         </div>
-
-        <div v-if="questions.length === 0" class="questions-empty">
-          <p>暂无题目，请点击上方按钮添加</p>
-        </div>
-
+        <div v-if="questions.length === 0" class="questions-empty">暂无题目，请点击上方按钮添加</div>
         <QuestionEditor
-          v-for="(q, i) in questions"
-          :key="i"
+          v-for="(question, index) in questions"
+          :key="index"
           :questions="questions"
-          :index="i"
-          @update:questions="questions = $event"
+          :index="index"
+          @update:questions="updateQuestions"
         />
       </div>
 
-      <!-- 步骤 4: 评价窗口 -->
       <div v-show="(currentStep === 3 && !isLimitedEdit) || (currentStep === 1 && isLimitedEdit)" class="step-content">
-        <el-form label-width="100px" label-position="top">
+        <el-form label-position="top">
           <el-form-item label="开始时间" required>
-            <el-date-picker
-              v-model="windowForm.start_at"
-              type="datetime"
-              placeholder="选择评价开始时间"
-              style="width: 100%"
-              format="YYYY-MM-DD HH:mm"
-              value-format="YYYY-MM-DDTHH:mm:ss"
-            />
+            <el-date-picker v-model="windowForm.start_at" type="datetime" placeholder="选择评价开始时间" style="width: 100%" format="YYYY-MM-DD HH:mm" value-format="YYYY-MM-DDTHH:mm:ss" />
           </el-form-item>
           <el-form-item label="结束时间" required>
-            <el-date-picker
-              v-model="windowForm.end_at"
-              type="datetime"
-              placeholder="选择评价截止时间"
-              style="width: 100%"
-              format="YYYY-MM-DD HH:mm"
-              value-format="YYYY-MM-DDTHH:mm:ss"
-            />
+            <el-date-picker v-model="windowForm.end_at" type="datetime" placeholder="选择评价结束时间" style="width: 100%" format="YYYY-MM-DD HH:mm" value-format="YYYY-MM-DDTHH:mm:ss" />
           </el-form-item>
           <el-form-item label="允许修改时长">
             <el-input-number v-model="windowForm.modifiable_hours" :min="0" :max="720" style="width: 200px" />
-            <span class="field-hint">小时内学生可修改评价（0 表示不可修改）</span>
+            <span class="field-hint">小时内学生可修改评价，0 表示不可修改</span>
           </el-form-item>
         </el-form>
       </div>
 
-      <!-- 步骤 5: 预览与提交 -->
       <div v-show="currentStep === 4 && !isLimitedEdit" class="step-content">
         <div class="preview-section">
           <div v-if="coverPreviewUrl" class="preview-cover">
@@ -439,60 +492,55 @@ watch(() => props.visible, (val) => {
           </div>
           <h3 class="preview-title">{{ form.title || '未命名表单' }}</h3>
           <div class="preview-meta">
-            <el-tag size="small" effect="light">{{ typeOptions.find(t => t.value === form.type)?.label || form.type }}</el-tag>
+            <el-tag size="small" effect="light">{{ typeOptions.find((item) => item.value === form.type)?.label || form.type }}</el-tag>
             <span v-if="form.anonymous" class="preview-tag">匿名评价</span>
           </div>
           <p v-if="form.description" class="preview-desc">{{ form.description }}</p>
-
           <div class="preview-block">
             <div class="preview-label">评价对象</div>
             <div class="preview-value">
               <template v-if="isTeaching">
-                {{ targetOptions.courses.find(c => c.id === form.course_id)?.course_name || '未指定' }}
-                <span v-if="form.teaching_org_id"> / {{ targetOptions.teachingOrgs.find(o => o.id === form.teaching_org_id)?.name }}</span>
+                {{ targetOptions.courses.find((item) => item.id === form.course_id)?.course_name || form.course_id || '未指定' }}
+                <span v-if="form.teaching_org_id"> / {{ targetOptions.teachingOrgs.find((item) => item.id === form.teaching_org_id)?.name }}</span>
               </template>
               <template v-else>
-                {{ targetOptions.serviceItems.find(s => s.id === form.service_item_id)?.name || '未指定' }}
-                <span v-if="form.service_org_id"> / {{ targetOptions.serviceOrgs.find(o => o.id === form.service_org_id)?.name }}</span>
+                {{ targetOptions.serviceItems.find((item) => item.id === form.service_item_id)?.name || '未指定' }}
+                <span v-if="form.service_org_id"> / {{ targetOptions.serviceOrgs.find((item) => item.id === form.service_org_id)?.name }}</span>
               </template>
             </div>
           </div>
-
           <div class="preview-block">
             <div class="preview-label">题目（{{ questions.length }} 道）</div>
-            <div v-for="(q, i) in questions" :key="i" class="preview-question">
-              <span class="pq-index">{{ i + 1 }}.</span>
-              <span class="pq-title">{{ q.title || '未填写标题' }}</span>
-              <el-tag size="small" type="info">{{ typeLabelMap[q.type] || q.type }}</el-tag>
-              <span v-if="q.required" class="pq-required">必填</span>
+            <div v-for="(question, index) in questions" :key="index" class="preview-question">
+              <span class="pq-index">{{ index + 1 }}.</span>
+              <span class="pq-title">{{ question.title || '未填写标题' }}</span>
+              <el-tag size="small" type="info">{{ typeLabelMap[question.type] || question.type }}</el-tag>
+              <span v-if="question.required" class="pq-required">必填</span>
             </div>
           </div>
-
           <div class="preview-block">
             <div class="preview-label">评价窗口</div>
             <div class="preview-value">
-              {{ windowForm.start_at ? new Date(windowForm.start_at).toLocaleString() : '未设置' }}
-              — {{ windowForm.end_at ? new Date(windowForm.end_at).toLocaleString() : '未设置' }}
+              {{ windowForm.start_at ? new Date(windowForm.start_at).toLocaleString() : '未设置' }} -
+              {{ windowForm.end_at ? new Date(windowForm.end_at).toLocaleString() : '未设置' }}
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 底部操作 -->
     <template #footer>
       <div class="drawer-footer">
         <el-button v-if="currentStep > 0" @click="prevStep">上一步</el-button>
         <div class="footer-right">
           <el-button @click="handleClose">取消</el-button>
           <el-button v-if="currentStep < steps.length - 1" type="primary" :disabled="!stepValid" @click="nextStep">下一步</el-button>
-          <el-button v-if="currentStep === steps.length - 1" type="primary" :loading="saving" @click="handleSaveAndPreview">保存</el-button>
+          <el-button v-else type="primary" :loading="saving" @click="handleSaveAndPreview">保存</el-button>
         </div>
       </div>
     </template>
   </el-drawer>
 
-  <!-- 封面上传弹窗 -->
   <el-dialog v-model="uploadDialogVisible" title="上传封面图片" width="480px" :close-on-click-modal="true">
     <div class="upload-dialog-body">
       <div class="upload-drop-zone">
@@ -504,13 +552,9 @@ watch(() => props.visible, (val) => {
           <input type="file" accept="image/jpeg,image/png,image/webp" hidden @change="handleCoverSelect" />
         </label>
       </div>
-      <el-alert type="info" :closable="false" show-icon style="margin-top: 16px">
-        当前为本地预览模式，后端上传接口开发后将自动对接真实上传
-      </el-alert>
     </div>
   </el-dialog>
 
-  <!-- 封面预览弹窗 -->
   <el-dialog v-model="coverPreviewVisible" title="封面预览" width="640px">
     <CoverImage v-if="coverPreviewUrl" :src="coverPreviewUrl" width="100%" height="auto" radius="var(--radius-lg)" />
   </el-dialog>
@@ -542,7 +586,6 @@ watch(() => props.visible, (val) => {
   margin-left: var(--space-2);
 }
 
-/* 题目配置 */
 .questions-header {
   display: flex;
   align-items: center;
@@ -563,7 +606,6 @@ watch(() => props.visible, (val) => {
   font-size: var(--font-sm);
 }
 
-/* 预览 */
 .preview-section {
   display: flex;
   flex-direction: column;
@@ -649,7 +691,6 @@ watch(() => props.visible, (val) => {
   color: var(--color-danger);
 }
 
-/* 底部 */
 .drawer-footer {
   display: flex;
   align-items: center;
@@ -663,7 +704,6 @@ watch(() => props.visible, (val) => {
   margin-left: auto;
 }
 
-/* 封面上传 */
 .cover-upload-trigger {
   display: flex;
   flex-direction: column;
@@ -727,7 +767,6 @@ watch(() => props.visible, (val) => {
   overflow: hidden;
 }
 
-/* 上传弹窗 */
 .upload-dialog-body {
   padding: var(--space-2) 0;
 }
