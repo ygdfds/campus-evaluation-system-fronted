@@ -57,7 +57,7 @@ export async function getStaffAppealContextApi(tenantId) {
   const [appealsRes, recordsRes, tracesRes, reportRes] = await Promise.all([
     request.get('/review/appeals'),
     request.get('/review/appealProcessRecords'),
-    request.get('/review/traceAuthorizations'),
+    request.get('/review/traceAuthorizations', { silent: true }).catch(() => ({ data: [] })),
     request.get('/stats/staff/reports/context'),
   ])
   const report = dataOf(reportRes) || {}

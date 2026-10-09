@@ -51,14 +51,15 @@ service.interceptors.response.use(
     return res
   },
   (error) => {
+    const backendMessage = error.response?.data?.message || error.response?.data?.msg
     if (error.response?.status === 401) {
       clearAuth()
       router.push('/login')
       ElMessage.error('登录已过期，请重新登录')
     } else if (!error.config?.silent) {
-      ElMessage.error(error.message || '网络错误')
+      ElMessage.error(backendMessage || error.message || '网络错误')
     }
-    return Promise.reject(error)
+    return Promise.reject(new Error(backendMessage || error.message || '网络错误'))
   }
 )
 

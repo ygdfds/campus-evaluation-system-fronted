@@ -124,14 +124,12 @@ async function loadData() {
 }
 
 async function loadOptions() {
-  try {
-    const [depts, classes] = await Promise.all([
-      getSchoolDepartmentOptionsApi(tenantId.value),
-      getSchoolClassOptionsApi(tenantId.value),
-    ])
-    departmentOptions.value = depts
-    classOptions.value = classes
-  } catch { /* ignore */ }
+  const [depts, classes] = await Promise.allSettled([
+    getSchoolDepartmentOptionsApi(tenantId.value),
+    getSchoolClassOptionsApi(tenantId.value),
+  ])
+  departmentOptions.value = depts.status === 'fulfilled' ? depts.value : []
+  classOptions.value = classes.status === 'fulfilled' ? classes.value : []
 }
 
 // ==================== 筛选 ====================
@@ -200,6 +198,7 @@ async function openEditDrawer(row) {
 
 function handleDrawerDepartmentChange() {
   if (!drawerForm.value?.class_id) return
+  if (!classOptions.value.some(opt => String(opt.value) === String(drawerForm.value.class_id))) return
   const selectedClass = classOptions.value.find(opt => String(opt.value) === String(drawerForm.value.class_id))
   if (selectedClass && String(selectedClass.teaching_org_id) !== String(drawerForm.value.teaching_org_id)) {
     drawerForm.value.class_id = null
@@ -223,6 +222,7 @@ async function handleDrawerSubmit() {
       ElMessage.success('编辑学生成功')
     }
     drawerVisible.value = false
+    await loadOptions()
     await loadData()
   } catch (err) {
     ElMessage.error(err.message || '操作失败')
@@ -546,7 +546,15 @@ onMounted(() => {
           </el-col>
           <el-col :span="12">
             <el-form-item label="班级" prop="class_id">
-              <el-select v-model="drawerForm.class_id" placeholder="请选择班级" clearable style="width: 100%">
+              <el-select
+                v-model="drawerForm.class_id"
+                placeholder="请选择或直接输入班级"
+                clearable
+                filterable
+                allow-create
+                default-first-option
+                style="width: 100%"
+              >
                 <el-option
                   v-for="opt in drawerClassOptions"
                   :key="opt.value"

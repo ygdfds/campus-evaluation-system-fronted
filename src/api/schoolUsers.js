@@ -25,11 +25,12 @@ export const accountStatusMap = {
 function normalizeStaff(item) {
   const user = normalizeUser(item)
   const roleCode = user.roleCodes?.[0] || user.role_type || 'staff'
+  const roleLabels = (user.roleCodes || []).map(code => staffRoleTypeMap[code] || code)
   return {
     ...user,
     _id: user.id,
     role_type: roleCode,
-    role_label: staffRoleTypeMap[roleCode] || user.role_names?.[0] || roleCode,
+    role_label: roleLabels.length ? roleLabels.join('、') : (staffRoleTypeMap[roleCode] || user.role_names?.[0] || roleCode),
     gender_label: genderMap[user.gender] || '-',
     account_status_label: accountStatusMap[user.account_status] || user.account_status,
     org_unit_id: user.teaching_org_id ? `teaching:${user.teaching_org_id}` : (user.service_org_id ? `service:${user.service_org_id}` : null),
@@ -127,6 +128,9 @@ export async function createSchoolStaffApi(tenantId, payload) {
 export async function updateSchoolStaffApi(tenantId, profileId, payload) {
   const id = profileId || payload.id || payload._id
   const data = await request.put(`/school/staff-users/${id}`, staffPayload(payload)).then(dataOf)
+  if (Array.isArray(payload.role_type) || Array.isArray(payload.roleCodes)) {
+    await assignSchoolStaffRolesApi(tenantId, id, roleCodesOf(payload))
+  }
   return normalizeStaff(data)
 }
 
@@ -167,13 +171,15 @@ export async function getSchoolStudentDetailApi(tenantId, profileId) {
 }
 
 export async function createSchoolStudentApi(tenantId, payload) {
-  const data = await request.post('/school/student-users', studentPayload(payload)).then(dataOf)
+  const classId = await resolveStudentClassId(payload)
+  const data = await request.post('/school/student-users', studentPayload({ ...payload, classId })).then(dataOf)
   return normalizeStudent(data)
 }
 
 export async function updateSchoolStudentApi(tenantId, profileId, payload) {
   const id = profileId || payload.id || payload._id
-  const data = await request.put(`/school/student-users/${id}`, studentPayload(payload)).then(dataOf)
+  const classId = await resolveStudentClassId(payload)
+  const data = await request.put(`/school/student-users/${id}`, studentPayload({ ...payload, classId })).then(dataOf)
   return normalizeStudent(data)
 }
 
@@ -217,14 +223,59 @@ export async function getSchoolDepartmentOptionsApi() {
 }
 
 export async function getSchoolClassOptionsApi() {
-  const page = await request.get('/school/classes', {
+  let page = await request.get('/school/classes', {
     params: { page: 1, pageSize: 500, status: 'active' },
   }).then(pageOf)
+  if (!page.records?.length) {
+    const options = await request.get('/school/classes/options').then(dataOf)
+    page = { records: options || [] }
+  }
   return (page.records || []).map((item) => ({
     value: item.id || item.value,
     label: item.className || item.class_name || item.label || item.name,
     teaching_org_id: item.teachingOrgId || item.teaching_org_id || null,
     grade: item.gradeName || item.grade_name || item.extra || '',
   }))
+}
+
+export async function createSchoolClassApi(payload = {}) {
+  const className = String(payload.className || payload.class_name || '').trim()
+  const teachingOrgId = Number(payload.teachingOrgId || payload.teaching_org_id)
+  const data = await request.post('/school/classes', {
+    className,
+    teachingOrgId,
+    gradeName: payload.gradeName || payload.grade_name || '',
+    status: 'active',
+  }).then(dataOf)
+  return {
+    value: data.id || data.value,
+    label: data.className || data.class_name || data.label || className,
+    teaching_org_id: data.teachingOrgId || data.teaching_org_id || teachingOrgId,
+    grade: data.gradeName || data.grade_name || '',
+  }
+}
+
+async function resolveStudentClassId(payload = {}) {
+  const rawClass = payload.classId ?? payload.class_id
+  const numericClassId = Number(rawClass)
+  if (Number.isFinite(numericClassId) && numericClassId > 0) return numericClassId
+
+  const className = String(rawClass || '').trim()
+  if (!className) return undefined
+
+  const teachingOrgId = Number(payload.teachingOrgId || payload.teaching_org_id)
+  if (!Number.isFinite(teachingOrgId) || teachingOrgId <= 0) {
+    throw new Error('直接填写新班级时，请先选择所属院系')
+  }
+
+  const existingClasses = await getSchoolClassOptionsApi()
+  const existing = existingClasses.find(item =>
+    String(item.label).trim() === className &&
+    String(item.teaching_org_id) === String(teachingOrgId)
+  )
+  if (existing) return existing.value
+
+  const created = await createSchoolClassApi({ className, teachingOrgId })
+  return created.value
 }
 
